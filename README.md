@@ -8,6 +8,14 @@ Um centro de formação profissional moderno com cursos de informática, desenvo
 
 **Acesse o site:** [BORA UZIMA - GitHub Pages](https://fernandolukoki94-beep.github.io/Bora-uzima-/)
 
+## 📱 Aplicação Mobile Bora Uzima
+
+Está em desenvolvimento uma aplicação mobile independente para criação de takes vocais e demos musicais, com foco em gravação local, recuperação offline e futura publicação Android.
+
+**Preview mobile:** [abrir Bora Uzima Mobile](https://8081-i6xyex4j7lghvqeyw2pvg-42cb0cfd.us4.manus.computer)
+
+O projecto mobile mantém a identidade do BORA UZIMA, mas não substitui este portfólio web. A primeira versão usa Expo/React Native, gravação vocal com `expo-audio`, persistência local e uma fila de estados preparada para processamento futuro. A autoria e direcção do projecto são de **Fernando Lucoco**.
+
 ## 📚 Cursos Disponíveis
 
 - 💻 **Desenvolvimento Web** - HTML5, CSS3, JavaScript, React, Vue.js
@@ -27,7 +35,8 @@ Bora-uzima-/
 ├── redes.html             # Curso de Redes e Segurança
 ├── manutencao.html        # Curso de Manutenção
 ├── README.md              # Este arquivo
-└── assets/                # Pastas para imagens, CSS, JS (futuro)
+├── assets/                # Pastas para imagens, CSS, JS (futuro)
+└── mobile-app/            # Aplicação mobile Bora Uzima (em evolução)
 ```
 
 ## ✨ Funcionalidades
@@ -86,7 +95,10 @@ Depois acesse: `http://localhost:8000`
 
 ## 🎯 Próximas Melhorias (Roadmap)
 
-- [ ] Publicar no GitHub Pages ✅ Em progresso
+- [x] Publicar no GitHub Pages
+- [x] Iniciar a aplicação mobile Bora Uzima com Expo/React Native
+- [ ] Publicar a aplicação mobile na Google Play após validação e assinatura
+
 - [ ] Páginas detalhadas dos cursos ✅ Em progresso
 - [ ] Seção de equipa (professores, diretor)
 - [ ] Galeria com fotos reais
@@ -114,6 +126,6 @@ Este projeto é de código aberto sob a licença MIT.
 
 ---
 
-**Desenvolvido com ❤️ para BORA UZIMA Formation Professionnelle**
+**Desenvolvido para BORA UZIMA Formation Professionnelle por Fernando Lucoco**
 
 Criado em: 2026 | Última atualização: Junho 2026
