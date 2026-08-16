@@ -36,3 +36,23 @@ test("controlos instrumentais têm feedback e alvos móveis", () => {
   assert.match(css, /\.key\.is-playing/);
   assert.match(css, /\.beat-step \{/);
 });
+
+test("ganho solicitado passa por limiter em vez de ser silenciosamente reduzido", () => {
+  assert.match(effects, /gainNode\.gain\.value = Math\.max\(0\.05, Math\.min\(4, Number\(gain\)/);
+  assert.match(effects, /limiter\.ratio\.value = 20/);
+  assert.match(effects, /source\.connect\(gainNode\)\.connect\(limiter\)/);
+});
+
+test("kick e bass têm níveis dedicados acima da percussão genérica", () => {
+  assert.match(audio, /safeInstrument === "kick" \? 0\.56/);
+  assert.match(audio, /safeInstrument === "bass" \? 0\.3/);
+});
+
+test("kick usa síntese dedicada com ataque e queda de frequência no preview e no Mixdown", () => {
+  const renderer = fs.readFileSync(new URL("../src/js/studio/instrument-renderer.js", import.meta.url), "utf8");
+  assert.match(audio, /isKick \? 155 : 65/);
+  assert.match(audio, /isKick \? 48 : 48/);
+  assert.match(renderer, /function addKick/);
+  assert.match(renderer, /Math\.pow\(48 \/ 155/);
+  assert.match(renderer, /const attack/);
+});

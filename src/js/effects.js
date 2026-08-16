@@ -98,11 +98,18 @@ function withDecodedAudio(blob, renderGraph) {
 }
 
 export function applyGain(blob, gain = 1.4125) {
-  return withDecodedAudio(blob, ({ offline, source, decoded }) => {
+  return withDecodedAudio(blob, ({ offline, source }) => {
     const gainNode = offline.createGain();
-    const { appliedGain } = calculateSafeGain(decoded, gain);
-    gainNode.gain.value = appliedGain;
-    source.connect(gainNode).connect(offline.destination);
+    const limiter = offline.createDynamicsCompressor();
+    // Apply the requested gain so quiet vocal takes become audibly louder.
+    // The limiter protects the rendered WAV instead of silently cancelling the gain.
+    gainNode.gain.value = Math.max(0.05, Math.min(4, Number(gain) || 1));
+    limiter.threshold.value = -1;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.12;
+    source.connect(gainNode).connect(limiter).connect(offline.destination);
   });
 }
 

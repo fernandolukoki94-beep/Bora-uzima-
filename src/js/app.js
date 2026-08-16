@@ -6,7 +6,7 @@ import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
 import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitClip, trimClip } from "./studio/timeline.js";
-import { playChord, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
+import { playChord, playDrumHit, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
@@ -729,9 +729,8 @@ beatGrid?.addEventListener("click", async (event) => {
   if (!button) return;
   button.classList.toggle("is-active");
   const channel = button.dataset.beatChannel;
-  const frequencies = { kick: "C2", snare: "D3", clap: "E3", hihat: "C5", percussion: "G4", bass: "C2" };
   flashControl(button);
-  try { await playNote(frequencies[channel] || "C3", { type: channel === "hihat" ? "square" : "sine", duration: channel === "kick" ? 0.18 : 0.08, volume: channel === "hihat" ? 0.04 : 0.1 }); } catch (error) { showToast(error.message); }
+  try { await playDrumHit(channel, { velocity: channel === "hihat" ? 0.72 : 0.9 }); } catch (error) { showToast(error.message); }
 });
 pianoRoll?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-piano-note]");

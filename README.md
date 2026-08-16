@@ -113,3 +113,14 @@ A avaliação real num Samsung Galaxy A06 com Android 16 e Google Chrome confirm
 O áudio local do teclado e do Beat Maker recebeu envelopes mais suaves, filtros, queda de frequência no kick e ruído determinístico filtrado para snare/clap/hihat. Foi acrescentada uma **Melhoria vocal local** com passa-alto, presença e compressor. Esta função reduz problemas básicos de rumble e dinâmica, mas não é Vocal Engine profissional, correcção de afinação, IA ou mastering.
 
 A suite passou para **73 testes aprovados, 0 falhas**. A promoção do IndexedDB para fonte primária continua bloqueada até nova verificação no dispositivo após estas correcções.
+
+## Correcção Beat Maker pós-QA Android
+
+O preview dos pads do Beat Maker foi corrigido para usar síntese dedicada de kick, snare, clap, hi-hat, percussion e bass, em vez de converter todos os canais em notas tonais genéricas. O sequencer reutiliza o mesmo caminho de síntese e o ruído de percussão permanece determinístico para facilitar QA e reprodução consistente.
+
+A suite local alcançou **80 testes aprovados e 0 falhas**. O reteste no Samsung Galaxy A06 com Android 16 e Chrome ainda é necessário antes de declarar esta correcção aprovada fisicamente.
+
+
+### Correcção de audibilidade pós-QA Android
+
+Após a validação no Samsung Galaxy A06, o ganho vocal foi ajustado para aplicar o ganho solicitado antes de um limiter suave, em vez de reduzir silenciosamente a diferença para cumprir o headroom. O preview e o renderer offline também reforçam de forma controlada kick e bass. A suite local está em **82 testes aprovados**; a percepção final ainda deve ser confirmada novamente no dispositivo real.

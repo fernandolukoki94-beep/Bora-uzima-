@@ -58,7 +58,17 @@
     <section class="studio" id="estudio">
       <div class="shell">
         <div class="section-head"><div><div class="section-kicker">Workspace</div><h2 class="section-title">O teu estúdio,<br />aqui.</h2></div><p class="section-lead">Esta V1 prova a base do fluxo. As takes abaixo são guardadas neste navegador e não são enviadas sem uma acção futura de upload.</p></div>
-        <div class="help-strip" aria-label="Ajuda rápida">
+        <div class="studio-flow" aria-label="Fluxo do estúdio">
+          <div class="studio-flow-intro"><span class="section-kicker">Fluxo da sessão</span><strong>Uma ideia, um caminho claro.</strong><span>Começa pela voz e avança por etapas. O projecto activo permanece no mesmo espaço.</span></div>
+          <nav class="studio-steps" aria-label="Etapas do estúdio">
+            <a class="studio-step is-active" href="#recording-workspace"><span>01</span><strong>Gravar</strong></a>
+            <a class="studio-step" href="#instrument-lab"><span>02</span><strong>Construir</strong></a>
+            <a class="studio-step" href="#timeline"><span>03</span><strong>Editar</strong></a>
+            <a class="studio-step" href="#mixer-panel"><span>04</span><strong>Misturar</strong></a>
+            <a class="studio-step" href="#timeline-mixdown"><span>05</span><strong>Exportar</strong></a>
+          </nav>
+        </div>
+        <div id="recording-workspace" class="help-strip" aria-label="Ajuda rápida">
           <div><strong>Como testar esta V1</strong><span>Autoriza o microfone, grava uma take curta e usa o cartão para ouvir ou descarregar o original. O ganho e o fade criam uma versão processada separada em WAV.</span></div>
           <div><strong>Privacidade local</strong><span>As sessões ficam neste navegador. Limpa os dados do site apenas depois de descarregar os ficheiros que queres conservar.</span></div>
           <div><strong>Telemóvel</strong><span>Usa Safari no iPhone ou Chrome no Android com HTTPS/localhost e testa primeiro com uma take curta.</span></div>
@@ -73,16 +83,19 @@
           </div>
           <div class="workspace-panel"><div class="panel-heading"><div><h3>As tuas sessões</h3><p>Histórico local desta instalação.</p></div><button class="mini-button danger" id="clear-local-storage" type="button">Limpar dados locais</button></div><div class="storage-status" aria-live="polite"><span class="storage-dot" aria-hidden="true"></span><span id="storage-status">A verificar armazenamento local…</span></div><div class="project-list" id="project-list"><div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div></div></div>
         </div>
-        <div class="instrument-panel" id="instrument-lab" aria-label="Instrument Lab local">
+          <div class="studio-module-head"><span class="module-index">02</span><div><span class="section-kicker">Construir</span><strong>Instrumentos e groove</strong><span>Cria ideias locais e adiciona-as à timeline quando estiverem prontas.</span></div></div>
+          <div class="instrument-panel" id="instrument-lab" aria-label="Instrument Lab local">
           <div class="panel-heading"><div><div class="section-kicker">Instrument Lab</div><h3>Ideias sem sair do navegador</h3><p>Pré-escuta local de notas, acordes e grooves — sem uploads e sem custos externos.</p></div><span class="pill">Web Audio local</span></div>
           <div class="instrument-row"><div><strong>Teclado</strong><div class="keyboard" id="keyboard-notes"><button class="key" data-note="C4">C</button><button class="key" data-note="D4">D</button><button class="key" data-note="E4">E</button><button class="key" data-note="F4">F</button><button class="key" data-note="G4">G</button><button class="key" data-note="A4">A</button><button class="key" data-note="B4">B</button></div></div><div class="instrument-controls"><label>Acorde <select id="chord-select"><option>C</option><option>Am</option><option>F</option><option>G</option></select></label><button class="mini-button" id="play-chord" type="button">▶ Tocar acorde</button><button class="mini-button" id="add-chord-timeline" type="button">＋ Timeline</button><label>Groove <select id="pattern-select"><option>Afrobeat</option><option>Amapiano</option><option>Kuduro</option><option>Afro House</option><option>Rumba</option></select></label><button class="mini-button" id="play-pattern" type="button">▶ Tocar groove</button></div></div>
           <div class="instrument-row instrument-secondary"><div><strong>Guitarra virtual</strong><div class="chord-pad" id="guitar-chords"><button class="mini-button" data-guitar-chord="C">C</button><button class="mini-button" data-guitar-chord="Am">Am</button><button class="mini-button" data-guitar-chord="F">F</button><button class="mini-button" data-guitar-chord="G">G</button><button class="mini-button" id="add-guitar-timeline" type="button">＋ Guitarra na timeline</button></div></div><div><strong>Piano roll</strong><div class="piano-roll" id="piano-roll" aria-label="Piano roll de 16 passos"></div></div></div>
         </div>
+        <div class="studio-module-head"><span class="module-index">03</span><div><span class="section-kicker">Ritmo</span><strong>Beat Maker</strong><span>Escolhe um preset ou constrói o teu padrão passo a passo.</span></div></div>
         <div class="beat-panel" id="beat-maker" aria-label="Beat Maker local">
           <div class="panel-heading"><div><div class="section-kicker">Beat Maker</div><h3>Constrói o groove passo a passo</h3><p>Kick, snare, clap, hi-hat, percussão e bass em 16 passos locais.</p></div><span class="pill">Sem upload</span></div>
           <div class="beat-toolbar"><label>Preset <select id="beat-preset"><option>Afrobeat</option><option>Amapiano</option><option>Kuduro</option><option>Afro House</option><option>Rumba</option></select></label><button class="mini-button" id="apply-beat-preset" type="button">Aplicar preset</button><button class="mini-button" id="play-beat-sequence" type="button">▶ Reproduzir padrão</button><button class="mini-button" id="add-beat-timeline" type="button">＋ Beat na timeline</button><button class="mini-button danger" id="reset-beat" type="button">Reset</button></div>
           <div class="beat-grid" id="beat-grid"></div>
         </div>
+        <div class="studio-module-head"><span class="module-index">04</span><div><span class="section-kicker">Editar e misturar</span><strong>Timeline da sessão</strong><span>Organiza clips, controla tracks e prepara o Mixdown no mesmo contexto.</span></div></div>
         <div class="timeline-panel" id="timeline" aria-label="Timeline do Music Engine">
           <div class="panel-heading"><div><div class="section-kicker">Music Engine V1</div><h3>Timeline da sessão</h3><p>Organiza vocal, beat e instrumentos numa mesma linha do tempo local.</p></div><div class="timeline-actions"><button class="mini-button" id="add-track" type="button">+ Adicionar track</button><button class="mini-button" id="timeline-mixdown" type="button">↓ Mixdown WAV</button><button class="mini-button" id="timeline-undo" type="button" disabled>Undo</button><button class="mini-button" id="timeline-redo" type="button" disabled>Redo</button></div></div>
           <div class="transport" role="group" aria-label="Transporte"><button class="mini-button" id="transport-beginning" type="button">|◀ Início</button><button class="mini-button" id="transport-play" type="button">▶ Play</button><button class="mini-button" id="transport-pause" type="button">Ⅱ Pause</button><button class="mini-button" id="transport-stop" type="button">■ Stop</button><span class="transport-clock" id="transport-clock" aria-live="off">00:00 / 00:00</span><label>BPM <input id="project-tempo" type="number" min="40" max="240" value="100" /></label><label>Tom <select id="project-key"><option>C</option><option>Am</option><option>Dm</option><option>G</option></select></label><span id="transport-status">Parado</span></div>

@@ -35,10 +35,34 @@ function drumFrequency(instrument) {
   return { kick: 90, snare: 180, clap: 260, hihat: 5200, percussion: 880, bass: 65 }[instrument] || 300;
 }
 
+function addKick(buffer, start, sampleRate, velocity = 0.8) {
+  const duration = 0.24;
+  const begin = Math.max(0, Math.floor(start * sampleRate));
+  const frames = Math.min(buffer.length - begin, Math.ceil(duration * sampleRate));
+  if (frames <= 0) return;
+  const amplitude = 0.52 * clamp(velocity, 0, 1);
+  let phase = 0;
+  for (let index = 0; index < frames; index += 1) {
+    const progress = index / Math.max(1, frames - 1);
+    const frequency = 155 * Math.pow(48 / 155, Math.min(1, progress * 2.6));
+    phase += (2 * Math.PI * frequency) / sampleRate;
+    const body = Math.sin(phase);
+    const sub = Math.sin(phase * 0.5) * 0.18;
+    const attack = Math.min(1, (index + 1) / Math.max(1, Math.ceil(sampleRate * 0.004)));
+    const envelope = Math.pow(1 - progress, 2.15) * attack;
+    buffer[begin + index] += (body + sub) * amplitude * envelope;
+  }
+}
+
 function renderDrum(buffer, event, sampleRate) {
-  const duration = event.instrument === "kick" || event.instrument === "bass" ? 0.18 : 0.07;
-  const amplitude = clamp(event.velocity, 0, 1) * (event.instrument === "hihat" ? 0.045 : 0.12);
-  addTone(buffer, drumFrequency(event.instrument), event.time || 0, duration, amplitude, sampleRate, event.instrument === "kick" || event.instrument === "bass" ? "sine" : "triangle");
+  const instrument = event.instrument;
+  if (instrument === "kick") {
+    addKick(buffer, event.time || 0, sampleRate, event.velocity);
+    return;
+  }
+  const duration = instrument === "bass" ? 0.22 : 0.07;
+  const amplitude = clamp(event.velocity, 0, 1) * (instrument === "hihat" ? 0.075 : instrument === "bass" ? 0.25 : 0.2);
+  addTone(buffer, drumFrequency(instrument), event.time || 0, duration, amplitude, sampleRate, instrument === "bass" ? "sine" : "triangle");
 }
 
 export function renderInstrumentClip(clip = {}, { sampleRate = 44100, tempo = 100 } = {}) {

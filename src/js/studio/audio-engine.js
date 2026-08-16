@@ -42,41 +42,54 @@ export function planSequenceEvents(sequence, startTime = 0) {
   }));
 }
 
+function scheduleDrumHit(context, instrument, at, velocity = 0.8) {
+  const safeInstrument = ["kick", "snare", "clap", "hihat", "percussion", "bass"].includes(instrument) ? instrument : "kick";
+  const duration = safeInstrument === "kick" || safeInstrument === "bass" ? 0.22 : safeInstrument === "hihat" ? 0.045 : 0.1;
+  const level = Math.max(0.001, Math.min(1, Number(velocity) || 0) * (safeInstrument === "hihat" ? 0.075 : safeInstrument === "kick" ? 0.56 : safeInstrument === "bass" ? 0.3 : 0.2));
+  const gain = context.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(level, at + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+  if (["snare", "clap", "hihat", "percussion"].includes(safeInstrument)) {
+    const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let index = 0; index < data.length; index += 1) {
+      const seed = Math.sin((index + 1) * 12.9898 + safeInstrument.length * 78.233) * 43758.5453;
+      data[index] = (seed - Math.floor(seed)) * 2 - 1;
+    }
+    const noise = context.createBufferSource();
+    const filter = context.createBiquadFilter();
+    filter.type = safeInstrument === "hihat" ? "highpass" : "bandpass";
+    filter.frequency.setValueAtTime(safeInstrument === "hihat" ? 4200 : safeInstrument === "percussion" ? 900 : 1800, at);
+    filter.Q.setValueAtTime(0.7, at);
+    noise.buffer = buffer;
+    noise.connect(filter).connect(gain).connect(context.destination);
+    noise.start(at);
+    noise.stop(at + duration + 0.02);
+    return;
+  }
+  const oscillator = context.createOscillator();
+  oscillator.type = "sine";
+  const isKick = safeInstrument === "kick";
+  oscillator.frequency.setValueAtTime(isKick ? 155 : 65, at);
+  oscillator.frequency.exponentialRampToValueAtTime(isKick ? 48 : 48, at + duration * (isKick ? 0.72 : 1));
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start(at);
+  oscillator.stop(at + duration + 0.03);
+}
+
+export async function playDrumHit(instrument = "kick", { velocity = 0.8 } = {}) {
+  const context = getContext();
+  if (context.state === "suspended") await context.resume();
+  scheduleDrumHit(context, instrument, context.currentTime + 0.01, velocity);
+  return { instrument, duration: instrument === "kick" || instrument === "bass" ? 0.22 : 0.1 };
+}
+
 export async function playSequence(sequence) {
   const context = getContext();
   if (context.state === "suspended") await context.resume();
   const start = context.currentTime + 0.02;
-  const frequencies = { kick: 90, snare: 180, clap: 260, hihat: 5200, percussion: 880, bass: 65 };
-  planSequenceEvents(sequence, start).forEach(({ instrument, scheduledTime: at, velocity }) => {
-    const duration = instrument === "kick" || instrument === "bass" ? 0.22 : instrument === "hihat" ? 0.045 : 0.1;
-    const level = Math.max(0.001, velocity * (instrument === "hihat" ? 0.035 : instrument === "kick" ? 0.16 : 0.09));
-    const gain = context.createGain();
-    gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.exponentialRampToValueAtTime(level, at + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-    if (["snare", "clap", "hihat"].includes(instrument)) {
-      const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let index = 0; index < data.length; index += 1) { const seed = Math.sin((index + 1) * 12.9898 + instrument.length * 78.233) * 43758.5453; data[index] = (seed - Math.floor(seed)) * 2 - 1; }
-      const noise = context.createBufferSource();
-      const filter = context.createBiquadFilter();
-      filter.type = instrument === "hihat" ? "highpass" : "bandpass";
-      filter.frequency.setValueAtTime(instrument === "hihat" ? 4200 : 1800, at);
-      filter.Q.setValueAtTime(0.7, at);
-      noise.buffer = buffer;
-      noise.connect(filter).connect(gain).connect(context.destination);
-      noise.start(at);
-      noise.stop(at + duration + 0.02);
-    } else {
-      const oscillator = context.createOscillator();
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(instrument === "kick" ? 130 : frequencies[instrument] || 300, at);
-      if (instrument === "kick") oscillator.frequency.exponentialRampToValueAtTime(55, at + duration);
-      oscillator.connect(gain).connect(context.destination);
-      oscillator.start(at);
-      oscillator.stop(at + duration + 0.03);
-    }
-  });
+  planSequenceEvents(sequence, start).forEach(({ instrument, scheduledTime: at, velocity }) => scheduleDrumHit(context, instrument, at, velocity));
   return { steps: sequence.events.length, duration: sequence.duration };
 }
 

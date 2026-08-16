@@ -29,10 +29,11 @@ export async function dataUrlToBlob(value) {
   if (separator < 0) throw new Error("Data URL de áudio inválido");
   const header = value.slice(0, separator);
   const body = value.slice(separator + 1);
-  const mimeMatch = header.match(/^data:([^;]+)(;base64)?$/i);
-  if (!mimeMatch) throw new Error("Formato de áudio local não suportado");
-  const mimeType = mimeMatch[1] || "application/octet-stream";
-  if (mimeMatch[2]) {
+  if (!header.toLowerCase().startsWith("data:")) throw new Error("Formato de áudio local não suportado");
+  const metadata = header.slice(5).split(";");
+  const mimeType = metadata.shift() || "application/octet-stream";
+  const isBase64 = metadata.some((part) => part.toLowerCase() === "base64");
+  if (isBase64) {
     const binary = atob(body);
     const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
     return new Blob([bytes], { type: mimeType });
