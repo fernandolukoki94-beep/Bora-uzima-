@@ -23,7 +23,28 @@ A demonstração pública está disponível em [fernando-lucoco-music.vercel.app
 | Piano roll | V1 visual/local | Grelha de 16 passos com notas e quantização no núcleo de instrumentos. |
 | Beat Maker | V1 local | 16 passos, seis canais, presets e padrões Afrobeat, Amapiano, Kuduro, Afro House e Rumba; preview e Mixdown com síntese dedicada para bass e percussão. |
 | Mixing local | V1 com painel e exportação | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel persiste controlos e o Mixdown exporta WAV local com headroom. Clips instrumentais são renderizados localmente quando não existe blob externo. |
-| Mastering e IA | Não implementado | Não há cadeia profissional de mastering nem AI Producer. |
+| Producer Plan local | V1.1 funcional | Plano determinístico por género, BPM, tonalidade, estrutura, instrumentos, cadeia vocal e mix; aplica clips locais sem API externa. |
+| Mastering e IA externa | V2 planeada | A V1 mantém DSP local e original preservado; o Producer Studio V2 terá primeiro uma cadeia local reversível e só depois poderá receber um provider IA server-side protegido. |
+
+## Producer Plan local
+
+A V1.1 introduz o `Producer Plan` em `src/js/producer-plan.js`. O plano é determinístico e local: recebe género, BPM, tonalidade e duração; escolhe um preset de Beat Maker, define a estrutura, selecciona instrumentos, descreve uma cadeia vocal e aplica um plano de mix com prioridade vocal e headroom. O botão **Aplicar Producer Plan local** grava o plano no projecto, preserva o original vocal e adiciona clips locais de bateria, bass, piano, guitarra, cordas ou Synth Pad conforme o género. A sessão também aceita uma **intenção de produção** em linguagem natural, guardada com a take e interpretada localmente por regras determinísticas (género, energia, instrumentos e objectivos de pitch/master), sem chamada externa. O processamento apresenta estados de preparação, arranjo e mix; pode ser cancelado sem destruir o original e pode ser repetido depois de uma falha.
+
+O fluxo actual é:
+
+```text
+Gravar → Analisar regras locais → Producer Plan JSON
+       → Clips instrumentais locais → Vocal DSP reversível
+       → Mixer/Mixdown → Exportar WAV
+```
+
+Esta V1 não afirma que um LLM faz Auto-Tune, masterização profissional ou geração de áudio. O Producer Plan orquestra o motor local existente. Uma futura integração IA deve usar backend server-side, esquema JSON validado, limites de utilização e segredos fora do browser. Nunca devem ser colocados tokens OpenAI ou Gemini no HTML, JavaScript público, armazenamento local ou GitHub. As fontes e decisões estão em [`docs/ai-producer-architecture-proposal.md`](./docs/ai-producer-architecture-proposal.md), [`docs/ai-sources-notes.md`](./docs/ai-sources-notes.md) e [`docs/ai-backend-contract.md`](./docs/ai-backend-contract.md).
+
+## Transição V1 → V2
+
+A V1 funcional local está consolidada com os instrumentos existentes, Beat Maker, bass validado pelo utilizador, timeline, mixer, Mixdown e Producer Plan determinístico. A V2 deixa de adicionar instrumentos e passa a transformar uma voz gravada numa produção guiada: análise, instrução de produção, arranjo, melhoria vocal reversível, mix e master local. Os critérios, limites e ordem de implementação estão em [`docs/v1-v2-transition.md`](./docs/v1-v2-transition.md).
+
+A futura assistência IA deve interpretar intenções e propor parâmetros, sem substituir a autoria de Fernando Lucoco. Nenhum token OpenAI ou Gemini será colocado no cliente, no armazenamento local ou no repositório.
 
 ## Arquitectura
 
@@ -52,7 +73,7 @@ Vocal  Timeline     Instruments
        Mixing Engine local V1
               │
               ▼
-        AI Producer futuro
+        Producer Plan local V1.1
 ```
 
 O modelo de sessão está em `src/js/studio/project-model.js`. As operações não destrutivas de clips estão em `src/js/studio/timeline.js`; o histórico encontra-se em `src/js/studio/history.js`; os instrumentos, notas, quantização e padrões vivem em `src/js/studio/instruments.js`; e a pré-escuta Web Audio está em `src/js/studio/audio-engine.js`.
@@ -73,7 +94,7 @@ Abra `http://localhost:8000`, autorize o microfone e experimente uma take curta.
 pnpm test
 ```
 
-A suite actual terminou com **90 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, além de Cordas e Synth Pad locais. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
+A suite actual terminou com **98 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, Cordas e Synth Pad locais, além dos estados e recuperação do Producer Plan e da interpretação determinística de briefs de produção. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
 
 ## Estado de QA e limites
 
@@ -89,7 +110,7 @@ O Mixdown local já está disponível como primeira exportação verificável. A
 
 ## Documentação e legado
 
-As decisões de produto, contratos futuros e estratégia mobile estão em `docs/`. O contrato de IA server-side está em [`docs/ai-backend-contract.md`](./docs/ai-backend-contract.md). As páginas do portfólio anterior foram preservadas em [`legacy/`](./legacy/) para manter a história sem misturar identidades.
+As decisões de produto, a transição V1→V2, contratos futuros e estratégia mobile estão em `docs/`. A passagem de estúdio instrumental para Producer Studio está descrita em [`docs/v1-v2-transition.md`](./docs/v1-v2-transition.md). O contrato de IA server-side está em [`docs/ai-backend-contract.md`](./docs/ai-backend-contract.md). As páginas do portfólio anterior foram preservadas em [`legacy/`](./legacy/) para manter a história sem misturar identidades.
 
 A implementação Expo em `/home/ubuntu/bora-uzima-mobile` permanece separada e não substitui o site web público. A prioridade actual é concluir e validar o estúdio web antes de retomar a transformação nativa.
 

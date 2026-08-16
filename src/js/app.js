@@ -1,6 +1,6 @@
 import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProjectId, readProjects, saveProjects } from "./storage.js";
 import { bindPlayerEvents } from "./player.js";
-import { simulateProductionPipeline } from "./production.js";
+import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./producer-plan.js";
 import { applyCompressor, applyFade, applyGain, applyNormalize, applyVocalEnhancement } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
@@ -11,6 +11,7 @@ import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
+import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
   TRANSPORT_STATES,
   advanceTransport,
@@ -42,6 +43,7 @@ const list = document.getElementById("project-list");
 const nameInput = document.getElementById("project-name");
 const presetInput = document.getElementById("preset");
 const genreInput = document.getElementById("genre");
+const productionBriefInput = document.getElementById("production-brief");
 const toast = document.getElementById("toast");
 const storageStatus = document.getElementById("storage-status");
 const clearStorageButton = document.getElementById("clear-local-storage");
@@ -340,6 +342,49 @@ function insertInstrumentClip({ name, type, duration = 4, metadata = {} }) {
   return true;
 }
 
+async function runProducerPlan(id) {
+  const source = readProjects().find((item) => item.id === id);
+  if (!source) return;
+  const job = beginProduction(id, renderProjects);
+  if (!job) {
+    showToast("Este projecto já está a ser processado.");
+    return;
+  }
+  activeTimelineId = id;
+  timelineHistory = createHistoryState(normalizeProject(source));
+  try {
+    const plan = buildProducerPlan({ genre: source.genre, tempo: source.tempo, key: source.key, duration: source.duration, brief: source.productionBrief || "" });
+    if (!setProductionPhase(id, PRODUCTION_STATES.ARRANGING, "A criar arranjo local", 25, renderProjects)) return;
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    let next = applyProducerMix(normalizeProject(source), plan);
+    const clipDuration = Math.max(4, Math.min(16, Number(source.duration || 8)));
+    const specs = producerPlanClipSpecs(plan, clipDuration);
+    for (const [index, spec] of specs.entries()) {
+      if (!isProductionActive(id)) return;
+      let track = next.tracks.find((item) => item.type === spec.type);
+      if (!track) {
+        next = addTrack(next, { name: spec.type === "drums" ? "Beat Maker" : spec.name.split(" · ")[0], type: spec.type, color: spec.type === "drums" ? "#f4b860" : spec.type === "guitar" ? "#9c8cff" : "#62d6c7" });
+        track = next.tracks[next.tracks.length - 1];
+      }
+      const end = track.clips.reduce((latest, clip) => Math.max(latest, Number(clip.start || 0) + Number(clip.duration || 0)), 0);
+      next = addClip(next, track.id, { name: spec.name, start: end, duration: spec.duration, sourceOffset: 0, mimeType: "application/x-fernando-lucoco-event", event: spec.metadata });
+      setProductionPhase(id, PRODUCTION_STATES.ARRANGING, `A criar arranjo local · ${index + 1}/${specs.length}`, 25 + Math.round(((index + 1) / specs.length) * 45), renderProjects);
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+    if (!setProductionPhase(id, PRODUCTION_STATES.MIXING, "A preparar mix local", 85, renderProjects)) return;
+    await commitTimelineProject(next);
+    completeProduction(id, renderProjects);
+    showToast(`Producer Plan aplicado: ${plan.genre}, ${plan.bpm} BPM, ${plan.instruments.length} instrumentos locais.`);
+  } catch (error) {
+    failProduction(id, error, renderProjects);
+    showToast("A produção falhou, mas o projecto original foi preservado. Tenta novamente.");
+  }
+}
+
+function cancelProducerPlan(id) {
+  cancelProduction(id, renderProjects, showToast);
+}
+
 function renderProjects() {
   const projects = readProjects();
   if (!projects.length) {
@@ -354,12 +399,17 @@ function renderProjects() {
     const processed = processedData
       ? audioBlock("Processada", processedData, project.processedMimeType || "audio/wav", project.name)
       : "<small>Processada: ainda não existe.</small>";
+    const brief = project.productionBrief ? `<small class="effect-note">Intenção do produtor: ${escapeHtml(project.productionBrief)}</small>` : "";
     const legacyNotice = !project.originalAudioData && processedData
       ? '<small class="effect-note">Take histórica: o original separado não está disponível nesta versão.</small>'
       : "";
-    const process = originalData && !String(project.status).includes("simulado")
-      ? `<button class="mini-button" type="button" data-process-id="${escapeHtml(project.id)}">Preparar produção (simulado)</button>`
-      : "";
+    const processingState = project.processing?.state || "IDLE";
+    const processingActive = processingState === PRODUCTION_STATES.PREPARING || processingState === PRODUCTION_STATES.ARRANGING || processingState === PRODUCTION_STATES.MIXING;
+    const process = processingActive
+      ? `<button class="mini-button" type="button" data-cancel-process-id="${escapeHtml(project.id)}">Cancelar produção</button>`
+      : originalData && !String(project.status).includes("simulado")
+        ? `<button class="mini-button" type="button" data-process-id="${escapeHtml(project.id)}">${processingState === PRODUCTION_STATES.FAILED || processingState === PRODUCTION_STATES.CANCELLED ? "Tentar Producer Plan novamente" : "Aplicar Producer Plan local"}</button>`
+        : "";
     const gain = originalData && !project.effectApplied
       ? `<button class="mini-button" type="button" data-gain-id="${escapeHtml(project.id)}">Ganho +3 dB real</button>`
       : "";
@@ -378,7 +428,7 @@ function renderProjects() {
     const resetEffects = processedData
       ? `<button class="mini-button" type="button" data-reset-effects-id="${escapeHtml(project.id)}">Repor original</button>`
       : "";
-    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${legacyNotice}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderTimeline();
 }
@@ -393,6 +443,7 @@ async function saveRecording({ blob, mimeType, seconds }) {
     key: "C",
     preset: presetInput.value,
     genre: genreInput.value,
+    productionBrief: productionBriefInput?.value.trim() || "",
     duration: seconds,
     durationLabel: `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`,
     status: "Guardada localmente",
@@ -426,6 +477,7 @@ async function saveRecording({ blob, mimeType, seconds }) {
     showToast("Não foi possível guardar esta take. Liberta espaço do navegador e tenta novamente.");
   }
   nameInput.value = "";
+  if (productionBriefInput) productionBriefInput.value = "";
 }
 
 async function applyLocalEffect(id, effectName, processor, successMessage) {
@@ -534,6 +586,7 @@ const recorder = createRecorderController({ onStateChange: setRecordingUI, onCom
 list.addEventListener("click", (event) => {
   const deleteButton = event.target.closest("[data-delete-id]");
   const processButton = event.target.closest("[data-process-id]");
+  const cancelProcessButton = event.target.closest("[data-cancel-process-id]");
   const gainButton = event.target.closest("[data-gain-id]");
   const fadeButton = event.target.closest("[data-fade-id]");
   const normalizeButton = event.target.closest("[data-normalize-id]");
@@ -541,7 +594,8 @@ list.addEventListener("click", (event) => {
   const vocalEnhancementButton = event.target.closest("[data-vocal-enhance-id]");
   const resetEffectsButton = event.target.closest("[data-reset-effects-id]");
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
-  if (processButton) simulateProductionPipeline(processButton.dataset.processId, { renderProjects, showToast });
+  if (processButton) runProducerPlan(processButton.dataset.processId);
+  if (cancelProcessButton) cancelProducerPlan(cancelProcessButton.dataset.cancelProcessId);
   if (gainButton) applyLocalGain(gainButton.dataset.gainId);
   if (fadeButton) applyLocalFade(fadeButton.dataset.fadeId);
   if (normalizeButton) applyLocalNormalize(normalizeButton.dataset.normalizeId);
