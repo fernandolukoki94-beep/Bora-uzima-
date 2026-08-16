@@ -3,11 +3,21 @@ import { bindPlayerEvents } from "./player.js";
 import { simulateProductionPipeline } from "./production.js";
 import { applyCompressor, applyFade, applyGain, applyNormalize } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
-import { addTrack, normalizeProject } from "./studio/project-model.js";
+import { addClip, addTrack, normalizeProject } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
 import { deleteClip, duplicateClip } from "./studio/timeline.js";
-import { playChord, playNote, playPattern } from "./studio/audio-engine.js";
+import { playChord, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
+import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
+import {
+  TRANSPORT_STATES,
+  advanceTransport,
+  createTransportState,
+  getTimelineDuration,
+  pauseTransport,
+  startTransport,
+  stopTransport,
+} from "./studio/transport.js";
 import {
   clearLocalStudioData,
   deleteProjectData,
@@ -38,7 +48,12 @@ const timelineUndoButton = document.getElementById("timeline-undo");
 const timelineRedoButton = document.getElementById("timeline-redo");
 const projectTempo = document.getElementById("project-tempo");
 const projectKey = document.getElementById("project-key");
+const transportBeginning = document.getElementById("transport-beginning");
 const transportPlay = document.getElementById("transport-play");
+const transportPause = document.getElementById("transport-pause");
+const transportStop = document.getElementById("transport-stop");
+const transportClock = document.getElementById("transport-clock");
+const timelinePlayhead = document.getElementById("timeline-playhead");
 const transportStatus = document.getElementById("transport-status");
 const keyboardNotes = document.getElementById("keyboard-notes");
 const chordSelect = document.getElementById("chord-select");
@@ -52,9 +67,17 @@ const beatPreset = document.getElementById("beat-preset");
 const applyBeatPreset = document.getElementById("apply-beat-preset");
 const playBeatSequence = document.getElementById("play-beat-sequence");
 const resetBeat = document.getElementById("reset-beat");
+const addChordTimeline = document.getElementById("add-chord-timeline");
+const addGuitarTimeline = document.getElementById("add-guitar-timeline");
+const addBeatTimeline = document.getElementById("add-beat-timeline");
 let activeTimelineId = null;
 let timelineHistory = null;
-let transportTimer = null;
+let transportTimers = [];
+let transportFrame = null;
+let transportState = createTransportState(0);
+let transportStartedAt = 0;
+let transportBasePosition = 0;
+let transportAudio = [];
 if (pianoRoll) {
   pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
 }
@@ -111,6 +134,82 @@ function syncTimelineHistory(project) {
     timelineHistory = createHistoryState(normalizeProject(project));
   }
 }
+function formatTransportTime(seconds) {
+  const safe = Math.max(0, Number(seconds) || 0);
+  return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(Math.floor(safe % 60)).padStart(2, "0")}`;
+}
+
+function updateTransportUI() {
+  const duration = transportState.duration;
+  if (transportClock) transportClock.textContent = `${formatTransportTime(transportState.position)} / ${formatTransportTime(duration)}`;
+  if (transportStatus) transportStatus.textContent = transportState.status === TRANSPORT_STATES.PLAYING
+    ? "A reproduzir"
+    : transportState.status === TRANSPORT_STATES.PAUSED ? "Pausado" : "Parado";
+  if (timelinePlayhead) {
+    const scaleDuration = Math.max(40, duration);
+    timelinePlayhead.style.left = `${Math.min(100, (transportState.position / scaleDuration) * 100)}%`;
+  }
+  if (transportPlay) transportPlay.textContent = transportState.status === TRANSPORT_STATES.PLAYING ? "▶ A reproduzir" : "▶ Play";
+}
+
+function stopTransportAudio() {
+  transportAudio.forEach((audio) => {
+    try { audio.pause(); } catch {}
+    audio.removeAttribute("src");
+    audio.load();
+  });
+  transportAudio = [];
+  transportTimers.forEach((timerId) => window.clearTimeout(timerId));
+  transportTimers = [];
+}
+
+function audioSourceForClip(project, clip) {
+  if (clip.blobKey?.endsWith(":processed")) return project.processedAudioData || project.originalAudioData || project.audioData;
+  return project.originalAudioData || project.audioData;
+}
+
+function scheduleTimelineAudio(project, startPosition) {
+  stopTransportAudio();
+  project.tracks.forEach((track) => {
+    if (track.muted || (project.tracks.some((item) => item.solo) && !track.solo)) return;
+    track.clips.forEach((clip) => {
+      const clipEnd = Number(clip.start || 0) + Number(clip.duration || 0);
+      if (clipEnd <= startPosition) return;
+      const source = audioSourceForClip(project, clip);
+      if (!source) return;
+      const delay = Math.max(0, (Number(clip.start || 0) - startPosition) * 1000);
+      const timerId = window.setTimeout(() => {
+        const audio = new Audio(source);
+        audio.preload = "auto";
+        audio.volume = Math.max(0, Math.min(1, Number(track.volume ?? 1) * Number(clip.gain ?? 1)));
+        const offset = Math.max(0, startPosition - Number(clip.start || 0)) + Number(clip.sourceOffset || 0);
+        audio.currentTime = offset;
+        audio.play().then(() => transportAudio.push(audio)).catch(() => showToast("A reprodução da sessão foi bloqueada pelo navegador."));
+      }, delay);
+      transportTimers.push(timerId);
+    });
+  });
+}
+
+function transportTick(now) {
+  if (transportState.status !== TRANSPORT_STATES.PLAYING) return;
+  const elapsed = (now - transportStartedAt) / 1000;
+  transportState = advanceTransport({ ...transportState, position: transportBasePosition }, elapsed);
+  updateTransportUI();
+  if (transportState.status === TRANSPORT_STATES.STOPPED) {
+    stopTransportAudio();
+    transportFrame = null;
+    return;
+  }
+  transportFrame = window.requestAnimationFrame(transportTick);
+}
+
+function refreshTransportProject() {
+  const project = currentTimelineProject();
+  transportState = createTransportState(project ? getTimelineDuration(project) : 0);
+  updateTransportUI();
+}
+
 function renderTimeline() {
   if (!timelineGrid) return;
   const project = currentTimelineProject();
@@ -122,6 +221,10 @@ function renderTimeline() {
     return;
   }
   const normalized = timelineHistory.present;
+  const nextDuration = getTimelineDuration(normalized);
+  if (transportState.status === TRANSPORT_STATES.STOPPED || transportState.duration !== nextDuration) {
+    transportState = { ...transportState, duration: nextDuration, position: Math.min(transportState.position, nextDuration) };
+  }
   if (projectTempo) projectTempo.value = normalized.tempo;
   if (projectKey) projectKey.value = normalized.key;
   timelineGrid.innerHTML = normalized.tracks.map((track) => {
@@ -134,6 +237,7 @@ function renderTimeline() {
   }).join("");
   if (timelineUndoButton) timelineUndoButton.disabled = !canUndo(timelineHistory);
   if (timelineRedoButton) timelineRedoButton.disabled = !canRedo(timelineHistory);
+  updateTransportUI();
 }
 async function commitTimelineProject(nextProject) {
   timelineHistory = commitHistory(timelineHistory, normalizeProject(nextProject));
@@ -142,6 +246,32 @@ async function commitTimelineProject(nextProject) {
   try { if (await indexedDbAvailable()) await putProject(timelineHistory.present); } catch { showToast("A edição ficou no fallback local; IndexedDB será tentado novamente."); }
   renderProjects();
 }
+function insertInstrumentClip({ name, type, duration = 4, metadata = {} }) {
+  const project = currentTimelineProject();
+  if (!project) {
+    showToast("Grava primeiro uma take para abrir uma sessão na timeline.");
+    return false;
+  }
+  let nextProject = normalizeProject(project);
+  let track = nextProject.tracks.find((item) => item.type === type);
+  if (!track) {
+    nextProject = addTrack(nextProject, { name, type, color: type === "drums" ? "#f4b860" : type === "guitar" ? "#9c8cff" : "#62d6c7" });
+    track = nextProject.tracks[nextProject.tracks.length - 1];
+  }
+  const end = track.clips.reduce((latest, clip) => Math.max(latest, Number(clip.start || 0) + Number(clip.duration || 0)), 0);
+  nextProject = addClip(nextProject, track.id, {
+    name,
+    start: end,
+    duration,
+    sourceOffset: 0,
+    mimeType: "application/x-fernando-lucoco-event",
+    event: metadata,
+  });
+  commitTimelineProject(nextProject);
+  showToast(`${name} adicionado à timeline local.`);
+  return true;
+}
+
 function renderProjects() {
   const projects = readProjects();
   if (!projects.length) {
@@ -378,14 +508,38 @@ projectKey?.addEventListener("change", () => {
   if (!timelineHistory) return;
   commitTimelineProject({ ...timelineHistory.present, key: projectKey.value });
 });
-transportPlay?.addEventListener("click", () => {
-  const playing = transportPlay.dataset.playing === "true";
-  transportPlay.dataset.playing = String(!playing);
-  transportPlay.textContent = playing ? "▶ Reproduzir sessão" : "■ Parar sessão";
-  if (transportStatus) transportStatus.textContent = playing ? "Parado" : "Pré-escuta local";
-  if (transportTimer) window.clearTimeout(transportTimer);
-  if (!playing) transportTimer = window.setTimeout(() => { transportPlay.click(); }, 5000);
-});
+function playTimeline() {
+  const project = currentTimelineProject();
+  if (!project || !timelineHistory) return showToast("Grava primeiro uma take para reproduzir a sessão.");
+  if (transportState.position >= transportState.duration) transportState = stopTransport(transportState);
+  transportState = startTransport(transportState);
+  transportBasePosition = transportState.position;
+  transportStartedAt = performance.now();
+  scheduleTimelineAudio(project, transportState.position);
+  updateTransportUI();
+  window.cancelAnimationFrame(transportFrame);
+  transportFrame = window.requestAnimationFrame(transportTick);
+}
+function pauseTimeline() {
+  if (transportState.status !== TRANSPORT_STATES.PLAYING) return;
+  transportState = advanceTransport({ ...transportState, position: transportBasePosition }, (performance.now() - transportStartedAt) / 1000);
+  transportState = pauseTransport(transportState);
+  window.cancelAnimationFrame(transportFrame);
+  transportFrame = null;
+  stopTransportAudio();
+  updateTransportUI();
+}
+function stopTimeline() {
+  window.cancelAnimationFrame(transportFrame);
+  transportFrame = null;
+  stopTransportAudio();
+  transportState = stopTransport(transportState);
+  updateTransportUI();
+}
+transportBeginning?.addEventListener("click", stopTimeline);
+transportPlay?.addEventListener("click", playTimeline);
+transportPause?.addEventListener("click", pauseTimeline);
+transportStop?.addEventListener("click", stopTimeline);
 keyboardNotes?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-note]");
   if (!button) return;
@@ -394,10 +548,16 @@ keyboardNotes?.addEventListener("click", async (event) => {
 playChordButton?.addEventListener("click", async () => {
   try { await playChord(chordSelect?.value || "C"); } catch (error) { showToast(error.message); }
 });
+addChordTimeline?.addEventListener("click", () => {
+  insertInstrumentClip({ name: `Piano · ${chordSelect?.value || "C"}`, type: "instrument", metadata: { instrument: "piano", chord: chordSelect?.value || "C" } });
+});
 guitarChords?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-guitar-chord]");
   if (!button) return;
   try { await playChord(button.dataset.guitarChord, { type: "sawtooth", duration: 0.65, volume: 0.1 }); } catch (error) { showToast(error.message); }
+});
+addGuitarTimeline?.addEventListener("click", () => {
+  insertInstrumentClip({ name: `Guitarra · ${chordSelect?.value || "C"}`, type: "guitar", metadata: { instrument: "guitar", chord: chordSelect?.value || "C" } });
 });
 function resetBeatGrid() {
   beatGrid?.querySelectorAll(".beat-step.is-active").forEach((button) => button.classList.remove("is-active"));
@@ -419,11 +579,20 @@ resetBeat?.addEventListener("click", () => {
   resetBeatGrid();
   showToast("Beat Maker reposto sem alterar as gravações.");
 });
+addBeatTimeline?.addEventListener("click", () => {
+  const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
+  insertInstrumentClip({ name: `Beat · ${preset.name}`, type: "drums", duration: 8, metadata: { instrument: "drums", preset: preset.name, bpm: preset.bpm, channels: preset.channels } });
+});
 playBeatSequence?.addEventListener("click", async () => {
   const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
+  const channels = Object.fromEntries(["kick", "snare", "clap", "hihat", "percussion", "bass"].map((channel) => [
+    channel,
+    [...(beatGrid?.querySelectorAll(`[data-beat-channel="${channel}"].is-active`) || [])].map((button) => Number(button.dataset.beatStep)),
+  ]));
+  const sequence = createGridEvents({ channels, bpm: Number(projectTempo?.value) || preset.bpm });
   try {
-    const result = await playPattern(preset.pattern, { bpm: Number(projectTempo?.value) || preset.bpm });
-    showToast(`${preset.name}: ${result.steps} eventos locais agendados.`);
+    const result = await playSequence(sequence);
+    showToast(`${preset.name}: ${result.steps} eventos do grid reproduzidos localmente.`);
   } catch (error) { showToast(error.message); }
 });
 beatGrid?.addEventListener("click", async (event) => {
@@ -458,6 +627,7 @@ clearStorageButton?.addEventListener("click", async () => {
   showToast("Todos os dados locais foram limpos.");
 });
 renderProjects();
+refreshTransportProject();
 refreshStorageStatus();
 migrateLocalStorageProjects().then((result) => {
   if (result.migrated) refreshStorageStatus();

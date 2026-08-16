@@ -162,3 +162,15 @@
 .beat-step { min-height: 36px; border: 1px solid rgba(16,16,15,.12); border-radius: 4px; background: #fffdf8; cursor: pointer; }
 .beat-step.is-active { background: var(--coral); border-color: var(--coral); }
 .beat-step:focus-visible { outline: 3px solid var(--gold); outline-offset: 1px; }
+
+/* Music Engine V1.1 transport and playhead */
+.timeline-stage { position: relative; overflow-x: auto; }
+.timeline-playhead { position: absolute; z-index: 4; top: 0; bottom: 0; left: 0%; width: 2px; background: var(--gold); pointer-events: none; transition: left 80ms linear; box-shadow: 0 0 0 1px rgba(245,189,69,.2), 0 0 14px rgba(245,189,69,.45); }
+.transport-clock { min-width: 7.8rem; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 800; }
+.transport .mini-button:focus-visible, .transport input:focus-visible, .transport select:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+@media (max-width: 680px) {
+  .transport { align-items: stretch; gap: .45rem; }
+  .transport .mini-button { min-height: 44px; }
+  .transport-clock { width: 100%; order: -1; }
+  .timeline-stage { margin-inline: -.5rem; padding-inline: .5rem; }
+}
