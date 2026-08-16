@@ -27,8 +27,18 @@ export function createTrack({ id = makeId("track"), name = "Lead Vocal", type = 
   };
 }
 
-export function createClip({ id = makeId("clip"), blobKey = null, start = 0, duration = 0, sourceOffset = 0, name = "Audio Clip", mimeType = null } = {}) {
+export function createClip(options = {}) {
+  const {
+    id = makeId("clip"),
+    blobKey = null,
+    start = 0,
+    duration = 0,
+    sourceOffset = 0,
+    name = "Audio Clip",
+    mimeType = null,
+  } = options;
   return {
+    ...options,
     id,
     name,
     blobKey,
@@ -36,9 +46,9 @@ export function createClip({ id = makeId("clip"), blobKey = null, start = 0, dur
     duration,
     sourceOffset,
     mimeType,
-    gain: 1,
-    fadeIn: 0,
-    fadeOut: 0,
+    gain: Number.isFinite(Number(options.gain)) ? Number(options.gain) : 1,
+    fadeIn: Number.isFinite(Number(options.fadeIn)) ? Number(options.fadeIn) : 0,
+    fadeOut: Number.isFinite(Number(options.fadeOut)) ? Number(options.fadeOut) : 0,
   };
 }
 

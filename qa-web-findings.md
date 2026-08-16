@@ -109,3 +109,12 @@ A suite oficial continua a ser `pnpm test` e terminou com **31 testes aprovados,
 O adaptador expõe agora uma política explícita: `internal-beta`, leitura principal em `localStorage` e escrita dual activa. A promoção para leitura principal IndexedDB está bloqueada até haver reload/fechar-reabrir real, quota e modo privado reais, reset original/processado e gravação confirmada em Chrome Android e Safari iPhone.
 
 A validação desktop/local passou. A validação Android Chrome e iPhone Safari permanece **PENDENTE**, porque a execução correcta exige microfone e hardware físico; nenhuma simulação de viewport será apresentada como prova desses ambientes.
+
+
+## Music Engine V1.1 — eventos e mixing engine local
+
+A suite oficial `pnpm test` terminou com **48 testes aprovados e 0 falhas**. Foram acrescentados testes determinísticos para planeamento de eventos de áudio, sequencer, inserção de clips instrumentais, transport e mixing engine.
+
+O mixing engine V1 passou nos critérios de soma segura, ganho por faixa, pan, mute, solo, headroom contra clipping e preservação dos buffers de entrada. O resultado valida o núcleo matemático local; não representa ainda um mixer profissional, exportação final de mix estéreo, mastering ou avaliação subjectiva de qualidade sonora.
+
+A validação física em Safari iPhone e Chrome Android, bem como a audição de uma sessão multifaixa completa num dispositivo real, continuam pendentes.
