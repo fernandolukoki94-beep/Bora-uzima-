@@ -12,6 +12,7 @@ import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
+import { downloadBlob, mixedExportFilename } from "./export-audio.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
   TRANSPORT_STATES,
@@ -168,6 +169,23 @@ function audioBlock(label, data, mimeType, projectName) {
   const safeLabel = escapeHtml(`${label} de ${projectName}`);
   const extension = getFileExtension(mimeType || "audio/webm");
   return `<div class="audio-version"><span>${escapeHtml(label)}</span><audio class="project-audio" controls preload="metadata" playsinline webkit-playsinline aria-label="Reproduzir ${safeLabel}" src="${escapeHtml(data)}"></audio><a class="mini-button" download="${escapeHtml(projectName)}-${extension === "wav" ? "processada" : "original"}.${extension}" href="${escapeHtml(data)}">Descarregar ${escapeHtml(label.toLowerCase())}</a></div>`;
+}
+
+async function exportMixedVersion(id) {
+  const project = readProjects().find((item) => item.id === id);
+  const mixedData = getVariantData(project, "mixed");
+  if (!project || !mixedData) {
+    showToast("Primeiro cria o Mixed através do Mixdown local.");
+    return;
+  }
+  try {
+    const mixedBlob = await dataUrlToBlob(mixedData);
+    downloadBlob(mixedBlob, mixedExportFilename(project.name));
+    showToast("A versão Mixed foi exportada em WAV.");
+  } catch (error) {
+    console.error("Exportação Mixed falhou", error);
+    showToast("Não foi possível exportar o Mixed. Tenta novamente neste navegador.");
+  }
 }
 
 function currentTimelineProject() {
@@ -481,7 +499,10 @@ function renderProjects() {
     const resetEffects = (processedData || variantBlocks.includes("audio-version"))
       ? `<button class="mini-button" type="button" data-reset-effects-id="${escapeHtml(project.id)}">Repor variantes</button>`
       : "";
-    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    const mixedExport = getVariantData(project, "mixed")
+      ? `<button class="mini-button primary" type="button" data-export-mixed-id="${escapeHtml(project.id)}">Exportar Mixed WAV</button>`
+      : "";
+    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderTimeline();
 }
@@ -654,6 +675,7 @@ list.addEventListener("click", (event) => {
   const compressorButton = event.target.closest("[data-compressor-id]");
   const vocalEnhancementButton = event.target.closest("[data-vocal-enhance-id]");
   const pitchCorrectionButton = event.target.closest("[data-pitch-correct-id]");
+  const exportMixedButton = event.target.closest("[data-export-mixed-id]");
   const resetEffectsButton = event.target.closest("[data-reset-effects-id]");
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
   if (processButton) runProducerPlan(processButton.dataset.processId);
@@ -664,6 +686,7 @@ list.addEventListener("click", (event) => {
   if (compressorButton) applyLocalCompressor(compressorButton.dataset.compressorId);
   if (vocalEnhancementButton) applyLocalVocalEnhancement(vocalEnhancementButton.dataset.vocalEnhanceId);
   if (pitchCorrectionButton) applyLocalPitchAssist(pitchCorrectionButton.dataset.pitchCorrectId);
+  if (exportMixedButton) exportMixedVersion(exportMixedButton.dataset.exportMixedId);
   if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
 });
 
