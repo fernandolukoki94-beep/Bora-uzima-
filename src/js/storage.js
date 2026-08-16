@@ -21,6 +21,25 @@ export function blobToDataUrl(blob) {
   });
 }
 
+/** Convert a persisted data URL to Blob without relying on fetch(data:...). */
+export async function dataUrlToBlob(value) {
+  if (value instanceof Blob) return value;
+  if (typeof value !== "string" || !value) throw new Error("Áudio local inválido");
+  const separator = value.indexOf(",");
+  if (separator < 0) throw new Error("Data URL de áudio inválido");
+  const header = value.slice(0, separator);
+  const body = value.slice(separator + 1);
+  const mimeMatch = header.match(/^data:([^;]+)(;base64)?$/i);
+  if (!mimeMatch) throw new Error("Formato de áudio local não suportado");
+  const mimeType = mimeMatch[1] || "application/octet-stream";
+  if (mimeMatch[2]) {
+    const binary = atob(body);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new Blob([bytes], { type: mimeType });
+  }
+  return new Blob([decodeURIComponent(body)], { type: mimeType });
+}
+
 export function getFileExtension(mimeType = "") {
   const normalized = String(mimeType).toLowerCase();
   if (normalized.includes("wav")) return "wav";

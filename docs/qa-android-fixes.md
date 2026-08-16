@@ -27,3 +27,9 @@ O IndexedDB continua como escrita dual e fallback, não como fonte primária. A 
 ## Próximo teste físico
 
 Repetir no mesmo Samsung Galaxy A06: ganho de −∞, −12, −6, 0 e +6 dB; uma nota no teclado; uma sequência do Beat Maker; uma take vocal curta; melhoria vocal; Mixdown; e reload. Registar qualquer diferença entre o comportamento esperado e o ouvido no dispositivo.
+
+## Correcção do erro de ganho no navegador
+
+Foi corrigido o caminho de processamento dos efeitos locais. O orquestrador deixava qualquer falha de `fetch(data:...)`, descodificação ou Web Audio cair na mensagem genérica “Não foi possível aplicar o efeito neste navegador”. Agora as fontes persistidas em Data URL são convertidas directamente para `Blob`, evitando a dependência de `fetch(data:...)` no Chrome Android. A mensagem de falha também inclui a causa técnica sem apagar o original.
+
+A suite determinística passou a **76 testes aprovados e 0 falhas**, incluindo conversão base64, rejeição de Data URL inválida e preservação de Blob. A confirmação final ainda deve ser repetida no Samsung Galaxy A06 com uma take nova.

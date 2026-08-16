@@ -1,4 +1,4 @@
-import { blobToDataUrl, escapeHtml, getFileExtension, makeProjectId, readProjects, saveProjects } from "./storage.js";
+import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProjectId, readProjects, saveProjects } from "./storage.js";
 import { bindPlayerEvents } from "./player.js";
 import { simulateProductionPipeline } from "./production.js";
 import { applyCompressor, applyFade, applyGain, applyNormalize, applyVocalEnhancement } from "./effects.js";
@@ -433,8 +433,8 @@ async function applyLocalEffect(id, effectName, processor, successMessage) {
   if (!project || !sourceData || project[effectName]) return;
   try {
     showToast(`A aplicar ${effectName === "effectApplied" ? "ganho local de +3 dB" : "fade in/out local"} e a preparar WAV…`);
-    const response = await fetch(sourceData);
-    const processedBlob = await processor(await response.blob());
+    const sourceBlob = await dataUrlToBlob(sourceData);
+    const processedBlob = await processor(sourceBlob);
     const processedAudioData = await blobToDataUrl(processedBlob);
     const updated = readProjects().map((item) => item.id === id ? {
       ...item,
@@ -465,8 +465,10 @@ async function applyLocalEffect(id, effectName, processor, successMessage) {
     renderProjects();
     await refreshStorageStatus();
     showToast(successMessage);
-  } catch {
-    showToast("Não foi possível aplicar o efeito neste navegador. O original continua preservado.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "falha desconhecida";
+    console.error("Efeito local falhou", error);
+    showToast(`Não foi possível aplicar o efeito local (${message}). O original continua preservado.`);
   }
 }
 
