@@ -175,3 +175,40 @@ export function applyVocalEnhancement(blob, { presenceDb = 2.5, outputGain = 1.0
     source.connect(highPass).connect(presence).connect(compressor).connect(output).connect(offline.destination);
   });
 }
+
+
+/**
+ * Pitch correction assistida localmente. Não é Auto-Tune completo nem análise
+ * melódica: aplica uma correcção de cents fornecida pelo Producer Plan, com
+ * cadeia vocal suave e sempre em nova versão WAV.
+ */
+export function normalizePitchCorrectionCents(value) {
+  return Math.max(-100, Math.min(100, Number(value) || 0));
+}
+
+export function applyPitchCorrectionAssist(blob, { detuneCents = 0, presenceDb = 1.5 } = {}) {
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const highPass = offline.createBiquadFilter();
+    highPass.type = "highpass";
+    highPass.frequency.value = 75;
+    highPass.Q.value = 0.707;
+
+    const pitch = offline.createBiquadFilter();
+    pitch.type = "peaking";
+    pitch.frequency.value = 1800;
+    pitch.Q.value = 0.9;
+    pitch.gain.value = Math.max(-4, Math.min(4, presenceDb));
+
+    const compressor = offline.createDynamicsCompressor();
+    compressor.threshold.value = -22;
+    compressor.knee.value = 18;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.006;
+    compressor.release.value = 0.16;
+
+    const output = offline.createGain();
+    output.gain.value = 1.02;
+    source.detune.value = normalizePitchCorrectionCents(detuneCents);
+    source.connect(highPass).connect(pitch).connect(compressor).connect(output).connect(offline.destination);
+  });
+}

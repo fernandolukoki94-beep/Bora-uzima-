@@ -12,6 +12,8 @@ const GENRE_PRESETS = {
   Dancehall: { beat: "Afrobeat", instruments: ["drums", "bass", "synth"] },
 };
 
+const ALL_PRODUCER_INSTRUMENTS = Object.freeze(["drums", "bass", "piano", "guitar", "strings", "synth"]);
+
 const VOCAL_CHAIN = Object.freeze({
   noiseReduction: true,
   eq: "warm",
@@ -64,21 +66,27 @@ export function interpretProductionBrief(brief = "", fallbackGenre = "Afrobeat")
   return { text: String(brief || "").trim(), genre, requestedInstruments: [...new Set(requestedInstruments)], requestedProcessing, energy };
 }
 
-export function buildProducerPlan({ genre = "Afrobeat", tempo = 100, key = "C", duration = 60, brief = "" } = {}) {
+export function buildProducerPlan({ genre = "Afrobeat", tempo = 100, key = "C", duration = 60, brief = "", analysis = null, preferAnalysis = false } = {}) {
   const interpretation = interpretProductionBrief(brief, genre);
   const selectedGenre = interpretation.genre;
   const profile = GENRE_PRESETS[selectedGenre] || GENRE_PRESETS.Afrobeat;
   const beat = getBeatPreset(profile.beat);
-  const bpm = safeTempo(tempo || beat.bpm);
+  const analyzedBpm = preferAnalysis && analysis?.hasAudio && analysis?.bpmConfidence >= 0.2 ? analysis.bpm : tempo;
+  const analyzedKey = preferAnalysis && analysis?.hasAudio && analysis?.keyConfidence >= 0.2 ? analysis.key : key;
+  const bpm = safeTempo(analyzedBpm || beat.bpm);
   return {
     version: "producer-plan-v1",
     genre: GENRE_PRESETS[selectedGenre] ? selectedGenre : "Afrobeat",
     brief: interpretation.text,
     briefInterpretation: interpretation,
     bpm,
-    key: key || "C",
+    key: analyzedKey || "C",
+    analysis: analysis ? { ...analysis } : null,
     structure: structureForDuration(duration),
-    instruments: [...profile.instruments],
+    // V2 file requirement: every local voice-production plan must materialise the complete
+    // starter palette in the timeline. Genre presets still determine the beat and defaults,
+    // while the six local instruments remain available for the user to edit or remove.
+    instruments: [...ALL_PRODUCER_INSTRUMENTS],
     beat: {
       preset: beat.name,
       bpm: beat.bpm,

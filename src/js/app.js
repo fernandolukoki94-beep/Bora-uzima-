@@ -1,7 +1,8 @@
 import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProjectId, readProjects, saveProjects } from "./storage.js";
 import { bindPlayerEvents } from "./player.js";
 import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./producer-plan.js";
-import { applyCompressor, applyFade, applyGain, applyNormalize, applyVocalEnhancement } from "./effects.js";
+import { analyzeAudioDataUrl } from "./audio-analysis.js";
+import { applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
@@ -90,6 +91,34 @@ let transportAudio = [];
 const linearToDb = (value) => value <= 0.001 ? -60 : 20 * Math.log10(value);
 const dbToLinear = (value) => value <= -60 ? 0 : Math.pow(10, value / 20);
 const formatGainDb = (value) => value <= 0.001 ? "−∞ dB" : `${linearToDb(value).toFixed(1)} dB`;
+const VOCAL_VARIANTS = {
+  original: { label: "Original", kind: "original" },
+  enhanced: { label: "Enhanced", kind: "enhanced" },
+  pitchCorrected: { label: "Pitch Corrected", kind: "pitch-corrected" },
+  mixed: { label: "Mixed", kind: "mixed" },
+};
+function canonicalVariant(variant) {
+  return variant === "pitch-corrected" ? "pitchCorrected" : variant;
+}
+function getVariantData(project, variant) {
+  if (!project) return "";
+  const key = canonicalVariant(variant);
+  if (key === "original") return project.originalAudioData || (!project.processedAudioData ? project.audioData : "") || "";
+  return project.audioVariants?.[key]?.data || (key === "processed" ? project.processedAudioData || ((project.effectApplied || project.fadeApplied) ? project.audioData : "") : "") || "";
+}
+function getVariantMime(project, variant) {
+  if (canonicalVariant(variant) === "original") return project?.originalMimeType || project?.mimeType || "audio/webm";
+  const key = canonicalVariant(variant);
+  return project?.audioVariants?.[key]?.mimeType || (key === "processed" ? project?.processedMimeType : "audio/wav") || "audio/wav";
+}
+function variantFromBlobKey(blobKey) {
+  const kind = String(blobKey || "").split(":").pop();
+  return Object.values(VOCAL_VARIANTS).some((item) => item.kind === kind) ? kind : kind === "processed" ? "processed" : "original";
+}
+function blobKindForVariant(variant) {
+  const key = canonicalVariant(variant);
+  return VOCAL_VARIANTS[key]?.kind || (key === "processed" ? "processed" : "original");
+}
 if (pianoRoll) {
   pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
 }
@@ -182,8 +211,7 @@ function stopTransportAudio() {
 }
 
 function audioSourceForClip(project, clip) {
-  if (clip.blobKey?.endsWith(":processed")) return project.processedAudioData || project.originalAudioData || project.audioData;
-  return project.originalAudioData || project.audioData;
+  return getVariantData(project, variantFromBlobKey(clip.blobKey));
 }
 
 function scheduleTimelineAudio(project, startPosition) {
@@ -288,9 +316,11 @@ async function mixdownActiveTimeline() {
     for (const clip of track.clips) {
       if (sources.has(clip.blobKey) || sources.has(clip.id)) continue;
       let blob = null;
-      try { if (indexedDbAvailable() && clip.blobKey) blob = await getAudioBlob(project.id, clip.blobKey.endsWith(":processed") ? "processed" : "original"); } catch {}
-      if (!blob && sourceData && (clip.blobKey?.startsWith(`${project.id}:`) || clip.blobKey === null)) {
-        blob = await fetch(sourceData).then((response) => response.blob());
+      const variant = variantFromBlobKey(clip.blobKey);
+      try { if (await indexedDbAvailable() && clip.blobKey) blob = await getAudioBlob(project.id, blobKindForVariant(variant)); } catch {}
+      const variantData = getVariantData(project, variant) || sourceData;
+      if (!blob && variantData && (clip.blobKey?.startsWith(`${project.id}:`) || clip.blobKey === null)) {
+        blob = await dataUrlToBlob(variantData);
       }
       if (blob) sources.set(clip.blobKey || clip.id, blob);
     }
@@ -307,7 +337,19 @@ async function mixdownActiveTimeline() {
     link.download = `${project.name || "sessao"}-mixdown.wav`;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast("Mixdown WAV exportado localmente com headroom.");
+    const mixedAudioData = await blobToDataUrl(wav);
+    const updated = readProjects().map((item) => item.id === project.id ? {
+      ...item,
+      audioVariants: { ...(item.audioVariants || {}), mixed: { data: mixedAudioData, mimeType: "audio/wav", bytes: wav.size, source: "timeline-mixdown", updatedAt: new Date().toISOString() } },
+      status: "Mixdown local disponível",
+    } : item);
+    saveProjects(updated);
+    try {
+      if (await indexedDbAvailable()) await Promise.all([putAudioBlob(project.id, "mixed", wav), putProject(updated.find((item) => item.id === project.id))]);
+    } catch { showToast("O Mixed foi guardado localmente; a cópia IndexedDB será tentada novamente."); }
+    renderProjects();
+    await refreshStorageStatus();
+    showToast("Mixdown WAV exportado localmente com headroom e guardado como Mixed.");
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Não foi possível exportar o mixdown.");
   } finally {
@@ -353,7 +395,13 @@ async function runProducerPlan(id) {
   activeTimelineId = id;
   timelineHistory = createHistoryState(normalizeProject(source));
   try {
-    const plan = buildProducerPlan({ genre: source.genre, tempo: source.tempo, key: source.key, duration: source.duration, brief: source.productionBrief || "" });
+    let analysis = null;
+    try {
+      analysis = await analyzeAudioDataUrl(source.originalAudioData || source.audioData || "");
+    } catch {
+      analysis = null;
+    }
+    const plan = buildProducerPlan({ genre: source.genre, tempo: source.tempo, key: source.key, duration: source.duration, brief: source.productionBrief || "", analysis, preferAnalysis: Boolean(analysis?.hasAudio) });
     if (!setProductionPhase(id, PRODUCTION_STATES.ARRANGING, "A criar arranjo local", 25, renderProjects)) return;
     await new Promise((resolve) => window.setTimeout(resolve, 0));
     let next = applyProducerMix(normalizeProject(source), plan);
@@ -393,12 +441,14 @@ function renderProjects() {
     return;
   }
   list.innerHTML = projects.map((project) => {
-    const originalData = project.originalAudioData || (!project.processedAudioData ? project.audioData : "");
-    const processedData = project.processedAudioData || (project.effectApplied || project.fadeApplied ? project.audioData : "");
-    const original = audioBlock("Original", originalData, project.originalMimeType || project.mimeType, project.name);
-    const processed = processedData
-      ? audioBlock("Processada", processedData, project.processedMimeType || "audio/wav", project.name)
-      : "<small>Processada: ainda não existe.</small>";
+    const originalData = getVariantData(project, "original");
+    const processedData = getVariantData(project, "processed");
+    const variantBlocks = ["enhanced", "pitchCorrected", "mixed"].map((variant) => {
+      const data = getVariantData(project, variant);
+      return data ? audioBlock(VOCAL_VARIANTS[variant].label, data, getVariantMime(project, variant), project.name) : `<small>${VOCAL_VARIANTS[variant].label}: ainda não existe.</small>`;
+    }).join("");
+    const original = audioBlock("Original", originalData, getVariantMime(project, "original"), project.name);
+    const processed = processedData ? audioBlock("Processada legacy", processedData, getVariantMime(project, "processed"), project.name) : "";
     const brief = project.productionBrief ? `<small class="effect-note">Intenção do produtor: ${escapeHtml(project.productionBrief)}</small>` : "";
     const legacyNotice = !project.originalAudioData && processedData
       ? '<small class="effect-note">Take histórica: o original separado não está disponível nesta versão.</small>'
@@ -425,10 +475,13 @@ function renderProjects() {
     const vocalEnhancement = originalData && !project.vocalEnhancementApplied
       ? `<button class="mini-button" type="button" data-vocal-enhance-id="${escapeHtml(project.id)}">Melhorar voz</button>`
       : "";
-    const resetEffects = processedData
-      ? `<button class="mini-button" type="button" data-reset-effects-id="${escapeHtml(project.id)}">Repor original</button>`
+    const pitchAssist = originalData && !project.pitchCorrectionApplied
+      ? `<button class="mini-button" type="button" data-pitch-correct-id="${escapeHtml(project.id)}">Pitch assistido</button>`
       : "";
-    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    const resetEffects = (processedData || variantBlocks.includes("audio-version"))
+      ? `<button class="mini-button" type="button" data-reset-effects-id="${escapeHtml(project.id)}">Repor variantes</button>`
+      : "";
+    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderTimeline();
 }
@@ -454,6 +507,7 @@ async function saveRecording({ blob, mimeType, seconds }) {
     originalAudioData,
     processedAudioData: null,
     processedMimeType: null,
+    audioVariants: {},
   });
   try {
     const projects = readProjects();
@@ -480,28 +534,28 @@ async function saveRecording({ blob, mimeType, seconds }) {
   if (productionBriefInput) productionBriefInput.value = "";
 }
 
-async function applyLocalEffect(id, effectName, processor, successMessage) {
+async function applyLocalEffect(id, effectName, processor, successMessage, variant = "processed") {
   const project = readProjects().find((item) => item.id === id);
-  const sourceData = project?.processedAudioData || project?.originalAudioData || project?.audioData;
-  if (!project || !sourceData || project[effectName]) return;
+  const sourceData = getVariantData(project, "original");
+  if (!project || !sourceData || project[effectName] || project.audioVariants?.[variant]?.data) return;
   try {
-    showToast(`A aplicar ${effectName === "effectApplied" ? "ganho local de +3 dB" : "fade in/out local"} e a preparar WAV…`);
+    showToast(`A preparar ${VOCAL_VARIANTS[variant]?.label || "Processada"} local em WAV…`);
     const sourceBlob = await dataUrlToBlob(sourceData);
     const processedBlob = await processor(sourceBlob);
     const processedAudioData = await blobToDataUrl(processedBlob);
+    const variantRecord = { data: processedAudioData, mimeType: "audio/wav", bytes: processedBlob.size, source: "local-dsp", updatedAt: new Date().toISOString() };
     const updated = readProjects().map((item) => item.id === id ? {
       ...item,
-      processedAudioData,
-      processedMimeType: "audio/wav",
-      processedBytes: processedBlob.size,
-      [effectName]: effectName === "effectApplied" ? "Ganho +3 dB" : "Fade in/out",
-      status: "Efeito local aplicado",
+      ...(variant === "processed" ? { processedAudioData, processedMimeType: "audio/wav", processedBytes: processedBlob.size } : {}),
+      audioVariants: { ...(item.audioVariants || {}), [variant]: variantRecord },
+      [effectName]: effectName === "effectApplied" ? "Ganho +3 dB" : effectName === "fadeApplied" ? "Fade in/out" : true,
+      status: `${VOCAL_VARIANTS[variant]?.label || "Processada"} local aplicada`,
     } : item);
     saveProjects(updated);
     try {
       if (await indexedDbAvailable()) {
         await Promise.all([
-          putAudioBlob(id, "processed", processedBlob),
+          putAudioBlob(id, blobKindForVariant(variant), processedBlob),
           putEffect({
             id: `${id}:${effectName}`,
             projectId: id,
@@ -539,21 +593,28 @@ function applyLocalCompressor(id) {
   return applyLocalEffect(id, "compressorApplied", applyCompressor, "Compressor local aplicado. Original e processada estão separados.");
 }
 function applyLocalVocalEnhancement(id) {
-  return applyLocalEffect(id, "vocalEnhancementApplied", applyVocalEnhancement, "Melhoria vocal local aplicada. O original continua preservado.");
+  return applyLocalEffect(id, "vocalEnhancementApplied", applyVocalEnhancement, "Melhoria vocal local aplicada. O original continua preservado.", "enhanced");
+}
+
+function applyLocalPitchAssist(id) {
+  return applyLocalEffect(id, "pitchCorrectionApplied", applyPitchCorrectionAssist, "Pitch correction assistida aplicada localmente. O original continua preservado.", "pitchCorrected");
 }
 
 async function resetEffects(id) {
   const project = readProjects().find((item) => item.id === id);
-  if (!project?.processedAudioData) return;
+  if (!project || (!project.processedAudioData && !Object.keys(project.audioVariants || {}).length)) return;
   const updated = readProjects().map((item) => item.id === id ? {
     ...item,
     processedAudioData: null,
     processedMimeType: null,
     processedBytes: 0,
+    audioVariants: {},
     effectApplied: null,
     fadeApplied: null,
     normalizeApplied: null,
     compressorApplied: null,
+    vocalEnhancementApplied: false,
+    pitchCorrectionApplied: false,
     status: "Original recuperado",
   } : item);
   saveProjects(updated);
@@ -592,6 +653,7 @@ list.addEventListener("click", (event) => {
   const normalizeButton = event.target.closest("[data-normalize-id]");
   const compressorButton = event.target.closest("[data-compressor-id]");
   const vocalEnhancementButton = event.target.closest("[data-vocal-enhance-id]");
+  const pitchCorrectionButton = event.target.closest("[data-pitch-correct-id]");
   const resetEffectsButton = event.target.closest("[data-reset-effects-id]");
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
   if (processButton) runProducerPlan(processButton.dataset.processId);
@@ -601,6 +663,7 @@ list.addEventListener("click", (event) => {
   if (normalizeButton) applyLocalNormalize(normalizeButton.dataset.normalizeId);
   if (compressorButton) applyLocalCompressor(compressorButton.dataset.compressorId);
   if (vocalEnhancementButton) applyLocalVocalEnhancement(vocalEnhancementButton.dataset.vocalEnhanceId);
+  if (pitchCorrectionButton) applyLocalPitchAssist(pitchCorrectionButton.dataset.pitchCorrectId);
   if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
 });
 

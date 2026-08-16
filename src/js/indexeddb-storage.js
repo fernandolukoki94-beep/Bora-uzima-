@@ -115,13 +115,13 @@ export async function resetProjectEffects(projectId) {
   const database = await openDatabase();
   try {
     const transaction = database.transaction([STORES.projects, STORES.blobs, STORES.effects], "readwrite");
-    transaction.objectStore(STORES.blobs).delete(`${projectId}:processed`);
+    for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
     const projectStore = transaction.objectStore(STORES.projects);
     const projectRequest = projectStore.get(projectId);
     projectRequest.onsuccess = () => {
       const project = projectRequest.result;
       if (!project) return;
-      projectStore.put({ ...project, processedAudioData: false, processedMimeType: null, processedBytes: 0, effects: [] });
+      projectStore.put({ ...project, processedAudioData: false, processedMimeType: null, processedBytes: 0, effects: [], audioVariants: {} });
     };
     const effects = transaction.objectStore(STORES.effects);
     const effectRequest = effects.openCursor();
@@ -148,7 +148,7 @@ export async function deleteProjectData(projectId) {
     transaction.objectStore(STORES.projects).delete(projectId);
     transaction.objectStore(STORES.takes).delete(projectId);
     transaction.objectStore(STORES.blobs).delete(`${projectId}:original`);
-    transaction.objectStore(STORES.blobs).delete(`${projectId}:processed`);
+    for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
     const effects = transaction.objectStore(STORES.effects);
     const effectRequest = effects.openCursor();
     effectRequest.onsuccess = () => {

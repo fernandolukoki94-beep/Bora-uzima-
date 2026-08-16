@@ -56,3 +56,15 @@ test("keeps an empty production brief backward compatible", () => {
   assert.equal(plan.brief, "");
   assert.equal(plan.briefInterpretation.energy, "medium");
 });
+
+test("Producer Plan materializa a paleta completa de seis instrumentos locais", () => {
+  const plan = buildProducerPlan({ genre: "Afrobeat", tempo: 104, key: "A minor", duration: 30 });
+  const clips = producerPlanClipSpecs(plan, 8);
+  const expected = ["drums", "bass", "piano", "guitar", "strings", "synth"];
+  assert.deepEqual(plan.instruments, expected);
+  assert.deepEqual(
+    clips.map((clip) => clip.metadata?.instrument),
+    expected,
+  );
+  assert.ok(clips.every((clip) => clip.metadata?.producerPlan === true));
+});

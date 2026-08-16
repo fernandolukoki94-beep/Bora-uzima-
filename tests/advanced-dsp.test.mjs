@@ -22,3 +22,11 @@ test("noise gate remove ruído abaixo do limiar e preserva sinal útil", () => {
   assert.ok(Math.abs(result[2] - 0.03) < 0.00001);
   assert.equal(result[3], -0.5);
 });
+
+
+test("pitch correction assistida limita cents ao intervalo seguro", async () => {
+  const { normalizePitchCorrectionCents } = await import("../src/js/effects.js");
+  assert.equal(normalizePitchCorrectionCents(-500), -100);
+  assert.equal(normalizePitchCorrectionCents(500), 100);
+  assert.equal(normalizePitchCorrectionCents("invalido"), 0);
+});

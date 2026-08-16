@@ -23,8 +23,8 @@ A demonstração pública está disponível em [fernando-lucoco-music.vercel.app
 | Piano roll | V1 visual/local | Grelha de 16 passos com notas e quantização no núcleo de instrumentos. |
 | Beat Maker | V1 local | 16 passos, seis canais, presets e padrões Afrobeat, Amapiano, Kuduro, Afro House e Rumba; preview e Mixdown com síntese dedicada para bass e percussão. |
 | Mixing local | V1 com painel e exportação | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel persiste controlos e o Mixdown exporta WAV local com headroom. Clips instrumentais são renderizados localmente quando não existe blob externo. |
-| Producer Plan local | V1.1 funcional | Plano determinístico por género, BPM, tonalidade, estrutura, instrumentos, cadeia vocal e mix; aplica clips locais sem API externa. |
-| Mastering e IA externa | V2 planeada | A V1 mantém DSP local e original preservado; o Producer Studio V2 terá primeiro uma cadeia local reversível e só depois poderá receber um provider IA server-side protegido. |
+| Producer Plan local | V1.1/V2 inicial funcional | Plano determinístico por género, BPM, tonalidade, estrutura, instrumentos, cadeia vocal e mix; aceita intenção de produção e análise local sem API externa. |
+| Mastering e IA externa | V2 planeada | A V1 mantém DSP local e original preservado; o Producer Studio V2 terá primeiro uma cadeia vocal local reversível e só depois poderá receber um provider IA server-side protegido. |
 
 ## Producer Plan local
 
@@ -38,7 +38,11 @@ Gravar → Analisar regras locais → Producer Plan JSON
        → Mixer/Mixdown → Exportar WAV
 ```
 
+A análise local V2 estima BPM, tonalidade aproximada e um perfil vocal básico a partir da gravação original, sem a substituir. O resultado inclui confiança e pode recuar para valores manuais quando o navegador não consegue descodificar o áudio. A cadeia vocal também dispõe de pitch correction assistida local, limitada a uma alteração controlada de cents e sempre exportada como nova versão; não é Auto-Tune completo nem substitui um afinador dedicado.
+
 Esta V1 não afirma que um LLM faz Auto-Tune, masterização profissional ou geração de áudio. O Producer Plan orquestra o motor local existente. Uma futura integração IA deve usar backend server-side, esquema JSON validado, limites de utilização e segredos fora do browser. Nunca devem ser colocados tokens OpenAI ou Gemini no HTML, JavaScript público, armazenamento local ou GitHub. As fontes e decisões estão em [`docs/ai-producer-architecture-proposal.md`](./docs/ai-producer-architecture-proposal.md), [`docs/ai-sources-notes.md`](./docs/ai-sources-notes.md) e [`docs/ai-backend-contract.md`](./docs/ai-backend-contract.md).
+
+A cadeia vocal reversível V2 está agora ligada ao fluxo principal: **Original** é a única fonte de processamento individual; **Enhanced** e **Pitch Corrected** são WAVs locais separados; **Mixed** é o resultado WAV do Mixdown da timeline. Cada variante recebe uma chave própria no IndexedDB (`original`, `enhanced`, `pitch-corrected`, `mixed`) e pode ser reproduzida ou descarregada sem substituir a gravação original. O campo legacy `Processada` continua apenas para compatibilidade com sessões antigas.
 
 ## Transição V1 → V2
 
@@ -94,7 +98,7 @@ Abra `http://localhost:8000`, autorize o microfone e experimente uma take curta.
 pnpm test
 ```
 
-A suite actual terminou com **98 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, Cordas e Synth Pad locais, além dos estados e recuperação do Producer Plan e da interpretação determinística de briefs de produção. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
+A suite actual terminou com **106 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, Cordas e Synth Pad locais, estados e recuperação do Producer Plan, interpretação determinística de briefs de produção, análise local de áudio com silêncio, pitch aproximado, BPM limitado, pitch correction assistida local, integração no Producer Plan e persistência/reset das variantes Enhanced, Pitch Corrected e Mixed. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
 
 ## Estado de QA e limites
 
