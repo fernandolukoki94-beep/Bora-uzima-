@@ -259,3 +259,11 @@ A interface de efeitos inclui agora quatro predefinições base: **Voz seca**, *
 A predefinição activa é associada ao projecto corrente e persistida localmente. Após recarregar a página, a aplicação restaura a selecção e os parâmetros sem substituir a gravação Original nem as variantes processadas. A gestão de presets também foi ajustada para reflectir a selecção activa ao criar ou reabrir um projecto.
 
 Os medidores A/B de pico e loudness receberam barras progressivas, loading visual, shimmer de actividade, transições suaves e suporte a `prefers-reduced-motion`. A suite determinística terminou esta revisão com **141 testes aprovados e 0 falhas**. A validação física em Samsung Galaxy A06, Chrome Android e Safari iPhone continua necessária.
+
+### AI Producer — execução dentro da faixa do produtor
+
+A integração AI Producer foi corrigida para deixar de ser apenas uma recomendação textual. Quando o provider server-side devolve uma resposta válida, o cliente transforma-a num `Producer Plan` AI-assisted e aplica-o automaticamente na faixa do produtor. O plano materializa o arranjo e a instrumentalização em tracks/clips reais, actualiza BPM e tonalidade, carrega a cadeia vocal e avança pelos estados de processamento de vocal, mix e master local seguro.
+
+O servidor recebe apenas metadados validados: género, preset vocal, duração, BPM, tonalidade e intenção do artista. Não recebe o áudio e nunca envia chaves para o browser. A IA define o plano de produção; o Web Audio Engine local executa o arranjo, os efeitos reversíveis, o mixdown e o master com headroom. O `Original` é preservado e o projecto guarda `producerPlanSource: "ai"`, a cadeia recomendada e o instante de aplicação para permitir auditoria e restauração.
+
+A interface comunica agora estados distintos, incluindo “A IA está a criar o arranjo e a instrumentalização”, “A IA materializa a faixa do produtor” e “A preparar vocal, mix e master local seguro”. Se o provider estiver indisponível, expirar ou esgotar quota, nada é inventado: o fluxo local continua disponível. Isto significa que a IA actua como produtora de arranjo e decisão, mas a execução áudio é local; processamento áudio remoto por IA continua fora do escopo até existir um serviço seguro, com quota e testes reais.

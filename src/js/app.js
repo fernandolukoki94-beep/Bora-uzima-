@@ -953,7 +953,7 @@ function insertInstrumentClip({ name, type, duration = 4, metadata = {} }) {
   return true;
 }
 
-async function runProducerPlan(id) {
+async function runProducerPlan(id, { planOverride = null, sourceLabel = "local" } = {}) {
   const source = readProjects().find((item) => item.id === id);
   if (!source) return;
   const job = beginProduction(id, renderProjects);
@@ -970,23 +970,31 @@ async function runProducerPlan(id) {
     } catch {
       analysis = null;
     }
-    const plan = buildProducerPlan({ genre: source.genre, tempo: source.tempo, key: source.key, duration: source.duration, brief: source.productionBrief || "", analysis, preferAnalysis: Boolean(analysis?.hasAudio) });
-    const analyzedProject = readProjects().map((item) => item.id === id ? { ...item, analysis, tempo: analysis?.bpm || item.tempo, key: analysis?.key || item.key } : item);
+    const plan = planOverride || source.aiRecommendedPlan || buildProducerPlan({ genre: source.genre, tempo: source.tempo, key: source.key, duration: source.duration, brief: source.productionBrief || "", analysis, preferAnalysis: Boolean(analysis?.hasAudio) });
+    const analyzedProject = readProjects().map((item) => item.id === id ? {
+      ...item,
+      analysis,
+      tempo: plan.bpm || analysis?.bpm || item.tempo,
+      key: plan.key || analysis?.key || item.key,
+      producerPlanSource: sourceLabel,
+      producerPlanAppliedAt: new Date().toISOString(),
+    } : item);
     saveProjects(analyzedProject);
-    if (!setProductionPhase(id, PRODUCTION_STATES.ARRANGING, "A criar arranjo local", 25, renderProjects)) return;
+    const isAiPlan = sourceLabel === "ai";
+    if (!setProductionPhase(id, PRODUCTION_STATES.ARRANGING, isAiPlan ? "A IA está a criar o arranjo e a instrumentalização" : "A criar arranjo local", 25, renderProjects)) return;
     await new Promise((resolve) => window.setTimeout(resolve, 0));
     const plannedProject = applyProducerMix(normalizeProject(analyzedProject.find((item) => item.id === id) || source), plan);
     const specs = producerPlanClipSpecs(plan, Math.max(4, Math.min(16, Number(source.duration || 8))));
     if (!isProductionActive(id)) return;
     const next = materializeProducerPlan(plannedProject, plan, {
       duration: source.duration,
-      onStep: ({ index, total }) => setProductionPhase(id, PRODUCTION_STATES.ARRANGING, `A criar arranjo local · ${index}/${total}`, 25 + Math.round((index / total) * 45), renderProjects),
+        onStep: ({ index, total }) => setProductionPhase(id, PRODUCTION_STATES.ARRANGING, `${isAiPlan ? "A IA materializa a faixa do produtor" : "A criar arranjo local"} · ${index}/${total}`, 25 + Math.round((index / total) * 45), renderProjects),
     });
     await new Promise((resolve) => window.setTimeout(resolve, 0));
-    if (!setProductionPhase(id, PRODUCTION_STATES.MIXING, "A preparar mix local", 85, renderProjects)) return;
+    if (!setProductionPhase(id, PRODUCTION_STATES.MIXING, isAiPlan ? "A preparar vocal, mix e master local seguro" : "A preparar mix local", 85, renderProjects)) return;
     await commitTimelineProject(next);
-    completeProduction(id, renderProjects);
-    showToast(`Producer Plan aplicado: ${plan.genre}, ${plan.bpm} BPM, ${plan.instruments.length} instrumentos locais.`);
+    completeProduction(id, renderProjects, isAiPlan ? "AI Producer aplicado · arranjo, vocal, mix e master local" : "Producer Plan local aplicado");
+    showToast(`${sourceLabel === "ai" ? "Plano IA aplicado" : "Producer Plan aplicado"}: ${plan.genre}, ${plan.bpm} BPM, ${plan.instruments.length} instrumentos na faixa do produtor.`);
   } catch (error) {
     failProduction(id, error, renderProjects);
     showToast("A produção falhou, mas o projecto original foi preservado. Tenta novamente.");
@@ -1284,6 +1292,8 @@ producerRequestAi?.addEventListener("click", async () => {
       genre: project.genre || "Afrobeat",
       vocalPreset: project.preset || "Natural",
       durationSeconds: Number(project.duration || 0),
+      bpm: Number(project.tempo || 100),
+      key: project.key || "C",
       locale: "pt-PT",
       intent: project.productionBrief || "demo vocal",
     });
@@ -1306,8 +1316,9 @@ producerRequestAi?.addEventListener("click", async () => {
     saveProjects(nextProjects);
     if (producerAiStatus) {
       producerAiStatus.dataset.state = "success";
-      producerAiStatus.textContent = `${advice.summary} Cadeia: ${advice.chain.join(" → ")} · confiança ${advice.confidence}. Plano local preparado; aplica-o no controlo Producer Plan.`;
+      producerAiStatus.textContent = `${advice.summary} Cadeia: ${advice.chain.join(" → ")} · confiança ${advice.confidence}. A IA vai agora materializar o arranjo na faixa do produtor.`;
     }
+    await runProducerPlan(project.id, { planOverride: recommendationPlan, sourceLabel: "ai" });
   } catch (error) {
     if (producerAiStatus) {
       producerAiStatus.dataset.state = "error";

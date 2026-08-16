@@ -4,6 +4,8 @@ const ALLOWED_KEYS = new Set([
   "genre",
   "vocalPreset",
   "durationSeconds",
+  "bpm",
+  "key",
   "locale",
   "intent",
 ]);
@@ -19,6 +21,8 @@ function validate(input) {
   if (typeof input.genre !== "string" || input.genre.length < 1 || input.genre.length > 80) return "genre inválido.";
   if (typeof input.vocalPreset !== "string" || input.vocalPreset.length < 1 || input.vocalPreset.length > 80) return "vocalPreset inválido.";
   if (!Number.isFinite(input.durationSeconds) || input.durationSeconds < 0 || input.durationSeconds > 3600) return "durationSeconds inválido.";
+  if (input.bpm !== undefined && (!Number.isFinite(input.bpm) || input.bpm < 40 || input.bpm > 240)) return "bpm inválido.";
+  if (input.key !== undefined && (typeof input.key !== "string" || input.key.length < 1 || input.key.length > 24)) return "key inválido.";
   if (typeof input.locale !== "string" || input.locale.length < 2 || input.locale.length > 16) return "locale inválido.";
   if (typeof input.intent !== "string" || input.intent.length > 240) return "intent inválido.";
   return null;
@@ -38,7 +42,7 @@ function providerPayload(input) {
     messages: [
       {
         role: "system",
-        content: "És um mini-produtor musical responsável. Responde em JSON com summary, chain e confidence. Recomenda, não afirma que processaste áudio.",
+        content: "És um mini-produtor musical responsável. Analisa a intenção do artista, BPM, tonalidade e preset. Responde em JSON com summary, chain e confidence. A tua resposta será executada pelo Producer Studio: arranjo e instrumentalização entram na timeline, a cadeia vocal orienta DSP local reversível, e mix/master são executados localmente com headroom. Não afirmes que processaste áudio no servidor.",
       },
       {
         role: "user",
@@ -107,7 +111,7 @@ export default async function handler(req, res) {
       requestId: crypto.randomUUID(),
       status: "ready",
       advice,
-      disclaimer: "Recomendação assistida; não é mixagem ou masterização automática.",
+      disclaimer: "A IA define o plano de produção; o Producer Studio materializa arranjo, vocal, mix e master localmente, preservando o Original.",
     });
   } catch {
     return json(res, 503, { status: "provider_unavailable", message: "A recomendação IA está temporariamente indisponível; nada local foi alterado." });

@@ -19,7 +19,7 @@ export function adviceToProducerPlan({ advice, base = {} } = {}) {
   if (error) throw new Error(error);
   const chainBrief = advice.chain.join(", ");
   const brief = [base.brief, advice.summary, `Cadeia vocal: ${chainBrief}.`].filter(Boolean).join(" ").slice(0, 900);
-  return buildProducerPlan({
+  const plan = buildProducerPlan({
     genre: base.genre || "Afrobeat",
     tempo: base.tempo || 100,
     key: base.key || "C",
@@ -28,4 +28,20 @@ export function adviceToProducerPlan({ advice, base = {} } = {}) {
     analysis: base.analysis || null,
     preferAnalysis: Boolean(base.preferAnalysis),
   });
+  return {
+    ...plan,
+    execution: {
+      ...(plan.execution || {}),
+      mode: "ai-assisted",
+      source: "server-provider",
+      stages: ["arrangement", "instrumentation", "vocal-processing", "mix", "master"],
+      vocalChain: advice.chain,
+      arrangement: plan.instruments,
+      mix: plan.mix,
+      master: { enabled: true, mode: "local-safe-master", headroom: 0.98 },
+      originalPreserved: true,
+      reversible: true,
+    },
+    aiAdvice: { summary: advice.summary, confidence: advice.confidence, chain: advice.chain },
+  };
 }

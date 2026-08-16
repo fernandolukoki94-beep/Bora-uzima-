@@ -57,10 +57,10 @@ export function setProductionPhase(id, state, status, progress, renderProjects) 
   return true;
 }
 
-export function completeProduction(id, renderProjects) {
+export function completeProduction(id, renderProjects, label = "Producer Plan local aplicado") {
   if (!activeJobs.has(id)) return false;
   activeJobs.delete(id);
-  updateProjectStatus(id, "Producer Plan local aplicado", renderProjects, {
+  updateProjectStatus(id, label, renderProjects, {
     processing: { state: PRODUCTION_STATES.COMPLETED, progress: 100, completedAt: new Date().toISOString() },
   });
 }

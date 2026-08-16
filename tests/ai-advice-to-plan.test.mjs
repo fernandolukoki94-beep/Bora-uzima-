@@ -18,6 +18,12 @@ test("transforma recomendação validada num Producer Plan local", () => {
   assert.match(plan.brief, /Afrobeat romântico/);
   assert.equal(plan.execution.localOnly, true);
   assert.equal(plan.execution.originalPreserved, true);
+  assert.equal(plan.execution.mode, "ai-assisted");
+  assert.deepEqual(plan.execution.stages, ["arrangement", "instrumentation", "vocal-processing", "mix", "master"]);
+  assert.deepEqual(plan.execution.vocalChain, ["vocal enhancement", "warm EQ"]);
+  assert.equal(plan.execution.master.enabled, true);
+  assert.equal(plan.execution.reversible, true);
+  assert.equal(plan.aiAdvice.confidence, "medium");
 });
 
 test("rejeita confidence fora do contrato", () => {
