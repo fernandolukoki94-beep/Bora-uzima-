@@ -3,6 +3,17 @@ import { bindPlayerEvents } from "./player.js";
 import { simulateProductionPipeline } from "./production.js";
 import { applyFade, applyGain } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
+import {
+  clearLocalStudioData,
+  deleteProjectData,
+  estimateStorageUsage,
+  indexedDbAvailable,
+  migrateLocalStorageProjects,
+  putAudioBlob,
+  putEffect,
+  putProject,
+  putTake,
+} from "./indexeddb-storage.js";
 
 const heroRecord = document.getElementById("hero-record");
 const mainRecord = document.getElementById("record-main");
@@ -13,6 +24,23 @@ const nameInput = document.getElementById("project-name");
 const presetInput = document.getElementById("preset");
 const genreInput = document.getElementById("genre");
 const toast = document.getElementById("toast");
+const storageStatus = document.getElementById("storage-status");
+const clearStorageButton = document.getElementById("clear-local-storage");
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
+}
+
+async function refreshStorageStatus() {
+  if (!storageStatus) return;
+  const estimate = await estimateStorageUsage();
+  const quotaText = estimate.quota ? ` de ${formatBytes(estimate.quota)}` : "";
+  storageStatus.textContent = `${estimate.indexedDbAvailable ? "IndexedDB activo" : "fallback localStorage"} · ${formatBytes(estimate.localBytes)}${quotaText} usados localmente`;
+  storageStatus.dataset.storageMode = estimate.indexedDbAvailable ? "indexeddb" : "fallback";
+}
 
 function showToast(message) {
   toast.textContent = message;
@@ -88,7 +116,19 @@ async function saveRecording({ blob, mimeType, seconds }) {
     const projects = readProjects();
     projects.unshift(project);
     saveProjects(projects);
+    try {
+      if (await indexedDbAvailable()) {
+        await Promise.all([
+          putProject({ ...project, storageVersion: "indexeddb-v2" }),
+          putTake({ id: project.id, projectId: project.id, originalAudioData: true, processedAudioData: false }),
+          putAudioBlob(project.id, "original", blob),
+        ]);
+      }
+    } catch {
+      showToast("A take foi guardada no fallback local; IndexedDB não esteve disponível.");
+    }
     renderProjects();
+    await refreshStorageStatus();
     showToast(`“${name}” foi guardada e o original está disponível.`);
   } catch {
     showToast("Não foi possível guardar esta take. Liberta espaço do navegador e tenta novamente.");
@@ -114,7 +154,25 @@ async function applyLocalEffect(id, effectName, processor, successMessage) {
       status: "Efeito local aplicado",
     } : item);
     saveProjects(updated);
+    try {
+      if (await indexedDbAvailable()) {
+        await Promise.all([
+          putAudioBlob(id, "processed", processedBlob),
+          putEffect({
+            id: `${id}:${effectName}`,
+            projectId: id,
+            type: effectName === "effectApplied" ? "gain" : "fade",
+            parameters: effectName === "effectApplied" ? { decibels: 3 } : { fadeInSeconds: 0.5, fadeOutSeconds: 1 },
+            createdAt: new Date().toISOString(),
+          }),
+          putProject(updated.find((item) => item.id === id)),
+        ]);
+      }
+    } catch {
+      showToast("O efeito foi guardado no fallback local; a cópia IndexedDB falhou.");
+    }
     renderProjects();
+    await refreshStorageStatus();
     showToast(successMessage);
   } catch {
     showToast("Não foi possível aplicar o efeito neste navegador. O original continua preservado.");
@@ -129,11 +187,17 @@ function applyLocalFade(id) {
   return applyLocalEffect(id, "fadeApplied", applyFade, "Fade in/out aplicado localmente. Original e processada estão separados.");
 }
 
-function deleteProject(id) {
+async function deleteProject(id) {
   const project = readProjects().find((item) => item.id === id);
   if (!project || !window.confirm(`Apagar “${project.name}” deste navegador?`)) return;
   saveProjects(readProjects().filter((item) => item.id !== id));
+  try {
+    if (await indexedDbAvailable()) await deleteProjectData(id);
+  } catch {
+    showToast("A sessão foi removida do fallback local, mas a limpeza IndexedDB precisa de nova tentativa.");
+  }
   renderProjects();
+  await refreshStorageStatus();
   showToast("A sessão foi apagada localmente.");
 }
 
@@ -154,4 +218,15 @@ bindPlayerEvents(list, showToast);
 document.addEventListener("visibilitychange", recorder.stopIfHidden);
 heroRecord.addEventListener("click", recorder.toggle);
 mainRecord.addEventListener("click", recorder.toggle);
+clearStorageButton?.addEventListener("click", async () => {
+  if (!window.confirm("Apagar todas as sessões e dados locais deste navegador? Esta acção não pode ser desfeita.")) return;
+  await clearLocalStudioData();
+  renderProjects();
+  await refreshStorageStatus();
+  showToast("Todos os dados locais foram limpos.");
+});
 renderProjects();
+refreshStorageStatus();
+migrateLocalStorageProjects().then((result) => {
+  if (result.migrated) refreshStorageStatus();
+}).catch(() => {});

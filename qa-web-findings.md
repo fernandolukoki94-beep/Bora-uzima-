@@ -63,3 +63,13 @@ O início e o fim foram atenuados, enquanto o centro preservou o nível do sinal
 O preview local `http://127.0.0.1:4177/` carregou com o título Fernando Lucoco Music, os controlos de gravação e a faixa de ajuda contextual. Uma take WAV sintética previamente controlada permaneceu visível com `Descarregar original` e `Descarregar processada`, confirmando que a alteração de texto não removeu o fluxo de áudio.
 
 Este resultado valida o carregamento e a gestão de uma take controlada no preview. Não substitui a gravação de voz através de microfone físico em Safari iPhone ou Chrome Android, que continua a exigir teste manual no dispositivo.
+
+## 2026-08-16 — IndexedDB v2, escrita dual e painel de armazenamento
+
+A implementação passou a fazer escrita dual progressiva: o `localStorage` continua como caminho de leitura e fallback, enquanto IndexedDB recebe projectos, takes, blobs original/processado e histórico de efeitos quando disponível. Foi acrescentado um indicador de armazenamento e o controlo `Limpar dados locais`, com confirmação explícita.
+
+A suite local `pnpm test` aprovou **10 testes, 10 passados e 0 falhas**. Os testes cobrem header WAV, pico, ganho seguro, silêncio, schema IndexedDB v2, persistência original/processado, migração sem apagar a origem, falha controlada de dados legacy e remoção de projecto.
+
+A pré-visualização estática respondeu com `HTTP 200`, mostrou o novo indicador e o botão de limpeza, e não apresentou erros na consola durante o carregamento. Os testes usam dados sintéticos e `fake-indexeddb`; não substituem quota real, modo privado, reload/fechar-reabrir ou gravação física.
+
+A execução real em **Chrome Android** e **Safari iPhone** continua pendente. Esses resultados só devem ser marcados como PASS depois de testar microfone, gravação, reprodução, ganho, fade, download WAV, reload e recuperação da sessão em cada dispositivo.

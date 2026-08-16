@@ -15,7 +15,7 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Landing page | Pronto | Experiência responsiva com posicionamento do produto e autoria de Fernando Lucoco. |
 | Gravação vocal | Pronto | Usa `MediaRecorder` e `getUserMedia` quando o navegador suporta acesso ao microfone. |
 | Feedback de gravação | Pronto | Estado de gravação, temporizador, botão de parar e feedback visual. |
-| Sessões locais | Pronto | Nome, tratamento vocal, género, duração, data e estado são guardados no `localStorage` deste navegador. |
+| Sessões locais | Pronto | Nome, tratamento vocal, género, duração, data e estado continuam disponíveis no `localStorage`, com escrita dual para IndexedDB v2 quando suportado. |
 | Reprodução e descarregamento | Pronto | Takes novas podem ser reproduzidas e descarregadas no próprio navegador. |
 | Eliminação local | Pronto | Cada sessão pode ser apagada com confirmação explícita. |
 | Presets de produção | Pronto como interface visual | Natural é referência; Auto-Tune, Vocal brilhante/íntimo e direcções de género ficam marcados como intenção/em desenvolvimento e não processam o áudio. |
@@ -27,17 +27,17 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 
 A interface foi optimizada para Safari iPhone e Chrome Android com alvos touch de pelo menos 44px, campos de entrada de 16px para evitar zoom involuntário, safe-area no aviso flutuante, cartões empilhados em ecrãs pequenos, reprodução `playsinline`/`webkit-playsinline`, pausa automática de outros players, fallback MIME (`audio/mp4` → `audio/webm` → `audio/ogg`) e mensagens específicas para permissões, HTTPS, microfone ausente e interrupção ao sair da página.
 
-A verificação automatizada foi executada no preview local com Chromium e confirmou markup, MIME candidates, reprodução, descarregamento, eliminação e limpeza de `localStorage`. **Ainda não afirmo compatibilidade perfeita em dispositivos físicos:** falta testar manualmente um iPhone com Safari e um Android com Chrome, incluindo permitir/negar microfone, bloquear o ecrã, voltar à aplicação e reproduzir uma take longa.
+A verificação automatizada foi executada no preview local com Chromium e confirmou markup, MIME candidates, reprodução, descarregamento, eliminação e o indicador de armazenamento. **Ainda não afirmo compatibilidade perfeita em dispositivos físicos:** falta testar manualmente um iPhone com Safari e um Android com Chrome, incluindo permitir/negar microfone, bloquear o ecrã, voltar à aplicação e reproduzir uma take longa.
 
 ## QA verificado
 
-A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. Também foram executados testes determinísticos do ganho +3 dB e do fade in/out, medindo RMS/atenuação e preservação do original. O áudio sintético foi removido no final do teste. O detalhe está em [`qa-web-findings.md`](./qa-web-findings.md).
+A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. Também foram executados 10 testes determinísticos para WAV, ganho, fade, IndexedDB, migração não destrutiva e limpeza. O detalhe está em [`qa-web-findings.md`](./qa-web-findings.md).
 
-> Importante: estes estados são uma simulação honesta da experiência de produção. O projecto ainda não executa DSP, auto-tune, remoção de ruído, mixing, mastering ou IA reais.
+> Importante: estes estados são uma simulação honesta da experiência de produção. O projecto executa apenas ganho +3 dB e fade in/out locais, exportados como WAV. Ainda não executa EQ, compressor, auto-tune, remoção de ruído, mixing, mastering ou IA reais.
 
 ## Documentação do projecto
 
-A estrutura e as decisões desta iteração estão em [`docs/site-structure.md`](./docs/site-structure.md). O roadmap V2–V6 está em [`docs/product-roadmap.md`](./docs/product-roadmap.md), e a descrição técnica recomendada para currículo/portfólio está em [`docs/portfolio-description.md`](./docs/portfolio-description.md). O índice de QA está em [`docs/qa-index.md`](./docs/qa-index.md), com os relatórios detalhados em [`qa-web-findings.md`](./qa-web-findings.md) e [`qa-mobile-findings.md`](./qa-mobile-findings.md).
+A estrutura e as decisões desta iteração estão em [`docs/site-structure.md`](./docs/site-structure.md). O roadmap V2–V6 está em [`docs/product-roadmap.md`](./docs/product-roadmap.md), e a descrição técnica recomendada para currículo/portfólio está em [`docs/portfolio-description.md`](./docs/portfolio-description.md). O índice de QA está em [`docs/qa-index.md`](./docs/qa-index.md), com o relatório web em [`qa-web-findings.md`](./qa-web-findings.md) e a checklist móvel em [`docs/mobile-physical-checklist.md`](./docs/mobile-physical-checklist.md).
 
 As páginas `manutencao.html`, `python.html`, `redes.html` e `web.html` são legadas do portfólio anterior e foram movidas para [`legacy/`](./legacy/), com uma nota de contexto própria. Foram preservadas fora da raiz do produto musical para reduzir confusão no portfólio; qualquer redireccionamento externo deve ser validado antes de ser adicionado.
 
@@ -69,7 +69,7 @@ O contrato proposto para uma futura assistência IA está em [`docs/ai-backend-c
 
 - **Frontend:** HTML5, CSS moderno e JavaScript sem dependências externas.
 - **Áudio:** MediaDevices API, MediaRecorder API e Web Audio API para ganho e fade locais experimentais.
-- **Persistência:** `localStorage` continua activo como fallback estável; o adaptador IndexedDB v2 em `src/js/indexeddb-storage.js` define stores para `projects`, `takes`, `blobs`, `metadata` e `effects`, mas ainda não está activado como armazenamento principal.
+- **Persistência:** escrita dual entre `localStorage` (leitura/fallback estável) e IndexedDB v2 em `src/js/indexeddb-storage.js`, com stores `projects`, `takes`, `blobs`, `metadata` e `effects`; a leitura principal ainda não foi trocada para blobs.
 - **Publicação:** GitHub Pages e Vercel, com alias público `fernando-lucoco-music.vercel.app`.
 
 ## Roadmap resumido
@@ -111,8 +111,8 @@ O fluxo de take controlada foi verificado no preview local com áudio sintético
 
 ## QA automatizado e estado actual da V1
 
-O repositório inclui agora `package.json` com o comando `npm test` e o workflow `.github/workflows/qa.yml`. A suite determinística executa cinco testes sem dependências externas: header e metadados WAV, medição de pico, limite seguro de ganho, silêncio sem mutação da entrada e ganho unitário sem clipping. Resultado local desta iteração: **5 testes, 5 passados, 0 falhas**.
+O repositório inclui `package.json` com o comando `npm test`. A suite determinística executa **10 testes, 10 passados e 0 falhas**, cobrindo header e metadados WAV, pico, ganho seguro, silêncio, schema IndexedDB v2, persistência original/processado, migração não destrutiva, falha de dados legacy e remoção de projecto.
 
-O adaptador IndexedDB v2 continua experimental e preparado para projectos, takes, blobs, metadata e efeitos, enquanto `localStorage` permanece compatível como caminho estável. A migração principal ainda requer validação de quota, reload, fechar/reabrir, modo privado, armazenamento cheio, apagar e recuperar projecto. A checklist física para Chrome Android e Safari iPhone também continua pendente de execução num dispositivo real.
+O adaptador IndexedDB v2 faz escrita dual e mantém `localStorage` compatível como caminho estável. A migração principal ainda requer validação real de quota, reload, fechar/reabrir, modo privado, armazenamento cheio, apagar e recuperar projecto. A checklist física para Chrome Android e Safari iPhone continua pendente de execução num dispositivo real.
 
 A ordem de evolução mantém-se deliberadamente conservadora: IndexedDB e testes DSP, depois testes móveis reais, V1.1, fade, EQ, compressor e limiter; só depois backend/cloud, contas e eventual IA. Login, PostgreSQL, pagamentos e integração OpenAI não fazem parte desta fase.

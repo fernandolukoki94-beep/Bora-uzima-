@@ -2,9 +2,9 @@
 
 ## O que foi verificado
 
-A versão web foi verificada no preview local com Chromium através de dados sintéticos. Foram confirmados o carregamento do HTML modular, os controlos de áudio, o descarregamento com extensão baseada no MIME, a eliminação de sessões, a preparação visual e a limpeza do `localStorage` no fim do teste.
+A versão web foi verificada no preview local com Chromium através de dados sintéticos e a suite `pnpm test` aprovou 10 testes determinísticos. Foram confirmados o carregamento modular, os controlos de áudio, WAV, DSP anti-clipping, persistência IndexedDB, migração não destrutiva, remoção de dados e o fallback local.
 
-O relatório geral está em [`../qa-web-findings.md`](../qa-web-findings.md). A compatibilidade específica de gravação e reprodução móvel está em [`../qa-mobile-findings.md`](../qa-mobile-findings.md).
+O relatório geral está em [`../qa-web-findings.md`](../qa-web-findings.md). A checklist de compatibilidade específica de gravação e reprodução móvel está em [`mobile-physical-checklist.md`](mobile-physical-checklist.md).
 
 ## O que não foi afirmado
 

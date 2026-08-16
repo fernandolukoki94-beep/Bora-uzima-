@@ -25,7 +25,7 @@ O site não deve activar uma migração silenciosa destrutiva. Se IndexedDB esti
 
 ## Decisão desta iteração
 
-Nesta iteração, a aplicação **não muda ainda o armazenamento principal**. Foi adicionada documentação e uma faixa de ajuda no estúdio. A implementação IndexedDB fica como a próxima alteração técnica isolada, porque requer testes de quota, migração, reload, limpeza e recuperação em Safari iOS e Chrome Android.
+A aplicação adopta agora uma **escrita dual progressiva**. O localStorage continua a guardar os metadados e Data URLs usados pelo caminho de leitura estável, enquanto IndexedDB recebe, quando disponível, o projecto, a take, o blob original, o blob processado e o histórico de efeitos. Isto permite validar persistência sem remover a cópia de fallback. A leitura principal só deverá migrar para blobs IndexedDB depois dos testes físicos de reload, quota, modo privado e recuperação.
 
 ## Critérios de aceitação futuros
 
@@ -39,6 +39,6 @@ Foi criado `src/js/indexeddb-storage.js` com um object store `audio-blobs`, chav
 
 ## Adaptador IndexedDB v2
 
-O adaptador experimental foi ampliado para um schema de cinco stores: `projects`, `takes`, `blobs`, `metadata` e `effects`. A migração opcional `migrateLocalStorageProjects()` copia metadados e o estado original/processado para IndexedDB, sem apagar a fonte no `localStorage`. O schema está na versão 2 e mantém o caminho localStorage como fallback.
+O adaptador contém cinco stores: `projects`, `takes`, `blobs`, `metadata` e `effects`. Também expõe operações de leitura e escrita, limpeza por projecto, limpeza global, estimativa de armazenamento e migração idempotente. A migração `migrateLocalStorageProjects()` copia projectos legacy, tenta materializar os Data URLs como Blobs e regista o resultado em `metadata`, sem apagar a fonte local.
 
-A activação principal continua deliberadamente pendente. Antes de mudar o caminho padrão, ainda são necessários testes em browser para reload, fechar/reabrir, quota, modo privado, apagar, recuperar e falhas durante uma transacção. A migração deve ser iniciada por uma decisão explícita da aplicação, com confirmação de leitura e possibilidade de rollback lógico, não por uma escrita silenciosa.
+A suite automatizada cobre schema, persistência original/processado, histórico de efeitos, migração concluída, migração inválida e remoção de dados. A activação da leitura principal continua deliberadamente pendente até existir evidência em browsers reais para quota, modo privado, reload, fechar/reabrir, bloqueio de transacção e recuperação.

@@ -1,5 +1,6 @@
 const DB_NAME = "fernando-lucoco-music";
 const DB_VERSION = 2;
+const DEFAULT_STORAGE_KEY = "fernando-lucoco-music-projects";
 const STORES = {
   projects: "projects",
   takes: "takes",
@@ -18,24 +19,19 @@ function openDatabase() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const database = request.result;
-      if (!database.objectStoreNames.contains(STORES.projects)) {
-        database.createObjectStore(STORES.projects, { keyPath: "id" });
-      }
-      if (!database.objectStoreNames.contains(STORES.takes)) {
-        database.createObjectStore(STORES.takes, { keyPath: "id" });
-      }
-      if (!database.objectStoreNames.contains(STORES.blobs)) {
-        database.createObjectStore(STORES.blobs, { keyPath: "key" });
-      }
-      if (!database.objectStoreNames.contains(STORES.metadata)) {
-        database.createObjectStore(STORES.metadata, { keyPath: "key" });
-      }
-      if (!database.objectStoreNames.contains(STORES.effects)) {
-        database.createObjectStore(STORES.effects, { keyPath: "id" });
-      }
+      if (!database.objectStoreNames.contains(STORES.projects)) database.createObjectStore(STORES.projects, { keyPath: "id" });
+      if (!database.objectStoreNames.contains(STORES.takes)) database.createObjectStore(STORES.takes, { keyPath: "id" });
+      if (!database.objectStoreNames.contains(STORES.blobs)) database.createObjectStore(STORES.blobs, { keyPath: "key" });
+      if (!database.objectStoreNames.contains(STORES.metadata)) database.createObjectStore(STORES.metadata, { keyPath: "key" });
+      if (!database.objectStoreNames.contains(STORES.effects)) database.createObjectStore(STORES.effects, { keyPath: "id" });
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const database = request.result;
+      database.onversionchange = () => database.close();
+      resolve(database);
+    };
     request.onerror = () => reject(request.error || new Error("Não foi possível abrir IndexedDB"));
+    request.onblocked = () => reject(new Error("IndexedDB está bloqueado por outra sessão"));
   });
 }
 
@@ -44,6 +40,22 @@ function requestToPromise(request) {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error || new Error("Operação IndexedDB falhou"));
   });
+}
+
+async function withStore(storeName, mode, operation) {
+  const database = await openDatabase();
+  try {
+    const transaction = database.transaction(storeName, mode);
+    const result = await operation(transaction.objectStore(storeName), transaction);
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Transacção IndexedDB falhou"));
+      transaction.onabort = () => reject(transaction.error || new Error("Transacção IndexedDB foi abortada"));
+    });
+    return result;
+  } finally {
+    database.close();
+  }
 }
 
 export async function indexedDbAvailable() {
@@ -58,104 +70,162 @@ export async function indexedDbAvailable() {
 }
 
 export async function putProject(project) {
-  const database = await openDatabase();
-  try {
-    await requestToPromise(database.transaction(STORES.projects, "readwrite").objectStore(STORES.projects).put(project));
-    return true;
-  } finally {
-    database.close();
-  }
+  return withStore(STORES.projects, "readwrite", (store) => requestToPromise(store.put(project)));
+}
+
+export async function getProject(id) {
+  return withStore(STORES.projects, "readonly", (store) => requestToPromise(store.get(id)));
 }
 
 export async function putTake(take) {
-  const database = await openDatabase();
-  try {
-    await requestToPromise(database.transaction(STORES.takes, "readwrite").objectStore(STORES.takes).put(take));
-    return true;
-  } finally {
-    database.close();
-  }
+  return withStore(STORES.takes, "readwrite", (store) => requestToPromise(store.put(take)));
+}
+
+export async function getTake(id) {
+  return withStore(STORES.takes, "readonly", (store) => requestToPromise(store.get(id)));
 }
 
 export async function putEffect(effect) {
-  const database = await openDatabase();
-  try {
-    await requestToPromise(database.transaction(STORES.effects, "readwrite").objectStore(STORES.effects).put(effect));
-    return true;
-  } finally {
-    database.close();
-  }
+  return withStore(STORES.effects, "readwrite", (store) => requestToPromise(store.put(effect)));
+}
+
+export async function getMetadata(key) {
+  const record = await withStore(STORES.metadata, "readonly", (store) => requestToPromise(store.get(key)));
+  return record?.value ?? null;
 }
 
 export async function putMetadata(key, value) {
-  const database = await openDatabase();
-  try {
-    await requestToPromise(database.transaction(STORES.metadata, "readwrite").objectStore(STORES.metadata).put({ key, value }));
-    return true;
-  } finally {
-    database.close();
-  }
+  return withStore(STORES.metadata, "readwrite", (store) => requestToPromise(store.put({ key, value })));
 }
 
 export async function putAudioBlob(projectId, kind, blob) {
-  const database = await openDatabase();
   const key = `${projectId}:${kind}`;
-  try {
-    await requestToPromise(database.transaction(STORES.blobs, "readwrite").objectStore(STORES.blobs).put({ key, projectId, kind, blob }));
-    return true;
-  } finally {
-    database.close();
-  }
+  return withStore(STORES.blobs, "readwrite", (store) => requestToPromise(store.put({ key, projectId, kind, blob, bytes: blob?.size || 0 })));
 }
 
 export async function getAudioBlob(projectId, kind) {
+  const record = await withStore(STORES.blobs, "readonly", (store) => requestToPromise(store.get(`${projectId}:${kind}`)));
+  return record?.blob || null;
+}
+
+export async function deleteProjectData(projectId) {
   const database = await openDatabase();
   try {
-    const record = await requestToPromise(database.transaction(STORES.blobs, "readonly").objectStore(STORES.blobs).get(`${projectId}:${kind}`));
-    return record?.blob || null;
+    const transaction = database.transaction(Object.values(STORES), "readwrite");
+    transaction.objectStore(STORES.projects).delete(projectId);
+    transaction.objectStore(STORES.takes).delete(projectId);
+    transaction.objectStore(STORES.blobs).delete(`${projectId}:original`);
+    transaction.objectStore(STORES.blobs).delete(`${projectId}:processed`);
+    const effects = transaction.objectStore(STORES.effects);
+    const effectRequest = effects.openCursor();
+    effectRequest.onsuccess = () => {
+      const cursor = effectRequest.result;
+      if (!cursor) return;
+      if (cursor.value.projectId === projectId) cursor.delete();
+      cursor.continue();
+    };
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Não foi possível remover a sessão"));
+      transaction.onabort = () => reject(transaction.error || new Error("Remoção da sessão foi abortada"));
+    });
   } finally {
     database.close();
   }
 }
 
-export async function deleteProjectAudio(projectId) {
-  const database = await openDatabase();
-  const transaction = database.transaction(STORES.blobs, "readwrite");
-  const store = transaction.objectStore(STORES.blobs);
-  store.delete(`${projectId}:original`);
-  store.delete(`${projectId}:processed`);
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => { database.close(); resolve(true); };
-    transaction.onerror = () => { database.close(); reject(transaction.error || new Error("Não foi possível remover o áudio")); };
+export async function clearIndexedDb() {
+  if (!isSupported()) return false;
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = resolve;
+    request.onerror = () => reject(request.error || new Error("Não foi possível limpar IndexedDB"));
+    request.onblocked = () => reject(new Error("IndexedDB está bloqueado por uma sessão aberta"));
   });
+  return true;
 }
 
-export async function migrateLocalStorageProjects(storageKey = "fernando-lucoco-music-projects") {
-  if (!isSupported()) return { migrated: false, reason: "indexeddb-unavailable", count: 0 };
+export async function clearLocalStudioData(storageKey = DEFAULT_STORAGE_KEY) {
+  localStorage.removeItem(storageKey);
+  try {
+    await clearIndexedDb();
+  } catch {
+    // O metadata local já foi removido; manter a aplicação utilizável se a base estiver bloqueada.
+  }
+  return true;
+}
+
+async function dataUrlToBlob(value) {
+  if (!value || typeof value !== "string") return null;
+  try {
+    return await (await fetch(value)).blob();
+  } catch {
+    return null;
+  }
+}
+
+export async function migrateLocalStorageProjects(storageKey = DEFAULT_STORAGE_KEY) {
+  if (!isSupported()) return { migrated: false, reason: "indexeddb-unavailable", count: 0, failed: 0 };
   let projects;
   try {
     projects = JSON.parse(localStorage.getItem(storageKey) || "[]");
   } catch {
-    return { migrated: false, reason: "invalid-local-data", count: 0 };
+    return { migrated: false, reason: "invalid-local-data", count: 0, failed: 0 };
   }
-  if (!Array.isArray(projects) || projects.length === 0) return { migrated: false, reason: "nothing-to-migrate", count: 0 };
+  if (!Array.isArray(projects) || projects.length === 0) return { migrated: false, reason: "nothing-to-migrate", count: 0, failed: 0 };
+
+  let migrated = 0;
+  let failed = 0;
   for (const project of projects) {
-    await putProject({ ...project, migratedAt: new Date().toISOString() });
-    await putTake({
-      id: project.id,
-      projectId: project.id,
-      originalAudioData: Boolean(project.originalAudioData || project.audioData),
-      processedAudioData: Boolean(project.processedAudioData),
-      migratedAt: new Date().toISOString(),
-    });
+    try {
+      const migratedAt = new Date().toISOString();
+      await putProject({ ...project, migratedAt, storageVersion: "indexeddb-v2" });
+      await putTake({
+        id: project.id,
+        projectId: project.id,
+        originalAudioData: Boolean(project.originalAudioData || project.audioData),
+        processedAudioData: Boolean(project.processedAudioData),
+        migratedAt,
+      });
+      const original = await dataUrlToBlob(project.originalAudioData || (!project.processedAudioData ? project.audioData : ""));
+      const processed = await dataUrlToBlob(project.processedAudioData || ((project.effectApplied || project.fadeApplied) ? project.audioData : ""));
+      if (original) await putAudioBlob(project.id, "original", original);
+      if (processed) await putAudioBlob(project.id, "processed", processed);
+      migrated += 1;
+    } catch {
+      failed += 1;
+    }
   }
-  await putMetadata("lastMigration", { storageKey, count: projects.length, at: new Date().toISOString() });
-  return { migrated: true, reason: "completed", count: projects.length };
+  await putMetadata("lastMigration", { storageKey, count: migrated, failed, at: new Date().toISOString() });
+  return { migrated: migrated > 0, reason: failed ? "partial" : "completed", count: migrated, failed };
+}
+
+export async function estimateStorageUsage(storageKey = DEFAULT_STORAGE_KEY) {
+  let localBytes = 0;
+  try {
+    localBytes = new Blob([localStorage.getItem(storageKey) || ""]).size;
+  } catch {
+    localBytes = 0;
+  }
+  let estimate = null;
+  try {
+    estimate = await navigator.storage?.estimate?.();
+  } catch {
+    estimate = null;
+  }
+  return {
+    localBytes,
+    usage: estimate?.usage ?? null,
+    quota: estimate?.quota ?? null,
+    indexedDbAvailable: await indexedDbAvailable(),
+  };
 }
 
 export const INDEXED_DB_SCHEMA = {
   database: DB_NAME,
   version: DB_VERSION,
   stores: Object.values(STORES),
-  strategy: "optional-progressive-migration-with-localStorage-fallback",
+  strategy: "dual-write-progressive-migration-with-localStorage-fallback",
 };
+
+export const STORAGE_KEY = DEFAULT_STORAGE_KEY;

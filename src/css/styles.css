@@ -88,6 +88,11 @@
     .workspace { display: grid; grid-template-columns: .72fr 1.28fr; gap: 22px; }
     .workspace-panel { background: var(--paper); border: 1px solid rgba(16,16,15,.12); border-radius: 22px; padding: 27px; box-shadow: 0 16px 40px rgba(16,16,15,.08); }
     .workspace-panel h3 { margin: 0 0 7px; font-size: 1.4rem; letter-spacing: -.04em; }
+    .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .storage-status { display: flex; align-items: center; gap: 8px; margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: #f5efe5; color: #746f66; font-size: .78rem; line-height: 1.4; }
+    .storage-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #d19a42; }
+    .storage-status[data-storage-mode="indexeddb"] .storage-dot { background: #31785a; }
+    .storage-status[data-storage-mode="fallback"] .storage-dot { background: #d19a42; }
     .workspace-panel p { margin: 0; color: #746f66; }
     .field { margin-top: 22px; }
     .field label { display: block; margin-bottom: 7px; font-size: .75rem; font-weight: 850; text-transform: uppercase; letter-spacing: .1em; color: #79736a; }
@@ -103,6 +108,8 @@
     .project-audio { display: block; width: 100%; max-width: 330px; height: 44px; }
     .mini-button { min-height: 44px; border: 1px solid rgba(16,16,15,.16); background: transparent; color: #4d4841; border-radius: 8px; padding: 8px 11px; cursor: pointer; font-size: .73rem; font-weight: 800; }
     .mini-button:hover { border-color: var(--coral); color: var(--coral-dark); }
+    .mini-button:active { transform: scale(.97); }
+    .mini-button:focus-visible, .button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(255,103,77,.35); outline-offset: 2px; }
     .mini-button.danger:hover { border-color: #c44a43; color: #a83d37; }
     .project small { display: block; }
     .pill { white-space: nowrap; color: #31785a; background: rgba(145,213,182,.3); border-radius: 99px; padding: 5px 9px; font-size: .72rem; font-weight: 800; }
