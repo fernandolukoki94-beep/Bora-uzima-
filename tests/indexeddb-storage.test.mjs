@@ -11,6 +11,7 @@ import {
   getMetadata,
   getProject,
   getTake,
+  getPitchEdits,
   getStorageHealth,
   indexedDbAvailable,
   migrateLocalStorageProjects,
@@ -18,8 +19,10 @@ import {
   putBeatBlob,
   putEffect,
   putProject,
+  putPitchEdits,
   putTake,
   resetProjectEffects,
+  deletePitchEdits,
 } from "../src/js/indexeddb-storage.js";
 
 const storage = new Map();
@@ -58,8 +61,9 @@ test("cria o schema IndexedDB v2 e confirma disponibilidade", async () => {
   assert.equal(STORAGE_POLICY.status, "internal-beta");
   assert.equal(STORAGE_POLICY.primaryRead, "localStorage");
   assert.equal(STORAGE_POLICY.dualWrite, true);
-  assert.deepEqual(INDEXED_DB_SCHEMA.stores, ["projects", "takes", "blobs", "metadata", "effects", "beats"]);
+  assert.deepEqual(INDEXED_DB_SCHEMA.stores, ["projects", "takes", "blobs", "metadata", "effects", "beats", "pitchEdits"]);
   assert.equal(INDEXED_DB_SCHEMA.dedicatedBeatStore, "beats");
+  assert.equal(INDEXED_DB_SCHEMA.dedicatedPitchEditStore, "pitchEdits");
   assert.equal(await indexedDbAvailable(), true);
 });
 
@@ -96,6 +100,17 @@ test("persiste beat numa store dedicada sem o converter em data URL", async () =
   assert.equal(record.mimeType, "audio/wav");
 });
 
+test("persiste e restaura notas editadas por projecto", async () => {
+  await putPitchEdits("pitch-project", [{ time: 0.5, midi: 61, manuallyEdited: true }], { root: "D", scale: "minor" });
+  const record = await getPitchEdits("pitch-project");
+  assert.equal(record.projectId, "pitch-project");
+  assert.equal(record.root, "D");
+  assert.equal(record.scale, "minor");
+  assert.equal(record.notes[0].midi, 61);
+  await deletePitchEdits("pitch-project");
+  assert.equal(await getPitchEdits("pitch-project"), null);
+});
+
 test("persiste variantes vocais nomeadas sem confundir a origem", async () => {
   const project = { id: "variants-1", name: "Pipeline reversível", audioVariants: { enhanced: { mimeType: "audio/wav", bytes: 8 } } };
   await putProject(project);
@@ -115,7 +130,8 @@ test("reset de efeitos remove variantes processadas e preserva o projecto base",
   const project = { id: "reset-variants", name: "Reset seguro", originalAudioData: "data:audio/webm;base64,b3JpZ2luYWw=" };
   await putProject(project);
   await putTake({ id: project.id, projectId: project.id, originalAudioData: true });
-  for (const kind of ["original", "enhanced", "pitch-corrected", "mixed"]) await putAudioBlob(project.id, kind, new Blob([kind]));
+  for (const kind of ["original", "enhanced", "pitch-corrected", "mixed", "spatial"]) await putAudioBlob(project.id, kind, new Blob([kind]));
+  await putPitchEdits(project.id, [{ time: 0, midi: 60 }]);
   await putEffect({ id: `${project.id}:enhanced`, projectId: project.id, type: "enhancement" });
   await resetProjectEffects(project.id);
 
@@ -123,6 +139,8 @@ test("reset de efeitos remove variantes processadas e preserva o projecto base",
   assert.equal(await getAudioBlob(project.id, "enhanced"), null);
   assert.equal(await getAudioBlob(project.id, "pitch-corrected"), null);
   assert.equal(await getAudioBlob(project.id, "mixed"), null);
+  assert.equal(await getAudioBlob(project.id, "spatial"), null);
+  assert.equal(await getPitchEdits(project.id), null);
   const reset = await getProject(project.id);
   assert.deepEqual(reset.audioVariants, {});
   assert.equal(reset.originalAudioData, project.originalAudioData);
@@ -177,6 +195,8 @@ test("remove projecto elimina blobs, take e projecto IndexedDB", async () => {
   await putAudioBlob("delete-me", "enhanced", new Blob(["enhanced"]));
   await putAudioBlob("delete-me", "pitch-corrected", new Blob(["pitch"]));
   await putAudioBlob("delete-me", "mixed", new Blob(["mixed"]));
+  await putAudioBlob("delete-me", "spatial", new Blob(["spatial"]));
+  await putPitchEdits("delete-me", [{ time: 0, midi: 60 }]);
   await putBeatBlob("delete-me", "beat-1", new Blob(["beat"]), { name: "beat.wav" });
   await deleteProjectData("delete-me");
   assert.equal(await getProject("delete-me"), undefined);
@@ -185,5 +205,7 @@ test("remove projecto elimina blobs, take e projecto IndexedDB", async () => {
   assert.equal(await getAudioBlob("delete-me", "enhanced"), null);
   assert.equal(await getAudioBlob("delete-me", "pitch-corrected"), null);
   assert.equal(await getAudioBlob("delete-me", "mixed"), null);
+  assert.equal(await getAudioBlob("delete-me", "spatial"), null);
+  assert.equal(await getPitchEdits("delete-me"), null);
   assert.equal(await getBeatBlob("delete-me", "beat-1"), null);
 });

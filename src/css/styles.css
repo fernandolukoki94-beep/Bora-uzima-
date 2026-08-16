@@ -314,3 +314,28 @@
 @media (max-width: 640px) { .producer-beat-controls { align-items: stretch; } .file-picker, .producer-beat-controls .mini-button { width: 100%; justify-content: center; } }
 
 .waveform-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.waveform-card{min-width:0;border:1px solid rgba(16,16,15,.12);border-radius:14px;padding:12px;background:#fffdf8}.waveform-card-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;font-size:.82rem}.waveform-card-head span{color:#847d72;font-size:.72rem}.waveform-card canvas{display:block;width:100%;height:72px;border-radius:8px;background:#f5efe5}.producer-autotune-panel{margin-top:14px;padding:16px;border:1px solid rgba(16,16,15,.12);border-radius:16px;background:#fffdf8}.autotune-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.autotune-controls label{display:grid;gap:6px;min-width:220px;font-size:.82rem}.autotune-controls input[type=range]{accent-color:var(--coral);width:100%}.autotune-controls output{font-variant-numeric:tabular-nums;color:var(--coral-dark)}.autotune-controls .action-feedback{flex:1;min-width:180px}@media (max-width:640px){.waveform-grid{grid-template-columns:1fr}.autotune-controls{align-items:stretch}.autotune-controls label,.autotune-controls button,.autotune-controls .action-feedback{width:100%}}
+
+/* V2.7 — bypass A/B de efeitos */
+.bypass-button.is-active {
+  border-color: #31785a;
+  background: rgba(145,213,182,.24);
+  color: #245b43;
+}
+.bypass-button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 680px) {
+  .producer-final-actions .bypass-button { min-height: 44px; }
+}
+
+/* V2.9 — medidores A/B com feedback progressivo */
+.ab-meter-card { position: relative; overflow: hidden; }
+.ab-meter-card.is-loading::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,.14) 45%, transparent 70%); transform: translateX(-100%); animation: meter-loading-shimmer 1.2s ease-in-out infinite; }
+.meter-track { height: 8px; margin-top: 10px; border-radius: 999px; overflow: hidden; background: rgba(16,16,15,.12); }
+.meter-fill { display: block; width: 0; height: 100%; border-radius: inherit; transition: width 420ms cubic-bezier(.22,.61,.36,1), filter 220ms ease; }
+.meter-a-fill { background: linear-gradient(90deg, #38bdf8, #60a5fa); }
+.meter-b-fill { background: linear-gradient(90deg, #a78bfa, #f472b6); }
+.ab-meter-card:hover .meter-fill { filter: brightness(1.12); }
+@keyframes meter-loading-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .ab-meter-card.is-loading::after { animation: none; } .meter-fill { transition: none; } }
+.preset-panel-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }
+.preset-panel-heading span { color: #847d72; font-size: .82rem; }
+@media (max-width: 640px) { .preset-panel-heading { align-items: flex-start; flex-direction: column; gap: 3px; } .meter-track { height: 10px; } }

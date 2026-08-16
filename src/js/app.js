@@ -2,7 +2,7 @@ import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProject
 import { bindPlayerEvents } from "./player.js";
 import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./producer-plan.js";
 import { analyzeAudioDataUrl } from "./audio-analysis.js";
-import { applyAutoTuneLocal, autoTuneParameters, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement } from "./effects.js";
+import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyReverbLocal, applyDelayLocal, spatialEffectParameters } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
@@ -12,13 +12,14 @@ import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
-import { downloadBlob, mixedExportFilename } from "./export-audio.js";
+import { createProjectManifest, downloadBlob, mixedExportFilename, projectManifestFilename } from "./export-audio.js";
 import { deriveProducerStudioState } from "./producer-studio-flow.js";
 import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback } from "./action-feedback.js";
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
 import { requestProductionAdvice } from "./ai-producer-client.js";
 import { adviceToProducerPlan } from "./ai-advice-to-plan.js";
 import { createImportedBeat, revokeImportedBeat } from "./beat-import.js";
+import { loadEffectPresets, saveEffectPreset, deleteEffectPreset, isBuiltInEffectPreset } from "./effect-presets.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
   TRANSPORT_STATES,
@@ -41,6 +42,10 @@ import {
   putAudioBlob,
   putBeatBlob,
   putEffect,
+  getPitchEdits,
+  putPitchEdits,
+  deletePitchEdits,
+  deleteEffect,
   putProject,
   putTake,
   resetProjectEffects,
@@ -110,7 +115,21 @@ const producerMixStatus = document.getElementById("producer-mix-status");
 const producerFinalStatus = document.getElementById("producer-final-status");
 const producerAbOriginal = document.getElementById("producer-ab-original");
 const producerAbMixed = document.getElementById("producer-ab-mixed");
+const producerBypass = document.getElementById("producer-bypass");
+const producerBypassAutoTune = document.getElementById("producer-bypass-autotune");
+const producerBypassReverb = document.getElementById("producer-bypass-reverb");
+const producerBypassDelay = document.getElementById("producer-bypass-delay");
+const producerMeterA = document.getElementById("producer-meter-a");
+const producerMeterB = document.getElementById("producer-meter-b");
+const producerMeterABar = document.getElementById("producer-meter-a-bar");
+const producerMeterBBar = document.getElementById("producer-meter-b-bar");
+const producerPresetName = document.getElementById("producer-preset-name");
+const producerSavePreset = document.getElementById("producer-save-preset");
+const producerPresetSelect = document.getElementById("producer-preset-select");
+const producerDeletePreset = document.getElementById("producer-delete-preset");
+const producerPresetStatus = document.getElementById("producer-preset-status");
 const producerExport = document.getElementById("producer-export");
+const producerExportProject = document.getElementById("producer-export-project");
 const producerActionFeedback = document.getElementById("producer-action-feedback");
 const producerBeatFile = document.getElementById("producer-beat-file");
 const producerBeatPreview = document.getElementById("producer-beat-preview");
@@ -121,12 +140,35 @@ const producerVocalWaveform = document.getElementById("producer-vocal-waveform")
 const producerBeatWaveform = document.getElementById("producer-beat-waveform");
 const producerVocalWaveformStatus = document.getElementById("producer-vocal-waveform-status");
 const producerBeatWaveformStatus = document.getElementById("producer-beat-waveform-status");
+const producerAutoTuneRoot = document.getElementById("producer-autotune-root");
+const producerAutoTuneScale = document.getElementById("producer-autotune-scale");
+const producerAnalyzePitch = document.getElementById("producer-analyze-pitch");
+const producerPitchStatus = document.getElementById("producer-pitch-status");
 const producerAutoTuneIntensity = document.getElementById("producer-autotune-intensity");
 const producerAutoTuneValue = document.getElementById("producer-autotune-value");
 const producerApplyAutoTune = document.getElementById("producer-apply-autotune");
 const producerResetAutoTune = document.getElementById("producer-reset-autotune");
 const producerAutoTuneStatus = document.getElementById("producer-autotune-status");
+const producerPitchCurve = document.getElementById("producer-pitch-curve");
+const producerPitchCurveStatus = document.getElementById("producer-pitch-curve-status");
+const producerPitchNotes = document.getElementById("producer-pitch-notes");
+const producerShare = document.getElementById("producer-share");
+const producerReverbIntensity = document.getElementById("producer-reverb-intensity");
+const producerReverbValue = document.getElementById("producer-reverb-value");
+const producerDelayIntensity = document.getElementById("producer-delay-intensity");
+const producerDelayValue = document.getElementById("producer-delay-value");
+const producerApplySpace = document.getElementById("producer-apply-space");
+const producerResetSpace = document.getElementById("producer-reset-space");
+const producerPitchZoomIn = document.getElementById("producer-pitch-zoom-in");
+const producerPitchZoomOut = document.getElementById("producer-pitch-zoom-out");
+const producerPitchPanReset = document.getElementById("producer-pitch-pan-reset");
+const producerPitchZoomStatus = document.getElementById("producer-pitch-zoom-status");
 let importedBeatObjectUrl = null;
+let activePitchAnalysis = null;
+let activePitchNotes = [];
+let pitchCurveZoom = 1;
+let pitchCurvePan = 0;
+let pitchCurveDrag = null;
 let activeTimelineId = null;
 let timelineHistory = null;
 let transportTimers = [];
@@ -218,6 +260,9 @@ function audioBlock(label, data, mimeType, projectName) {
 }
 
 let producerPreviewAudio = null;
+let producerBypassActive = false;
+let effectBypassState = { autoTune: false, reverb: false, delay: false };
+let activePresetId = "";
 let producerActionStates = { ab: ACTION_FEEDBACK_STATES.IDLE, export: ACTION_FEEDBACK_STATES.IDLE };
 
 function setProducerActionFeedback(action, event, message = "") {
@@ -239,8 +284,18 @@ function setProducerActionFeedback(action, event, message = "") {
   });
 }
 
+function updateProducerBypassUI(hasMixed = Boolean(getVariantData(currentTimelineProject(), "mixed"))) {
+  if (!producerBypass) return;
+  producerBypass.disabled = !hasMixed;
+  producerBypass.classList.toggle("is-active", producerBypassActive && hasMixed);
+  producerBypass.setAttribute("aria-pressed", String(producerBypassActive && hasMixed));
+  producerBypass.textContent = producerBypassActive ? "Bypass activo: Original" : "Bypass: Original";
+}
+
 async function playProducerPreview(variant) {
   const project = currentTimelineProject();
+  producerBypassActive = variant === "original";
+  updateProducerBypassUI(Boolean(getVariantData(project, "mixed")));
   const data = getVariantData(project, variant);
   setProducerActionFeedback("ab", "start", variant === "mixed" ? "A preparar Mixed…" : "A preparar Original…");
   if (!data) {
@@ -260,6 +315,96 @@ async function playProducerPreview(variant) {
     setProducerActionFeedback("ab", "error", "O navegador bloqueou a pré-escuta. Toca novamente para tentar.");
     showToast("O navegador bloqueou a pré-escuta. Toca novamente para tentar.");
   }
+}
+
+function updateIndividualBypassUI() {
+  const controls = [[producerBypassAutoTune, "autoTune", "Auto-Tune"], [producerBypassReverb, "reverb", "Reverb"], [producerBypassDelay, "delay", "Delay"]];
+  controls.forEach(([button, key, label]) => {
+    if (!button) return;
+    const bypassed = effectBypassState[key];
+    button.setAttribute("aria-pressed", String(bypassed));
+    button.classList.toggle("is-active", bypassed);
+    button.textContent = bypassed ? `${label} bypass` : `${label} activo`;
+  });
+}
+
+function updateEffectPresetOptions() {
+  if (!producerPresetSelect) return;
+  const project = currentTimelineProject();
+  if (!activePresetId && project?.activeEffectPresetId) activePresetId = project.activeEffectPresetId;
+  const presets = loadEffectPresets();
+  producerPresetSelect.innerHTML = `<option value="">Escolher…</option>${presets.map((preset) => `<option value="${escapeHtml(preset.id)}">${escapeHtml(preset.name)}${preset.builtIn ? " · base" : ""}</option>`).join("")}`;
+  producerPresetSelect.value = activePresetId;
+  const selected = presets.find((item) => item.id === activePresetId);
+  if (selected && project && !project._activePresetHydrated) {
+    project._activePresetHydrated = true;
+    applyEffectPreset(selected, { persist: false });
+  }
+  if (producerDeletePreset) producerDeletePreset.disabled = !activePresetId || isBuiltInEffectPreset(activePresetId);
+}
+
+async function persistActivePreset(projectId, presetId) {
+  if (!projectId) return;
+  const updated = readProjects().map((item) => item.id === projectId ? { ...item, activeEffectPresetId: presetId || "", activeEffectPreset: currentEffectPreset(), audioSettings: { autoTune: currentEffectPreset().autoTune, reverb: currentEffectPreset().reverb, delay: currentEffectPreset().delay } } : item);
+  saveProjects(updated);
+  const project = updated.find((item) => item.id === projectId);
+  try { if (project && await indexedDbAvailable()) await putProject(project); } catch { /* fallback local já está guardado */ }
+}
+
+function currentEffectPreset() {
+  return {
+    name: producerPresetName?.value || "Predefinição sem nome",
+    autoTune: { intensity: producerAutoTuneIntensity?.value, root: producerAutoTuneRoot?.value, scale: producerAutoTuneScale?.value, bypass: effectBypassState.autoTune },
+    reverb: { intensity: producerReverbIntensity?.value, bypass: effectBypassState.reverb },
+    delay: { intensity: producerDelayIntensity?.value, bypass: effectBypassState.delay },
+  };
+}
+
+function applyEffectPreset(preset, { persist = true } = {}) {
+  if (!preset) return;
+  if (producerAutoTuneIntensity) producerAutoTuneIntensity.value = preset.autoTune.intensity;
+  if (producerAutoTuneValue) producerAutoTuneValue.textContent = `${preset.autoTune.intensity}%`;
+  if (producerAutoTuneRoot) producerAutoTuneRoot.value = preset.autoTune.root;
+  if (producerAutoTuneScale) producerAutoTuneScale.value = preset.autoTune.scale;
+  if (producerReverbIntensity) producerReverbIntensity.value = preset.reverb.intensity;
+  if (producerReverbValue) producerReverbValue.textContent = `${preset.reverb.intensity}%`;
+  if (producerDelayIntensity) producerDelayIntensity.value = preset.delay.intensity;
+  if (producerDelayValue) producerDelayValue.textContent = `${preset.delay.intensity}%`;
+  effectBypassState = { autoTune: preset.autoTune.bypass, reverb: preset.reverb.bypass, delay: preset.delay.bypass };
+  updateIndividualBypassUI();
+  if (producerPresetStatus) producerPresetStatus.textContent = `Predefinição “${preset.name}” aplicada.`;
+  if (persist) {
+    activePresetId = preset.id;
+    const project = currentTimelineProject();
+    if (project) persistActivePreset(project.id, preset.id);
+  }
+}
+
+async function measureAudioData(data) {
+  if (!data) return null;
+  try {
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const buffer = await context.decodeAudioData(await (await fetch(data)).arrayBuffer());
+    const samples = buffer.getChannelData(0);
+    let peak = 0; let sum = 0;
+    for (let index = 0; index < samples.length; index += Math.max(1, Math.floor(samples.length / 100000))) { const value = Math.abs(samples[index]); peak = Math.max(peak, value); sum += value * value; }
+    const rms = Math.sqrt(sum / Math.max(1, Math.ceil(samples.length / Math.max(1, Math.floor(samples.length / 100000)))));
+    await context.close();
+    return { peakDb: linearToDb(peak), loudnessDb: linearToDb(rms) };
+  } catch { return null; }
+}
+
+async function updateABMeters(project = currentTimelineProject()) {
+  const cards = document.querySelectorAll(".ab-meter-card");
+  cards.forEach((card) => card.classList.add("is-loading"));
+  const [original, mixed] = await Promise.all([measureAudioData(getVariantData(project, "original")), measureAudioData(getVariantData(project, "mixed"))]);
+  const format = (meter) => meter ? `Pico ${meter.peakDb.toFixed(1)} dB · Loudness ${meter.loudnessDb.toFixed(1)} dB` : "Pico −∞ dB · Loudness −∞ dB";
+  const level = (meter) => meter ? `${Math.max(0, Math.min(100, ((meter.peakDb + 60) / 60) * 100))}%` : "0%";
+  if (producerMeterA) producerMeterA.textContent = format(original);
+  if (producerMeterB) producerMeterB.textContent = format(mixed);
+  if (producerMeterABar) producerMeterABar.style.width = level(original);
+  if (producerMeterBBar) producerMeterBBar.style.width = level(mixed);
+  cards.forEach((card) => card.classList.remove("is-loading"));
 }
 
 async function exportMixedVersion(id) {
@@ -345,6 +490,11 @@ async function updateProducerBeatControls(project = currentTimelineProject()) {
   if (producerBeatPreview) producerBeatPreview.disabled = !ready;
   if (producerApplyAutoTune) producerApplyAutoTune.disabled = !getVariantData(project, "original");
   if (producerResetAutoTune) producerResetAutoTune.disabled = !project?.audioVariants?.pitchCorrected;
+  if (producerApplySpace) producerApplySpace.disabled = !getVariantData(project, "original");
+  if (producerResetSpace) producerResetSpace.disabled = !project?.audioVariants?.spatial;
+  if (producerExport) producerExport.disabled = !getVariantData(project, "mixed");
+  if (producerExportProject) producerExportProject.disabled = !project;
+  if (producerShare) producerShare.disabled = !getVariantData(project, "mixed");
   if (producerVocalBeatMix) producerVocalBeatMix.disabled = !ready || !getVariantData(project, "original");
   if (producerBeatStatus) producerBeatStatus.textContent = ready ? `${beat.name} · ${formatBytes(beat.size)} · IndexedDB dedicado` : "Nenhum beat importado.";
   if (producerBeatAudio) {
@@ -379,21 +529,116 @@ async function importProducerBeat(file) {
     showToast(error instanceof Error ? error.message : "Não foi possível importar o beat.");
   }
 }
+function noteLabel(midi) {
+  const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const rounded = Math.round(Number(midi) || 60);
+  return `${names[(rounded % 12 + 12) % 12]}${Math.floor(rounded / 12) - 1}`;
+}
+function pitchCurveMetrics(notes) {
+  return { maxTime: Math.max(...notes.map((item) => item.time), 0.1), minMidi: Math.min(...notes.map((item) => item.midi)) - 2, maxMidi: Math.max(...notes.map((item) => item.midi)) + 2 };
+}
+function curvePoint(item, metrics, width, height) {
+  const baseX = item.time / metrics.maxTime;
+  const visibleX = (baseX * pitchCurveZoom - pitchCurvePan) / Math.max(1, pitchCurveZoom - pitchCurvePan);
+  const x = visibleX * (width - 12) + 6;
+  const y = height - 6 - ((item.midi - metrics.minMidi) / Math.max(1, metrics.maxMidi - metrics.minMidi)) * (height - 12);
+  return { x, y };
+}
+function drawPitchCurve(notes = []) {
+  if (!producerPitchCurve) return;
+  const ctx = producerPitchCurve.getContext("2d"); const width = Math.max(240, producerPitchCurve.clientWidth || 480); const height = producerPitchCurve.height || 128;
+  producerPitchCurve.width = width; ctx.clearRect(0, 0, width, height); ctx.fillStyle = "rgba(255,255,255,.035)"; ctx.fillRect(0, 0, width, height);
+  if (!notes.length) { if (producerPitchCurveStatus) producerPitchCurveStatus.textContent = "Analisa o vocal para editar."; return; }
+  const metrics = pitchCurveMetrics(notes);
+  ctx.strokeStyle = "#f06aa8"; ctx.lineWidth = 2; ctx.beginPath();
+  notes.forEach((item, index) => { const point = curvePoint(item, metrics, width, height); index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y); }); ctx.stroke();
+  ctx.fillStyle = "#ffd166"; notes.forEach((item) => { const point = curvePoint(item, metrics, width, height); if (point.x < -8 || point.x > width + 8) return; ctx.beginPath(); ctx.arc(point.x, point.y, 4, 0, Math.PI * 2); ctx.fill(); });
+  if (producerPitchCurveStatus) producerPitchCurveStatus.textContent = `${notes.length} pontos editáveis · zoom ${pitchCurveZoom.toFixed(1)}× · arrasta continuamente`;
+  if (producerPitchZoomStatus) producerPitchZoomStatus.textContent = `Zoom ${pitchCurveZoom.toFixed(1)}× · deslocação ${Math.round(pitchCurvePan * 100)}%`;
+}
+function renderPitchNotes() {
+  if (!producerPitchNotes) return;
+  producerPitchNotes.innerHTML = activePitchNotes.length ? activePitchNotes.slice(0, 80).map((item, index) => `<label class="pitch-note"><span>${Number(item.time).toFixed(2)}s · ${noteLabel(item.midi)}</span><input data-pitch-index="${index}" type="number" min="24" max="96" step="0.01" value="${Number(item.midi).toFixed(2)}" aria-label="Nota alvo ${index + 1}" /></label>`).join("") : "<span class=\"muted\">Nenhuma nota disponível para edição.</span>";
+  drawPitchCurve(activePitchNotes);
+}
+function editPitchFromCurve(event) {
+  if (!activePitchNotes.length || !producerPitchCurve) return;
+  const rect = producerPitchCurve.getBoundingClientRect(); const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left)); const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+  const metrics = pitchCurveMetrics(activePitchNotes);
+  const nearest = activePitchNotes.reduce((best, item, index) => { const point = curvePoint(item, metrics, rect.width, rect.height); return Math.abs(point.x - x) < Math.abs(curvePoint(activePitchNotes[best], metrics, rect.width, rect.height).x - x) ? index : best; }, 0);
+  const midi = metrics.minMidi + (1 - y / rect.height) * Math.max(1, metrics.maxMidi - metrics.minMidi);
+  updateEditedPitch(nearest, midi);
+}
+async function updateEditedPitch(index, value) {
+  const midi = Math.max(24, Math.min(96, Number(value)));
+  if (!activePitchNotes[index] || !Number.isFinite(midi)) return;
+  activePitchNotes[index] = { ...activePitchNotes[index], midi, note: Math.round(midi), name: noteLabel(midi), manuallyEdited: true };
+  if (activePitchAnalysis) activePitchAnalysis = { ...activePitchAnalysis, notes: activePitchNotes, correction: autoTuneCorrectionFromPitch(activePitchNotes, producerAutoTuneRoot?.value || "C", producerAutoTuneScale?.value || "major") };
+  const project = currentTimelineProject();
+  if (project && await indexedDbAvailable()) {
+    try { await putPitchEdits(project.id, activePitchNotes, { root: producerAutoTuneRoot?.value || "C", scale: producerAutoTuneScale?.value || "major" }); } catch { /* local project state remains usable */ }
+  }
+  renderPitchNotes();
+  if (producerPitchStatus) producerPitchStatus.textContent = "Notas editadas e guardadas localmente. A análise manual será usada no próximo Auto-Tune.";
+}
+async function shareFinalTrack() {
+  const project = currentTimelineProject(); const mixedData = getVariantData(project, "mixed");
+  if (!project || !mixedData) return showToast("Cria primeiro o Mixed para partilhar a faixa final.");
+  try { const blob = await dataUrlToBlob(mixedData); const file = new File([blob], mixedExportFilename(project.name), { type: "audio/wav" });
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) { await navigator.share({ title: `${project.name} · Fernando Lucoco Music`, text: "Faixa final Vocal + beat", files: [file] }); showToast("Faixa partilhada através do dispositivo."); }
+    else { await exportMixedVersion(project.id); showToast("Partilha directa indisponível; o WAV foi descarregado como fallback."); }
+  } catch (error) { if (error?.name !== "AbortError") { console.warn("Partilha falhou", error); await exportMixedVersion(project.id); } }
+}
+async function analyzeProducerPitch() {
+  const project = currentTimelineProject();
+  const sourceData = getVariantData(project, "original");
+  if (!project || !sourceData) return showToast("Grava primeiro uma take vocal.");
+  if (producerAnalyzePitch) producerAnalyzePitch.disabled = true;
+  if (producerPitchStatus) producerPitchStatus.textContent = "A analisar pitch nota-a-nota localmente…";
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error("Web Audio API indisponível neste navegador.");
+    const context = new AudioContextClass();
+    const buffer = await context.decodeAudioData((await dataUrlToBlob(sourceData)).arrayBuffer());
+    const notes = detectPitchNotes(buffer.getChannelData(0), buffer.sampleRate);
+    const correction = autoTuneCorrectionFromPitch(notes, producerAutoTuneRoot?.value || "C", producerAutoTuneScale?.value || "major");
+    const savedPitchEdits = await getPitchEdits(project.id).catch(() => null);
+    const savedByTime = new Map((savedPitchEdits?.notes || []).map((item) => [Number(item.time).toFixed(4), item]));
+    activePitchNotes = notes.map((item) => ({ ...item, ...(savedByTime.get(Number(item.time).toFixed(4)) || {}) }));
+    const restoredCorrection = autoTuneCorrectionFromPitch(activePitchNotes, producerAutoTuneRoot?.value || "C", producerAutoTuneScale?.value || "major");
+    activePitchAnalysis = { notes: activePitchNotes, correction: restoredCorrection, sampleRate: buffer.sampleRate, analyzedAt: new Date().toISOString(), restoredEdits: Boolean(savedPitchEdits) };
+    const updated = readProjects().map((item) => item.id === project.id ? { ...item, pitchAnalysis: activePitchAnalysis, autoTuneKey: producerAutoTuneRoot?.value || "C", autoTuneScale: producerAutoTuneScale?.value || "major" } : item);
+    saveProjects(updated);
+    renderPitchNotes();
+    if (producerPitchStatus) producerPitchStatus.textContent = notes.length ? `${notes.length} notas detectadas · correcção média ${correction.cents} cents · confiança ${Math.round(correction.confidence * 100)}%` : "Não foram detectadas notas com confiança suficiente.";
+    if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = notes.length ? "Análise pronta; podes aplicar o Auto-Tune." : "Sem pitch suficiente para correcção segura.";
+    if (producerApplyAutoTune) producerApplyAutoTune.disabled = !notes.length;
+    await context.close();
+  } catch (error) {
+    if (producerPitchStatus) producerPitchStatus.textContent = error instanceof Error ? error.message : "Não foi possível analisar o pitch.";
+    showToast(error instanceof Error ? error.message : "Análise de pitch falhou.");
+  } finally {
+    if (producerAnalyzePitch) producerAnalyzePitch.disabled = false;
+  }
+}
 async function applyLocalAutoTune() {
   const project = currentTimelineProject();
   const sourceData = getVariantData(project, "original");
   if (!project || !sourceData) return showToast("Grava primeiro uma take vocal.");
   const intensity = Number(producerAutoTuneIntensity?.value || 50) / 100;
-  const parameters = autoTuneParameters(intensity);
+  const root = producerAutoTuneRoot?.value || "C";
+  const scale = producerAutoTuneScale?.value || "major";
+  const correction = activePitchAnalysis?.correction || autoTuneCorrectionFromPitch([], root, scale);
+  const parameters = { ...autoTuneParameters(intensity), root, scale, detectedCents: correction.cents, noteCount: correction.noteCount || 0, pitchConfidence: correction.confidence || 0 };
   producerApplyAutoTune.disabled = true;
-  if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `A processar ${Math.round(intensity * 100)}% · ${parameters.correctionCents} cents…`;
+  if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `A processar ${Math.round(intensity * 100)}% · ${root} ${scale} · ${correction.cents} cents…`;
   try {
-    const blob = await applyAutoTuneLocal(await dataUrlToBlob(sourceData), { intensity });
+    const blob = await applyAutoTuneLocal(await dataUrlToBlob(sourceData), { intensity, correctionCents: correction.cents });
     const data = await blobToDataUrl(blob);
-    const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: { ...(item.audioVariants || {}), pitchCorrected: { data, mimeType: "audio/wav", bytes: blob.size, source: "local-autotune", intensity, correctionCents: parameters.correctionCents, updatedAt: new Date().toISOString() } }, pitchCorrectionApplied: `Auto-Tune ${Math.round(intensity * 100)}%`, status: "Auto-Tune local disponível" } : item);
+    const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: { ...(item.audioVariants || {}), pitchCorrected: { data, mimeType: "audio/wav", bytes: blob.size, source: "local-autotune", intensity, root, scale, correctionCents: correction.cents, pitchConfidence: correction.confidence || 0, noteCount: correction.noteCount || 0, updatedAt: new Date().toISOString() } }, pitchCorrectionApplied: `Auto-Tune ${Math.round(intensity * 100)}% · ${root} ${scale}`, status: "Auto-Tune local disponível" } : item);
     saveProjects(updated);
     if (await indexedDbAvailable()) await Promise.all([putAudioBlob(project.id, "pitch-corrected", blob), putEffect({ id: `${project.id}:auto-tune`, projectId: project.id, type: "auto-tune-local", parameters, createdAt: new Date().toISOString() }), putProject(updated.find((item) => item.id === project.id))]);
-    if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `Aplicado · ${parameters.correctionCents} cents · reversível`;
+    if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `Aplicado · ${root} ${scale} · ${correction.cents} cents · reversível`;
     renderProjects();
     showToast("Auto-Tune local aplicado. O Original continua preservado.");
   } catch (error) {
@@ -421,11 +666,44 @@ async function resetLocalAutoTune() {
   showToast("Auto-Tune revertido. Original e Enhanced continuam disponíveis.");
 }
 
+async function applyLocalSpaceEffects() {
+  const project = currentTimelineProject();
+  const sourceData = getVariantData(project, "pitchCorrected") || getVariantData(project, "enhanced") || getVariantData(project, "original");
+  if (!project || !sourceData) return showToast("Grava primeiro uma take vocal.");
+  const reverb = Number(producerReverbIntensity?.value || 0) / 100;
+  const delay = Number(producerDelayIntensity?.value || 0) / 100;
+  if (producerApplySpace) producerApplySpace.disabled = true;
+  try {
+    let blob = await dataUrlToBlob(sourceData);
+    if (reverb > 0) blob = await applyReverbLocal(blob, { intensity: reverb });
+    if (delay > 0) blob = await applyDelayLocal(blob, { intensity: delay });
+    const data = await blobToDataUrl(blob);
+    const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: { ...(item.audioVariants || {}), spatial: { data, mimeType: "audio/wav", bytes: blob.size, source: "local-spatial", reverb, delay, parameters: [spatialEffectParameters("reverb", reverb), spatialEffectParameters("delay", delay)], updatedAt: new Date().toISOString() } }, status: "Reverb/delay local disponível" } : item);
+    saveProjects(updated);
+    if (await indexedDbAvailable()) await Promise.all([putAudioBlob(project.id, "spatial", blob), putEffect({ id: `${project.id}:spatial`, projectId: project.id, type: "reverb-delay-local", parameters: { reverb, delay }, createdAt: new Date().toISOString() }), putProject(updated.find((item) => item.id === project.id))]);
+    if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `Espaço aplicado · reverb ${Math.round(reverb * 100)}% · delay ${Math.round(delay * 100)}% · reversível`;
+    renderProjects();
+    showToast("Reverb e delay locais aplicados sem alterar o Original.");
+  } catch (error) { showToast(error instanceof Error ? error.message : "Não foi possível aplicar reverb/delay."); }
+  finally { if (producerApplySpace) producerApplySpace.disabled = false; }
+}
+async function resetLocalSpaceEffects() {
+  const project = currentTimelineProject();
+  if (!project) return;
+  const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: Object.fromEntries(Object.entries(item.audioVariants || {}).filter(([key]) => key !== "spatial")), status: "Reverb/delay revertidos" } : item);
+  saveProjects(updated);
+  try { if (await indexedDbAvailable()) await Promise.all([deleteAudioBlob(project.id, "spatial"), deleteEffect(project.id, "spatial"), putProject(updated.find((item) => item.id === project.id))]); } catch { showToast("A variante espacial foi revertida localmente; a limpeza IndexedDB será tentada novamente."); }
+  renderProjects();
+  if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = "Reverb e delay revertidos; vocal anterior preservado.";
+  showToast("Reverb e delay revertidos.");
+}
+
 async function mixImportedBeatWithVocal() {
   const project = currentTimelineProject();
   const beat = project?.importedBeat;
   const vocalData = getVariantData(project, "pitchCorrected") || getVariantData(project, "enhanced") || getVariantData(project, "original");
-  if (!project || !beat?.data || !vocalData) return showToast("Precisas de uma take vocal e de um beat importado.");
+  const beatBlob = project ? await resolveBeatBlob(project) : null;
+  if (!project || !beatBlob || !vocalData) return showToast("Precisas de uma take vocal e de um beat importado.");
   producerVocalBeatMix.disabled = true;
   producerBeatStatus.textContent = "A preparar Vocal + beat local…";
   try {
@@ -436,8 +714,6 @@ async function mixImportedBeatWithVocal() {
     arrangement = addTrack(arrangement, { id: `${project.id}-beat`, name: `Beat · ${beat.name}`, type: "audio", color: "#62d6c7" });
     arrangement = addClip(arrangement, `${project.id}-vocal`, { id: `${project.id}-vocal-clip`, blobKey: vocalKey, name: "Vocal processado", duration: Number(project.duration || 0), mimeType: "audio/wav", gain: 1 });
     arrangement = addClip(arrangement, `${project.id}-beat`, { id: `${project.id}-beat-clip`, blobKey: beatKey, name: beat.name, duration: Number(project.duration || 0), mimeType: beat.type, gain: 1.15 });
-    const beatBlob = await resolveBeatBlob(project);
-    if (!beatBlob) throw new Error("O beat dedicado não está disponível");
     const sources = new Map([[vocalKey, await dataUrlToBlob(vocalData)], [beatKey, beatBlob]]);
     const wav = await renderTimelineToWav(arrangement, sources, { headroom: 0.86 });
     const mixedData = await blobToDataUrl(wav);
@@ -454,7 +730,8 @@ async function mixImportedBeatWithVocal() {
     timelineHistory = createHistoryState(normalizeProject(next.find((item) => item.id === project.id)));
     renderProjects();
     await refreshStorageStatus();
-    showToast("Vocal + beat misturados localmente. Original, Enhanced e Pitch Corrected continuam reversíveis.");
+    if (producerFinalStatus) producerFinalStatus.textContent = "Faixa final Vocal + beat pronta para exportar em WAV.";
+    showToast("Vocal + beat misturados localmente. A faixa final está pronta para exportar; Original, Enhanced e Pitch Corrected continuam reversíveis.");
   } catch (error) {
     console.error("Vocal + beat falhou", error);
     producerBeatStatus.textContent = error instanceof Error ? error.message : "Não foi possível criar o Mixed.";
@@ -748,12 +1025,15 @@ function renderProducerStudio() {
   if (producerMixStatus) producerMixStatus.textContent = state.hasMix ? "Mixed WAV disponível" : "Aguardando Mixdown";
   if (producerFinalStatus) producerFinalStatus.textContent = state.hasMix ? "Compara Original e Mixed antes de exportar." : "Cria um Mixed para comparar versões.";
   if (producerAbMixed) producerAbMixed.disabled = !state.hasMix;
+  updateProducerBypassUI(state.hasMix);
   if (producerExport) producerExport.disabled = !state.hasMix;
+  if (producerExportProject) producerExportProject.disabled = !state.projectId;
   setProducerStage("producer-stage-plan", state.hasPlan, state.processingState !== "IDLE" && !state.hasPlan);
   setProducerStage("producer-stage-vocal", state.hasVocal);
   setProducerStage("producer-stage-mix", state.hasMix);
   setProducerStage("producer-stage-master", state.hasMaster);
   updateProducerBeatControls(project);
+  updateEffectPresetOptions();
 }
 
 function renderProjects() {
@@ -1039,10 +1319,36 @@ producerRequestAi?.addEventListener("click", async () => {
 });
 producerAbOriginal?.addEventListener("click", () => playProducerPreview("original"));
 producerAbMixed?.addEventListener("click", () => playProducerPreview("mixed"));
+producerBypass?.addEventListener("click", () => {
+  const project = currentTimelineProject();
+  if (!getVariantData(project, "mixed")) {
+    showToast("Cria primeiro uma versão Mixed para usar o bypass A/B.");
+    return;
+  }
+  producerBypassActive = !producerBypassActive;
+  updateProducerBypassUI(true);
+  playProducerPreview(producerBypassActive ? "original" : "mixed");
+});
+function exportProjectManifest() {
+  const project = currentTimelineProject();
+  if (!project) return showToast("Cria ou selecciona um projecto primeiro.");
+  const currentPreset = loadEffectPresets().find((item) => item.id === activePresetId) || null;
+  const manifest = createProjectManifest({
+    ...project,
+    activeEffectPresetId: activePresetId || project.activeEffectPresetId || "",
+    activeEffectPreset: currentPreset,
+    audioSettings: currentEffectPreset(),
+  });
+  const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+  downloadBlob(blob, projectManifestFilename(project.name));
+  showToast("Manifesto do projecto exportado com as configurações de áudio.");
+}
+
 producerExport?.addEventListener("click", () => {
   const project = currentTimelineProject();
   if (project) exportMixedVersion(project.id);
 });
+producerExportProject?.addEventListener("click", exportProjectManifest);
 producerBeatFile?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (file) await importProducerBeat(file);
@@ -1065,9 +1371,32 @@ producerAutoTuneIntensity?.addEventListener("input", () => {
   if (producerAutoTuneValue) producerAutoTuneValue.textContent = `${intensity}%`;
   if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `${Math.round(intensity * 0.5)} cents de correcção prevista.`;
 });
+producerAutoTuneRoot?.addEventListener("change", () => { activePitchAnalysis = null; if (producerPitchStatus) producerPitchStatus.textContent = "Tonalidade alterada; analisa novamente o pitch."; });
+producerAutoTuneScale?.addEventListener("change", () => { activePitchAnalysis = null; if (producerPitchStatus) producerPitchStatus.textContent = "Escala alterada; analisa novamente o pitch."; });
+producerAnalyzePitch?.addEventListener("click", analyzeProducerPitch);
+producerPitchNotes?.addEventListener("change", (event) => { const input = event.target.closest("[data-pitch-index]"); if (input) updateEditedPitch(Number(input.dataset.pitchIndex), input.value); });
+producerPitchCurve?.addEventListener("pointerdown", (event) => { pitchCurveDrag = { pointerId: event.pointerId }; producerPitchCurve.setPointerCapture?.(event.pointerId); editPitchFromCurve(event); });
+producerPitchCurve?.addEventListener("pointermove", (event) => { if (pitchCurveDrag?.pointerId === event.pointerId) editPitchFromCurve(event); });
+producerPitchCurve?.addEventListener("pointerup", (event) => { if (pitchCurveDrag?.pointerId === event.pointerId) { pitchCurveDrag = null; producerPitchCurve.releasePointerCapture?.(event.pointerId); } });
+producerPitchCurve?.addEventListener("pointercancel", () => { pitchCurveDrag = null; });
+producerPitchZoomIn?.addEventListener("click", () => { pitchCurveZoom = Math.min(8, Number((pitchCurveZoom + 0.5).toFixed(1))); pitchCurvePan = Math.min(pitchCurvePan, Math.max(0, pitchCurveZoom - 1)); drawPitchCurve(activePitchNotes); });
+producerPitchZoomOut?.addEventListener("click", () => { pitchCurveZoom = Math.max(1, Number((pitchCurveZoom - 0.5).toFixed(1))); pitchCurvePan = Math.min(pitchCurvePan, Math.max(0, pitchCurveZoom - 1)); drawPitchCurve(activePitchNotes); });
+producerPitchPanReset?.addEventListener("click", () => { pitchCurveZoom = 1; pitchCurvePan = 0; drawPitchCurve(activePitchNotes); });
+producerShare?.addEventListener("click", shareFinalTrack);
 producerApplyAutoTune?.addEventListener("click", applyLocalAutoTune);
 producerResetAutoTune?.addEventListener("click", resetLocalAutoTune);
+producerApplySpace?.addEventListener("click", applyLocalSpaceEffects);
+producerResetSpace?.addEventListener("click", resetLocalSpaceEffects);
+producerReverbIntensity?.addEventListener("input", () => { if (producerReverbValue) producerReverbValue.textContent = `${producerReverbIntensity.value}%`; });
+producerDelayIntensity?.addEventListener("input", () => { if (producerDelayValue) producerDelayValue.textContent = `${producerDelayIntensity.value}%`; });
 producerVocalBeatMix?.addEventListener("click", mixImportedBeatWithVocal);
+[[producerBypassAutoTune, "autoTune"], [producerBypassReverb, "reverb"], [producerBypassDelay, "delay"]].forEach(([button, key]) => button?.addEventListener("click", () => { effectBypassState[key] = !effectBypassState[key]; updateIndividualBypassUI(); }));
+producerSavePreset?.addEventListener("click", () => { const name = producerPresetName?.value?.trim(); if (!name) { if (producerPresetStatus) producerPresetStatus.textContent = "Escreve um nome para guardar a predefinição."; producerPresetName?.focus(); return; } const preset = saveEffectPreset({ ...currentEffectPreset(), name }); activePresetId = preset.id; const project = currentTimelineProject(); if (project) persistActivePreset(project.id, preset.id); updateEffectPresetOptions(); if (producerPresetName) producerPresetName.value = ""; if (producerPresetStatus) producerPresetStatus.textContent = `Predefinição “${preset.name}” guardada.`; });
+producerPresetSelect?.addEventListener("change", () => { activePresetId = producerPresetSelect.value; const preset = loadEffectPresets().find((item) => item.id === activePresetId); applyEffectPreset(preset); const project = currentTimelineProject(); if (project) persistActivePreset(project.id, activePresetId); if (producerDeletePreset) producerDeletePreset.disabled = !preset || isBuiltInEffectPreset(activePresetId); if (producerPresetStatus) producerPresetStatus.textContent = preset ? `Predefinição “${preset.name}” aplicada.` : "Nenhuma predefinição seleccionada."; });
+producerDeletePreset?.addEventListener("click", () => { if (!activePresetId || isBuiltInEffectPreset(activePresetId)) return; const project = currentTimelineProject(); deleteEffectPreset(activePresetId); activePresetId = ""; if (project) persistActivePreset(project.id, ""); updateEffectPresetOptions(); if (producerPresetStatus) producerPresetStatus.textContent = "Predefinição apagada."; });
+updateIndividualBypassUI();
+updateEffectPresetOptions();
+updateABMeters();
 
 list?.addEventListener("click", (event) => {
   const deleteButton = event.target.closest("[data-delete-id]");

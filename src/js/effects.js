@@ -255,3 +255,102 @@ export function applyAutoTuneLocal(blob, { intensity = 0.5, presenceDb = 1.5 } =
     source.connect(highPass).connect(presence).connect(compressor).connect(output).connect(offline.destination);
   });
 }
+
+
+const SCALE_INTERVALS = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10], chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] };
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+export function normalizeAutoTuneScale(root = "C", scale = "major") {
+  const safeRoot = NOTE_NAMES.includes(root) ? root : "C";
+  const safeScale = Object.hasOwn(SCALE_INTERVALS, scale) ? scale : "major";
+  return { root: safeRoot, scale: safeScale, intervals: SCALE_INTERVALS[safeScale] };
+}
+
+export function detectPitchNotes(samples, sampleRate, { minFrequency = 70, maxFrequency = 900, frameSize = 2048, hopSize = 1024 } = {}) {
+  const input = samples instanceof Float32Array ? samples : Float32Array.from(samples || []);
+  const result = [];
+  if (!sampleRate || input.length < frameSize) return result;
+  for (let offset = 0; offset + frameSize <= input.length; offset += hopSize) {
+    let energy = 0;
+    for (let i = 0; i < frameSize; i += 1) energy += input[offset + i] ** 2;
+    const rms = Math.sqrt(energy / frameSize);
+    if (rms < 0.008) continue;
+    const minLag = Math.max(2, Math.floor(sampleRate / maxFrequency));
+    const maxLag = Math.min(frameSize - 2, Math.ceil(sampleRate / minFrequency));
+    let bestLag = minLag; let best = -Infinity;
+    for (let lag = minLag; lag <= maxLag; lag += 1) {
+      let correlation = 0;
+      for (let i = 0; i < frameSize - lag; i += 1) correlation += input[offset + i] * input[offset + i + lag];
+      if (correlation > best) { best = correlation; bestLag = lag; }
+    }
+    const frequency = sampleRate / bestLag;
+    const midi = 69 + 12 * Math.log2(frequency / 440);
+    const note = Math.round(midi);
+    const confidence = Math.max(0, Math.min(1, best / (energy || 1)));
+    result.push({ time: offset / sampleRate, frequency, midi, note, name: `${NOTE_NAMES[((note % 12) + 12) % 12]}${Math.floor(note / 12) - 1}`, confidence: Number(confidence.toFixed(3)) });
+  }
+  return result;
+}
+
+export function nearestScaleNote(midi, root = "C", scale = "major") {
+  const config = normalizeAutoTuneScale(root, scale);
+  const rootIndex = NOTE_NAMES.indexOf(config.root);
+  const candidates = [];
+  for (let note = Math.floor(midi) - 12; note <= Math.ceil(midi) + 12; note += 1) if (config.intervals.includes(((note - rootIndex) % 12 + 12) % 12)) candidates.push(note);
+  return candidates.reduce((best, note) => Math.abs(note - midi) < Math.abs(best - midi) ? note : best, candidates[0] ?? Math.round(midi));
+}
+
+export function autoTuneCorrectionFromPitch(pitchNotes, root = "C", scale = "major") {
+  const voiced = (pitchNotes || []).filter((item) => item && item.confidence >= 0.25 && Number.isFinite(item.midi));
+  if (!voiced.length) return { cents: 0, confidence: 0, noteCount: 0 };
+  const average = voiced.reduce((sum, item) => sum + item.midi, 0) / voiced.length;
+  const target = nearestScaleNote(average, root, scale);
+  return { cents: Math.max(-100, Math.min(100, Math.round((target - average) * 100))), confidence: Number((voiced.reduce((sum, item) => sum + item.confidence, 0) / voiced.length).toFixed(3)), noteCount: voiced.length, detectedMidi: Number(average.toFixed(2)), targetMidi: target };
+}
+
+
+export function normalizeSpatialIntensity(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+export function applyReverbLocal(blob, { intensity = 0.35 } = {}) {
+  const safeIntensity = normalizeSpatialIntensity(intensity);
+  return withDecodedAudio(blob, ({ offline, source, decoded }) => {
+    const dry = offline.createGain();
+    const wet = offline.createGain();
+    const convolver = offline.createConvolver();
+    const impulseLength = Math.max(1, Math.floor(decoded.sampleRate * 1.4));
+    const impulse = offline.createBuffer(decoded.numberOfChannels, impulseLength, decoded.sampleRate);
+    for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
+      const data = impulse.getChannelData(channel);
+      for (let index = 0; index < data.length; index += 1) data[index] = (Math.random() * 2 - 1) * (1 - index / data.length) ** 2;
+    }
+    convolver.buffer = impulse;
+    dry.gain.value = 1;
+    wet.gain.value = safeIntensity * 0.55;
+    source.connect(dry).connect(offline.destination);
+    source.connect(convolver).connect(wet).connect(offline.destination);
+  });
+}
+
+export function applyDelayLocal(blob, { intensity = 0.3 } = {}) {
+  const safeIntensity = normalizeSpatialIntensity(intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const dry = offline.createGain();
+    const wet = offline.createGain();
+    const delay = offline.createDelay(1.2);
+    const feedback = offline.createGain();
+    delay.delayTime.value = 0.18 + safeIntensity * 0.22;
+    feedback.gain.value = safeIntensity * 0.42;
+    dry.gain.value = 1;
+    wet.gain.value = safeIntensity * 0.5;
+    source.connect(dry).connect(offline.destination);
+    source.connect(delay).connect(wet).connect(offline.destination);
+    delay.connect(feedback).connect(delay);
+  });
+}
+
+export function spatialEffectParameters(type, intensity = 0.3) {
+  const safeIntensity = normalizeSpatialIntensity(intensity);
+  return { type: type === "delay" ? "delay" : "reverb", intensity: safeIntensity, reversible: true };
+}

@@ -1,3 +1,22 @@
+export function projectManifestFilename(projectName = "sessao") {
+  const safeName = String(projectName || "sessao").replace(/[^\p{L}\p{N}._ -]/gu, "-").trim() || "sessao";
+  return `${safeName}-project.json`;
+}
+
+export function createProjectManifest(project = {}) {
+  return {
+    schema: "fernando-lucoco-music-project-v1",
+    exportedAt: new Date().toISOString(),
+    project: {
+      id: project.id || "",
+      name: project.name || "Sessão",
+      activeEffectPresetId: project.activeEffectPresetId || "",
+      activeEffectPreset: project.activeEffectPreset || null,
+      audioSettings: project.audioSettings || null,
+    },
+  };
+}
+
 export function mixedExportFilename(projectName = "sessao") {
   const safeName = String(projectName || "sessao").replace(/[^\p{L}\p{N}._ -]/gu, "-").trim() || "sessao";
   return `${safeName}-mixed.wav`;

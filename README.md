@@ -207,3 +207,55 @@ O Producer Studio expõe uma forma de onda local para o vocal e outra para o bea
 Foi acrescentado Auto-Tune local assistido. A intensidade de 0–100% é convertida deterministicamente numa correcção máxima de 0–50 cents, com passa-alto, presença e compressão ligeira para manter uma saída audível. O processamento cria uma variante `pitchCorrected` identificada como `local-autotune`; o Original e o Enhanced não são substituídos. O botão de reversão remove apenas essa variante e o seu blob, preservando as restantes versões.
 
 Esta implementação é um **assistente tonal local**, não um Auto-Tune profissional nota-a-nota. A detecção detalhada de pitch, edição de escala, formant correction e AI Mastering permanecem fases futuras. A suite determinística desta etapa terminou com **134 testes aprovados e 0 falhas**. A validação física no Samsung Galaxy A06, Chrome Android e Safari iPhone continua necessária.
+
+## V2.4 — exportação final, escala e pitch
+
+O Producer Studio permite agora preparar a faixa final com vocal e beat importado e descarregá-la como WAV através da acção **Exportar música**. O ficheiro exportado corresponde à variante `Mixed`, criada pelo Mixdown local, com nome seguro e feedback de preparação, sucesso ou erro. O beat guardado na store dedicada IndexedDB é resolvido antes do render, incluindo sessões que já não mantêm o áudio inline.
+
+O Auto-Tune local expõe tonalidade (C–B), escala (maior, menor ou cromática), intensidade e reversão. A análise de pitch nota-a-nota usa autocorrelação local, apresenta quantidade de notas detectadas, correcção média e confiança e é tratada como estimativa: ruído, silêncio, polifonia e voz sem fundamental estável podem reduzir a confiança. A variante avançada continua separada de `Original`, `Enhanced` e `Mixed` até o utilizador aplicar o processamento.
+
+A integração foi coberta por **135 testes determinísticos aprovados e 0 falhas**. A validação física de exportação, escala e pitch no Samsung Galaxy A06, Chrome Android e Safari iPhone continua necessária antes de considerar esta fase pronta para produção.
+
+
+## V2.5 — edição de afinação e partilha
+
+O Producer Studio permite editar manualmente as notas detectadas antes de aplicar Auto-Tune. Cada nota apresenta o tempo e o MIDI alvo, com limites seguros, e a alteração recalcula a correcção tonal sem modificar a gravação Original.
+
+Foi adicionado um editor visual da curva de afinação sobre o waveform vocal. O utilizador pode tocar ou clicar num ponto para ajustar a nota mais próxima; os campos numéricos continuam disponíveis para edição precisa e acessível.
+
+A faixa Mixed pode ser partilhada directamente através da Web Share API quando o dispositivo suporta partilha de ficheiros. Em browsers sem essa capacidade, o sistema mantém o download WAV como fallback. Nenhum áudio ou credencial é enviado para um serviço externo por este fluxo.
+
+A suite determinística desta versão terminou com 137 testes aprovados e 0 falhas. A validação física no Samsung Galaxy A06, Chrome Android e Safari iPhone continua necessária para confirmar a folha nativa de partilha e os gestos de edição.
+
+## V2.6 — edição persistente e efeitos espaciais
+
+A V2.6 acrescenta uma store IndexedDB `pitchEdits` dedicada às notas de pitch editadas por projecto. As edições são restauradas depois de recarregar a página e são removidas de forma controlada ao fazer reset ou apagar o projecto; a gravação Original permanece intacta.
+
+O editor de afinação passou a suportar zoom horizontal/vertical, recentragem e arrasto contínuo com limites seguros. Foram também adicionados reverb e delay locais baseados em `OfflineAudioContext`, com intensidade ajustável, variantes reversíveis e fallback honesto quando o ambiente não disponibiliza Web Audio.
+
+A suite determinística V2.6 terminou com **138 testes aprovados e 0 falhas**. A validação física no Samsung Galaxy A06, Chrome Android e Safari iPhone continua necessária antes de aceitar estes controlos como validados em produção.
+
+## V2.7 — bypass A/B de efeitos
+
+O Producer Studio inclui agora um botão **Bypass: Original** no painel final. Quando existe uma versão Mixed, o botão alterna entre a reprodução do Original e do Mixed sem apagar, reprocessar ou substituir variantes persistidas. O estado usa `aria-pressed`, muda visualmente quando o bypass está activo e mantém os botões A/B tradicionais disponíveis. A comparação é local e continua sujeita às políticas de autoplay do navegador.
+
+QA determinística: **139 testes aprovados, 0 falhas**.
+
+## V2.8 — bypass por efeito, medição A/B e predefinições
+
+O Producer Studio passou a expor bypass individual para Auto-Tune, Reverb e Delay, com estado visual e acessível. A comparação A/B apresenta pico e loudness estimados para Original e Mixed, permitindo avaliar diferenças de nível sem substituir as variantes persistidas.
+
+As configurações de Auto-Tune, Reverb, Delay e respectivos bypasses podem ser guardadas como predefinições personalizadas locais. As predefinições são normalizadas, limitadas a 30 entradas, reaplicáveis e apagáveis sem afectar áudio ou projectos.
+
+Foi criada a competência reutilizável `fernando-lucoco-audio-studio`, que formaliza o workflow local-first, reversibilidade, IndexedDB, DSP, QA e segurança da IA server-side. A Skill foi validada pelo `quick_validate.py`. A suite web V2.8 terminou com 141 testes aprovados e 0 falhas.
+
+Limite actual: a validação física dos bypasses, medidores e predefinições no Samsung Galaxy A06, Chrome Android e Safari iPhone continua pendente.
+
+
+## V2.9 — presets iniciais, persistência e medidores A/B
+
+A interface de efeitos inclui agora quatro predefinições base: **Voz seca**, **Sala**, **Plate** e **Eco**. Os presets base são protegidos contra eliminação acidental e permanecem separados das predefinições personalizadas.
+
+A predefinição activa é associada ao projecto corrente e persistida localmente. Após recarregar a página, a aplicação restaura a selecção e os parâmetros sem substituir a gravação Original nem as variantes processadas. A gestão de presets também foi ajustada para reflectir a selecção activa ao criar ou reabrir um projecto.
+
+Os medidores A/B de pico e loudness receberam barras progressivas, loading visual, shimmer de actividade, transições suaves e suporte a `prefers-reduced-motion`. A suite determinística terminou esta revisão com **141 testes aprovados e 0 falhas**. A validação física em Samsung Galaxy A06, Chrome Android e Safari iPhone continua necessária.

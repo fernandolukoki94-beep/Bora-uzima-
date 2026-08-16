@@ -1,7 +1,7 @@
 import { normalizeProject } from "./studio/project-model.js";
 
 const DB_NAME = "fernando-lucoco-music";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const DEFAULT_STORAGE_KEY = "fernando-lucoco-music-projects";
 const STORES = {
   projects: "projects",
@@ -10,6 +10,7 @@ const STORES = {
   metadata: "metadata",
   effects: "effects",
   beats: "beats",
+  pitchEdits: "pitchEdits",
 };
 
 function isSupported() {
@@ -28,6 +29,7 @@ function openDatabase() {
       if (!database.objectStoreNames.contains(STORES.metadata)) database.createObjectStore(STORES.metadata, { keyPath: "key" });
       if (!database.objectStoreNames.contains(STORES.effects)) database.createObjectStore(STORES.effects, { keyPath: "id" });
       if (!database.objectStoreNames.contains(STORES.beats)) database.createObjectStore(STORES.beats, { keyPath: "key" });
+      if (!database.objectStoreNames.contains(STORES.pitchEdits)) database.createObjectStore(STORES.pitchEdits, { keyPath: "key" });
     };
     request.onsuccess = () => {
       const database = request.result;
@@ -131,11 +133,29 @@ export async function deleteBeatBlob(projectId, beatId) {
   return withStore(STORES.beats, "readwrite", (store) => requestToPromise(store.delete(`${projectId}:${beatId}`)));
 }
 
+export async function putPitchEdits(projectId, notes, metadata = {}) {
+  const key = `${projectId}:pitch-edits`;
+  return withStore(STORES.pitchEdits, "readwrite", (store) => requestToPromise(store.put({ key, projectId, notes: Array.isArray(notes) ? notes : [], root: metadata.root || "C", scale: metadata.scale || "major", updatedAt: new Date().toISOString() })));
+}
+
+export async function getPitchEdits(projectId) {
+  const record = await withStore(STORES.pitchEdits, "readonly", (store) => requestToPromise(store.get(`${projectId}:pitch-edits`)));
+  return record || null;
+}
+
+export async function deletePitchEdits(projectId) {
+  return withStore(STORES.pitchEdits, "readwrite", (store) => requestToPromise(store.delete(`${projectId}:pitch-edits`)));
+}
+
+export async function deleteEffect(projectId, suffix = "spatial") {
+  return withStore(STORES.effects, "readwrite", (store) => requestToPromise(store.delete(`${projectId}:${suffix}`)));
+}
+
 export async function resetProjectEffects(projectId) {
   const database = await openDatabase();
   try {
-    const transaction = database.transaction([STORES.projects, STORES.blobs, STORES.effects, STORES.beats], "readwrite");
-    for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
+    const transaction = database.transaction([STORES.projects, STORES.blobs, STORES.effects, STORES.beats, STORES.pitchEdits], "readwrite");
+    for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed", "spatial"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
     const beats = transaction.objectStore(STORES.beats);
     const beatRequest = beats.openCursor();
     beatRequest.onsuccess = () => {
@@ -144,6 +164,7 @@ export async function resetProjectEffects(projectId) {
       if (cursor.value.projectId === projectId) cursor.delete();
       cursor.continue();
     };
+    transaction.objectStore(STORES.pitchEdits).delete(`${projectId}:pitch-edits`);
     const projectStore = transaction.objectStore(STORES.projects);
     const projectRequest = projectStore.get(projectId);
     projectRequest.onsuccess = () => {
@@ -176,7 +197,8 @@ export async function deleteProjectData(projectId) {
     transaction.objectStore(STORES.projects).delete(projectId);
     transaction.objectStore(STORES.takes).delete(projectId);
     transaction.objectStore(STORES.blobs).delete(`${projectId}:original`);
-    for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
+    for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed", "spatial"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
+    transaction.objectStore(STORES.pitchEdits).delete(`${projectId}:pitch-edits`);
     const beats = transaction.objectStore(STORES.beats);
     const beatRequest = beats.openCursor();
     beatRequest.onsuccess = () => {
@@ -332,6 +354,7 @@ export const INDEXED_DB_SCHEMA = {
   version: DB_VERSION,
   stores: Object.values(STORES),
   dedicatedBeatStore: STORES.beats,
+  dedicatedPitchEditStore: STORES.pitchEdits,
   strategy: "dual-write-progressive-migration-with-localStorage-fallback",
 };
 

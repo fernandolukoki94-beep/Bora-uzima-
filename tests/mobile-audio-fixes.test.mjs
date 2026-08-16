@@ -65,3 +65,36 @@ test("kick usa síntese dedicada com ataque e queda de frequência no preview e 
   assert.match(renderer, /Math\.pow\(48 \/ 155/);
   assert.match(renderer, /const attack/);
 });
+
+test("Producer Studio expõe escala, análise de pitch e exportação final Vocal + beat", () => {
+  const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(html, /id="producer-autotune-root"/);
+  assert.match(html, /id="producer-autotune-scale"/);
+  assert.match(html, /id="producer-analyze-pitch"/);
+  assert.match(html, /id="producer-export"/);
+  assert.match(html, /id="producer-vocal-waveform"/);
+  assert.match(html, /id="producer-beat-waveform"/);
+});
+
+test("Producer Studio expõe editor de notas, curva interactiva e partilha final", () => {
+  const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(html, /producer-pitch-curve/);
+  assert.match(html, /producer-pitch-notes/);
+  assert.match(html, /producer-share/);
+});
+
+test("app liga edição manual de notas, curva e Web Share com fallback", () => {
+  assert.match(app, /updateEditedPitch/);
+  assert.match(app, /editPitchFromCurve/);
+  assert.match(app, /navigator\.share/);
+  assert.match(app, /exportMixedVersion\(project\.id\)/);
+});
+
+test("Producer Studio expõe bypass A/B sem substituir variantes", () => {
+  const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(html, /id="producer-bypass"/);
+  assert.match(html, /aria-pressed="false"/);
+  assert.match(app, /producerBypassActive/);
+  assert.match(app, /Bypass activo: Original/);
+  assert.match(app, /playProducerPreview\(producerBypassActive \? "original" : "mixed"\)/);
+});
