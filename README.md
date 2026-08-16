@@ -1,131 +1,65 @@
-# BORA UZIMA - Centro de Formação Profissional
+# Fernando Lucoco Music
 
-Bem-vindo ao repositório do **BORA UZIMA**! 🎓
+**Fernando Lucoco Music** é um estúdio vocal web-first para transformar ideias em demos com um fluxo simples, claro e local-first. A primeira versão foi desenhada para funcionar directamente no navegador, sem custos externos e sem enviar áudio automaticamente para um servidor.
 
-Um centro de formação profissional moderno com cursos de informática, desenvolvimento web, Python, redes, manutenção de computadores e muito mais.
+> A tua voz. A tua demo. O teu próximo take.
 
-## 🌐 Site Online
+## Site online
 
-**Acesse o site:** [BORA UZIMA - GitHub Pages](https://fernandolukoki94-beep.github.io/Bora-uzima-/)
+A versão pública está disponível em [fernandolukoki94-beep.github.io/Bora-uzima-](https://fernandolukoki94-beep.github.io/Bora-uzima-/). O repositório mantém o nome técnico `Bora-uzima-` para não quebrar o histórico e os links existentes, mas a identidade pública do produto passa a ser **Fernando Lucoco Music**.
 
-## 📱 Aplicação Mobile Bora Uzima
+## O que está implementado
 
-Está em desenvolvimento uma aplicação mobile independente para criação de takes vocais e demos musicais, com foco em gravação local, recuperação offline e futura publicação Android.
+| Área | Estado | Descrição |
+|---|---:|---|
+| Landing page | Pronto | Experiência responsiva com posicionamento do produto e autoria de Fernando Lucoco. |
+| Gravação vocal | Pronto | Usa `MediaRecorder` e `getUserMedia` quando o navegador suporta acesso ao microfone. |
+| Feedback de gravação | Pronto | Estado de gravação, temporizador, botão de parar e feedback visual. |
+| Sessões locais | Pronto | Nome, direcção, duração, data e estado são guardados no `localStorage` deste navegador. |
+| Upload e sincronização | Planeado | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
+| Processamento musical | Planeado | A próxima etapa adicionará presets de mistura/masterização com estados honestos de processamento. |
 
-**Preview mobile:** [abrir Bora Uzima Mobile](https://8081-i6xyex4j7lghvqeyw2pvg-42cb0cfd.us4.manus.computer)
+## Como testar localmente
 
-O projecto mobile mantém a identidade do BORA UZIMA, mas não substitui este portfólio web. A primeira versão usa Expo/React Native, gravação vocal com `expo-audio`, persistência local e uma fila de estados preparada para processamento futuro. A autoria e direcção do projecto são de **Fernando Lucoco**.
+Clone o repositório e sirva a pasta com qualquer servidor HTTP local. O acesso ao microfone costuma exigir `localhost` ou HTTPS; abrir o ficheiro directamente pode impedir a permissão de gravação em alguns navegadores.
 
-## 📚 Cursos Disponíveis
-
-- 💻 **Desenvolvimento Web** - HTML5, CSS3, JavaScript, React, Vue.js
-- 🐍 **Python** - Programação, Data Science, Automação
-- 🌐 **Redes e Segurança** - Configuração, Firewalls, VPN, Segurança
-- 🛠️ **Manutenção de Computadores** - Hardware, Troubleshooting, SO
-- 📊 **Data Science** - Análise de dados, Machine Learning, IA
-- 📱 **Desenvolvimento Mobile** - React Native, Flutter, Nativo
-
-## 📁 Estrutura do Projeto
-
-```
-Bora-uzima-/
-├── index.html              # Página principal
-├── web.html               # Curso de Desenvolvimento Web
-├── python.html            # Curso de Python
-├── redes.html             # Curso de Redes e Segurança
-├── manutencao.html        # Curso de Manutenção
-├── README.md              # Este arquivo
-├── assets/                # Pastas para imagens, CSS, JS (futuro)
-└── mobile-app/            # Aplicação mobile Bora Uzima (em evolução)
-```
-
-## ✨ Funcionalidades
-
-✅ Design responsivo (Mobile, Tablet, Desktop)
-✅ Tema escuro/claro
-✅ Menu hambúrguer para mobile
-✅ Animações ao scroll
-✅ Formulário de inscrição com localStorage
-✅ Contadores dinâmicos
-✅ Páginas de cursos detalhadas
-✅ Seção de equipa
-✅ Galeria de fotos
-✅ SEO otimizado
-
-## 🚀 Como Usar Localmente
-
-1. Clone o repositório:
 ```bash
 git clone https://github.com/fernandolukoki94-beep/Bora-uzima-.git
 cd Bora-uzima-
+python3 -m http.server 8000
 ```
 
-2. Abra o `index.html` no navegador:
-```bash
-# Windows
-start index.html
+Depois, abra `http://localhost:8000`, autorize o microfone e use a secção **O teu estúdio, aqui**. As sessões guardadas ficam apenas no navegador e podem ser removidas limpando os dados locais do site.
 
-# macOS
-open index.html
+## Direcção de produto
 
-# Linux
-xdg-open index.html
-```
+O projecto segue uma estratégia **web-first**. Primeiro estabiliza-se a experiência de gravação e gestão local em Chrome, Safari e navegadores móveis; depois entram reprodução das takes, presets visuais de produção, exportação e sincronização opcional. Só após essa validação será retomada a transformação numa aplicação nativa para Android e iOS.
 
-3. Ou use um servidor local (Python):
-```bash
-# Python 3
-python -m http.server 8000
+A implementação mobile em `/home/ubuntu/bora-uzima-mobile` permanece separada e em espera. Ela não substitui a experiência web pública e conserva o histórico técnico da primeira exploração com Expo/React Native.
 
-# Python 2
-python -m SimpleHTTPServer 8000
-```
+## Identidade e autoria
 
-Depois acesse: `http://localhost:8000`
+O produto é dirigido e desenvolvido por **Fernando Lucoco**. O nome técnico do repositório não foi alterado nesta fase para preservar o histórico do projecto original e os endereços já partilhados.
 
-## 📊 Avaliação do Projeto
+## Stack actual
 
-| Categoria | Nota |
-|-----------|------|
-| HTML | 9/10 |
-| CSS | 9/10 |
-| JavaScript | 8.5/10 |
-| Visual | 9.5/10 |
-| **Geral** | **9.2/10** |
+- **Frontend:** HTML5, CSS moderno e JavaScript sem dependências externas.
+- **Áudio:** MediaDevices API e MediaRecorder API do navegador.
+- **Persistência:** localStorage, com dados mantidos localmente por instalação/navegador.
+- **Publicação:** GitHub Pages; preparação para alias Vercel na fase de estabilização.
 
-## 🎯 Próximas Melhorias (Roadmap)
+## Roadmap
 
-- [x] Publicar no GitHub Pages
-- [x] Iniciar a aplicação mobile Bora Uzima com Expo/React Native
-- [ ] Publicar a aplicação mobile na Google Play após validação e assinatura
+1. Adicionar reprodução real às takes guardadas, mantendo os blobs de áudio de forma controlada.
+2. Implementar estados de processamento para presets de demo vocal, mistura e masterização.
+3. Validar permissões, interrupções e recuperação em Safari iOS e Chrome Android.
+4. Publicar a versão estabilizada no Vercel e registar o URL público no portfólio.
+5. Retomar a versão mobile depois da experiência web cumprir os critérios de qualidade.
 
-- [ ] Páginas detalhadas dos cursos ✅ Em progresso
-- [ ] Seção de equipa (professores, diretor)
-- [ ] Galeria com fotos reais
-- [ ] Certificados com exemplos
-- [ ] Integração com Firebase (base de dados real)
-- [ ] Domínio próprio (.cd ou .com)
-- [ ] Painel administrativo
+## Licença
 
-## 💡 Tecnologias Usadas
-
-- **Frontend:** HTML5, CSS3, JavaScript (Vanilla)
-- **Hosting:** GitHub Pages
-- **Versionamento:** Git & GitHub
-- **Design:** Responsivo com Grid/Flexbox
-
-## 📞 Contato
-
-- **Email:** info@borauzima.com
-- **Telefone:** +244 923-456-789
-- **Localização:** [Sua localização]
-
-## 📄 Licença
-
-Este projeto é de código aberto sob a licença MIT.
+Este projecto é disponibilizado sob a licença MIT.
 
 ---
 
-**Desenvolvido para BORA UZIMA Formation Professionnelle por Fernando Lucoco**
-
-Criado em: 2026 | Última atualização: Junho 2026
+**Fernando Lucoco Music · 2026**
