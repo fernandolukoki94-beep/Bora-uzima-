@@ -15,9 +15,12 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Landing page | Pronto | Experiência responsiva com posicionamento do produto e autoria de Fernando Lucoco. |
 | Gravação vocal | Pronto | Usa `MediaRecorder` e `getUserMedia` quando o navegador suporta acesso ao microfone. |
 | Feedback de gravação | Pronto | Estado de gravação, temporizador, botão de parar e feedback visual. |
-| Sessões locais | Pronto | Nome, direcção, duração, data e estado são guardados no `localStorage` deste navegador. |
-| Upload e sincronização | Planeado | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
-| Processamento musical | Planeado | A próxima etapa adicionará presets de mistura/masterização com estados honestos de processamento. |
+| Sessões locais | Pronto | Nome, tratamento vocal, género, duração, data e estado são guardados no `localStorage` deste navegador. |
+| Reprodução e descarregamento | Pronto | Takes novas podem ser reproduzidas e descarregadas no próprio navegador. |
+| Eliminação local | Pronto | Cada sessão pode ser apagada com confirmação explícita. |
+| Presets de produção | Pronto como interface | Inclui Natural, Auto-Tune leve/forte, Vocal brilhante/íntimo e géneros de produção. |
+| Processamento musical real | Não feito | O fluxo PROCESSING → MIXING → MASTERING é apenas uma simulação visual local; nenhum DSP, IA ou masterização real foi executado. |
+| Upload e sincronização | Não feito | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
 
 ## Como testar localmente
 
@@ -50,9 +53,9 @@ O produto é dirigido e desenvolvido por **Fernando Lucoco**. O nome técnico do
 
 ## Roadmap
 
-1. Adicionar reprodução real às takes guardadas, mantendo os blobs de áudio de forma controlada.
-2. Implementar estados de processamento para presets de demo vocal, mistura e masterização.
-3. Validar permissões, interrupções e recuperação em Safari iOS e Chrome Android.
+1. Testar reprodução, descarregamento e eliminação em Chrome, Safari iOS e Chrome Android.
+2. Substituir a simulação por um pipeline de áudio real apenas depois de definir processamento local ou backend sem custos inesperados.
+3. Implementar análise vocal e recomendações somente quando houver testes reais de pitch, timing, ruído e dinâmica.
 4. Publicar a versão estabilizada no Vercel e registar o URL público no portfólio.
 5. Retomar a versão mobile depois da experiência web cumprir os critérios de qualidade.
 

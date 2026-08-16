@@ -104,6 +104,13 @@
     .project { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 15px; border-radius: 14px; background: #fffdf8; border: 1px solid rgba(16,16,15,.1); }
     .project strong { display: block; font-size: .96rem; }
     .project small { color: #847d72; }
+    .project-content { min-width: 0; flex: 1; }
+    .project-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .project-audio { width: 100%; max-width: 330px; height: 34px; }
+    .mini-button { border: 1px solid rgba(16,16,15,.16); background: transparent; color: #4d4841; border-radius: 8px; padding: 6px 9px; cursor: pointer; font-size: .73rem; font-weight: 800; }
+    .mini-button:hover { border-color: var(--coral); color: var(--coral-dark); }
+    .mini-button.danger:hover { border-color: #c44a43; color: #a83d37; }
+    .project small { display: block; }
     .pill { white-space: nowrap; color: #31785a; background: rgba(145,213,182,.3); border-radius: 99px; padding: 5px 9px; font-size: .72rem; font-weight: 800; }
     .empty { color: #847d72; border: 1px dashed rgba(16,16,15,.2); border-radius: 14px; padding: 22px; text-align: center; }
     .footer { border-top: 1px solid var(--line); padding: 34px 0 45px; color: var(--muted); font-size: .84rem; }
@@ -165,7 +172,8 @@
           <div class="workspace-panel">
             <h3>Nova sessão</h3><p>Começa com um nome e escolhe o tipo de take.</p>
             <div class="field"><label for="project-name">Nome da sessão</label><input id="project-name" type="text" placeholder="Ex.: Ideia para refrão" maxlength="60" /></div>
-            <div class="field"><label for="preset">Direcção</label><select id="preset"><option value="vocal-demo">Demo vocal</option><option value="freestyle">Freestyle</option><option value="hook">Hook / refrão</option></select></div>
+            <div class="field"><label for="preset">Tratamento vocal</label><select id="preset"><option value="Natural">Natural</option><option value="Auto-Tune leve">Auto-Tune leve</option><option value="Auto-Tune forte">Auto-Tune forte</option><option value="Vocal brilhante">Vocal brilhante</option><option value="Vocal íntimo">Vocal íntimo</option></select></div>
+            <div class="field"><label for="genre">Direcção de produção</label><select id="genre"><option value="Demo vocal">Demo vocal</option><option value="Trap melódico">Trap melódico</option><option value="Afrobeat">Afrobeat</option><option value="R&B">R&B</option><option value="Amapiano">Amapiano</option><option value="Pop">Pop</option><option value="Gospel">Gospel</option></select></div>
             <div class="actions"><button class="button button-primary" id="record-main">Começar a gravar</button></div>
           </div>
           <div class="workspace-panel"><h3>As tuas sessões</h3><p>Histórico local desta instalação.</p><div class="project-list" id="project-list"><div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div></div></div>
@@ -192,6 +200,7 @@
     const list = document.getElementById("project-list");
     const nameInput = document.getElementById("project-name");
     const presetInput = document.getElementById("preset");
+    const genreInput = document.getElementById("genre");
     const toast = document.getElementById("toast");
     let recorder = null;
     let stream = null;
@@ -202,10 +211,16 @@
     function showToast(message) { toast.textContent = message; toast.classList.add("show"); window.clearTimeout(showToast.timeout); showToast.timeout = window.setTimeout(() => toast.classList.remove("show"), 3600); }
     function readProjects() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
     function saveProjects(projects) { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
+    function blobToDataUrl(blob) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); }); }
     function renderProjects() {
       const projects = readProjects();
       if (!projects.length) { list.innerHTML = '<div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div>'; return; }
-      list.innerHTML = projects.map((project) => `<div class="project"><div><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.createdAt)}</small></div><span class="pill">${escapeHtml(project.status)}</span></div>`).join("");
+      list.innerHTML = projects.map((project) => {
+        const audio = project.audioData ? `<audio class="project-audio" controls preload="metadata" src="${escapeHtml(project.audioData)}"></audio>` : '<small>Áudio não disponível nesta sessão.</small>';
+        const download = project.audioData ? `<a class="mini-button" download="${escapeHtml(project.name)}.webm" href="${escapeHtml(project.audioData)}">Descarregar</a>` : '';
+        const process = project.audioData && project.status === "Guardada localmente" ? `<button class="mini-button" type="button" data-process-id="${escapeHtml(project.id)}">Preparar produção</button>` : '';
+        return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-actions">${audio}${download}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+      }).join("");
     }
     function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[char])); }
     function updateTimer() { const seconds = Math.floor((Date.now() - startedAt) / 1000); timer.textContent = `${String(Math.floor(seconds / 60)).padStart(2,"0")}:${String(seconds % 60).padStart(2,"0")}`; }
@@ -220,8 +235,31 @@
       } catch (error) { showToast(error?.name === "NotAllowedError" ? "O microfone foi bloqueado. Permite o acesso para gravar." : "Não foi possível iniciar o microfone neste navegador."); }
     }
     function stopRecording() { if (!recorder || recorder.state === "inactive") return; recorder.stop(); stream?.getTracks().forEach((track) => track.stop()); stream = null; window.clearInterval(timerId); setRecordingUI(false); }
-    function finishRecording() { const blob = new Blob(chunks, { type: recorder?.mimeType || "audio/webm" }); const duration = Math.max(1, Math.floor((Date.now() - startedAt) / 1000)); const name = nameInput.value.trim() || `Take ${String(readProjects().length + 1).padStart(2,"0")}`; const projects = readProjects(); projects.unshift({ id: crypto.randomUUID?.() || String(Date.now()), name, preset: presetInput.value, duration, status: "Guardada localmente", createdAt: new Date().toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" }), bytes: blob.size }); saveProjects(projects); renderProjects(); showToast(`“${name}” foi guardada neste navegador.`); nameInput.value = ""; }
+    async function finishRecording() {
+      const blob = new Blob(chunks, { type: recorder?.mimeType || "audio/webm" });
+      const seconds = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+      const name = nameInput.value.trim() || `Take ${String(readProjects().length + 1).padStart(2,"0")}`;
+      const project = { id: crypto.randomUUID?.() || String(Date.now()), name, preset: presetInput.value, genre: genreInput.value, duration: seconds, durationLabel: `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2,"0")}s`, status: "Guardada localmente", createdAt: new Date().toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" }), bytes: blob.size };
+      try {
+        project.audioData = await blobToDataUrl(blob);
+        const projects = readProjects(); projects.unshift(project); saveProjects(projects); renderProjects(); showToast(`“${name}” foi guardada e pode ser reproduzida.`);
+      } catch (error) {
+        project.status = "Metadados guardados; áudio indisponível";
+        try { const projects = readProjects(); projects.unshift(project); saveProjects(projects); renderProjects(); showToast("A take foi guardada sem áudio porque o armazenamento local ficou cheio."); } catch { showToast("Não foi possível guardar esta take. Liberta espaço do navegador e tenta novamente."); }
+      }
+      nameInput.value = ""; recorder = null; chunks = [];
+    }
+    function deleteProject(id) { const project = readProjects().find((item) => item.id === id); if (!project || !window.confirm(`Apagar “${project.name}” deste navegador?`)) return; saveProjects(readProjects().filter((item) => item.id !== id)); renderProjects(); showToast("A sessão foi apagada localmente."); }
+    function updateProjectStatus(id, status) { const projects = readProjects().map((item) => item.id === id ? { ...item, status } : item); saveProjects(projects); renderProjects(); }
+    function processProject(id) {
+      const project = readProjects().find((item) => item.id === id); if (!project) return;
+      updateProjectStatus(id, "PROCESSING · simulado"); showToast("Fluxo visual iniciado: análise vocal local simulada.");
+      window.setTimeout(() => updateProjectStatus(id, "MIXING · simulado"), 1100);
+      window.setTimeout(() => updateProjectStatus(id, "MASTERING · simulado"), 2200);
+      window.setTimeout(() => { updateProjectStatus(id, "COMPLETED · pronto para revisão"); showToast("A simulação terminou. Nenhum processamento de áudio real foi aplicado."); }, 3300);
+    }
     function toggleRecording() { recorder && recorder.state !== "inactive" ? stopRecording() : startRecording(); }
+    list.addEventListener("click", (event) => { const deleteButton = event.target.closest("[data-delete-id]"); const processButton = event.target.closest("[data-process-id]"); if (deleteButton) deleteProject(deleteButton.dataset.deleteId); if (processButton) processProject(processButton.dataset.processId); });
     heroRecord.addEventListener("click", toggleRecording); mainRecord.addEventListener("click", toggleRecording); renderProjects();
   </script>
 </body>
