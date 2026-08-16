@@ -22,7 +22,7 @@ A demonstração pública está disponível em [fernando-lucoco-music.vercel.app
 | Instrument Lab | Pré-escuta local implementada | Notas, acordes de piano e pads de guitarra através de Web Audio local. |
 | Piano roll | V1 visual/local | Grelha de 16 passos com notas e quantização no núcleo de instrumentos. |
 | Beat Maker | V1 local | 16 passos, seis canais, presets e padrões Afrobeat, Amapiano, Kuduro, Afro House e Rumba. |
-| Mixing local | V1 com painel visual | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel visual persiste estes controlos no projecto, mas ainda não é um mixer profissional com exportação final. |
+| Mixing local | V1 com painel e exportação | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel persiste controlos e o Mixdown exporta WAV local com headroom. Clips instrumentais continuam a ser eventos sem áudio renderizado no mix final. |
 | Mastering e IA | Não implementado | Não há cadeia profissional de mastering nem AI Producer. |
 
 ## Arquitectura
@@ -73,7 +73,7 @@ Abra `http://localhost:8000`, autorize o microfone e experimente uma take curta.
 pnpm test
 ```
 
-A suite actual terminou com **50 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria e mixing engine.
+A suite actual terminou com **53 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria e mixing engine.
 
 ## Estado de QA e limites
 
@@ -83,9 +83,9 @@ IndexedDB permanece em **beta interna**. A promoção para fonte principal só d
 
 ## Music Engine V1.1 e mixing local
 
-O marco V1.1 adiciona timeline funcional com Play, Pause, Stop, Beginning, relógio e playhead; Beat Maker com sequências locais; piano e guitarra ligados a notas e acordes sonoros; eventos inseridos como clips; controlos rápidos não destrutivos de mover, trim, split, resize, fade, ganho, duplicação e remoção; e um painel Mixer visual com ganho, pan, mute, solo e headroom. O processamento é local e mensurável, sem afirmar qualidade de estúdio profissional.
+O marco V1.1 adiciona timeline funcional com Play, Pause, Stop, Beginning, relógio e playhead; Beat Maker com sequências locais; piano e guitarra ligados a notas e acordes sonoros; eventos inseridos como clips; controlos rápidos não destrutivos de mover, trim, split, resize, fade, ganho, duplicação e remoção; um painel Mixer visual com ganho, pan, mute, solo e headroom; e Mixdown WAV local com protecção de headroom. O Mixdown actual renderiza clips de áudio persistidos; eventos instrumentais ainda requerem um renderer dedicado. O processamento é local e mensurável, sem afirmar qualidade de estúdio profissional.
 
-Só depois de o núcleo musical e o mixing local estarem estáveis serão considerados exportação de mix, processamento avançado e um AI Producer server-side. Cloud, colaboração, social, Creator Economy e a aplicação mobile permanecem fases posteriores documentadas em [`docs/platform-roadmap.md`](./docs/platform-roadmap.md). Nenhuma credencial é colocada no HTML ou JavaScript público.
+O Mixdown local já está disponível como primeira exportação verificável. Só depois de validar o fluxo em dispositivos físicos serão considerados renderer completo de instrumentos, processamento avançado e um AI Producer server-side. Cloud, colaboração, social, Creator Economy e a aplicação mobile permanecem fases posteriores documentadas em [`docs/platform-roadmap.md`](./docs/platform-roadmap.md). Nenhuma credencial é colocada no HTML ou JavaScript público.
 
 ## Documentação e legado
 

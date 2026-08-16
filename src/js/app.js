@@ -9,6 +9,7 @@ import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitCli
 import { playChord, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
+import { renderTimelineToWav } from "./studio/mixdown.js";
 import {
   TRANSPORT_STATES,
   advanceTransport,
@@ -23,6 +24,7 @@ import {
   deleteProjectData,
   estimateStorageUsage,
   indexedDbAvailable,
+  getAudioBlob,
   migrateLocalStorageProjects,
   putAudioBlob,
   putEffect,
@@ -46,6 +48,7 @@ const timelineGrid = document.getElementById("timeline-grid");
 const mixerTracks = document.getElementById("mixer-tracks");
 const mixerHeadroom = document.getElementById("mixer-headroom");
 const addTrackButton = document.getElementById("add-track");
+const timelineMixdownButton = document.getElementById("timeline-mixdown");
 const timelineUndoButton = document.getElementById("timeline-undo");
 const timelineRedoButton = document.getElementById("timeline-redo");
 const projectTempo = document.getElementById("project-tempo");
@@ -263,6 +266,42 @@ async function commitTimelineProject(nextProject) {
   try { if (await indexedDbAvailable()) await putProject(timelineHistory.present); } catch { showToast("A edição ficou no fallback local; IndexedDB será tentado novamente."); }
   renderProjects();
 }
+async function mixdownActiveTimeline() {
+  const project = currentTimelineProject();
+  if (!project || !timelineHistory) { showToast("Grava primeiro uma take para abrir uma sessão."); return; }
+  const sources = new Map();
+  const sourceData = project.originalAudioData || project.audioData;
+  for (const track of timelineHistory.present.tracks) {
+    for (const clip of track.clips) {
+      if (sources.has(clip.blobKey) || sources.has(clip.id)) continue;
+      let blob = null;
+      try { if (indexedDbAvailable() && clip.blobKey) blob = await getAudioBlob(project.id, clip.blobKey.endsWith(":processed") ? "processed" : "original"); } catch {}
+      if (!blob && sourceData && (clip.blobKey?.startsWith(`${project.id}:`) || clip.blobKey === null)) {
+        blob = await fetch(sourceData).then((response) => response.blob());
+      }
+      if (blob) sources.set(clip.blobKey || clip.id, blob);
+    }
+  }
+  if (!sources.size) { showToast("Não encontrei áudio local exportável nesta timeline."); return; }
+  timelineMixdownButton.disabled = true;
+  timelineMixdownButton.textContent = "A preparar WAV…";
+  try {
+    const wav = await renderTimelineToWav(timelineHistory.present, sources);
+    const url = URL.createObjectURL(wav);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project.name || "sessao"}-mixdown.wav`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("Mixdown WAV exportado localmente com headroom.");
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Não foi possível exportar o mixdown.");
+  } finally {
+    timelineMixdownButton.disabled = false;
+    timelineMixdownButton.textContent = "↓ Mixdown WAV";
+  }
+}
+
 function insertInstrumentClip({ name, type, duration = 4, metadata = {} }) {
   const project = currentTimelineProject();
   if (!project) {
@@ -543,6 +582,8 @@ timelineGrid?.addEventListener("click", (event) => {
   } else return;
   commitTimelineProject(next);
 });
+timelineMixdownButton?.addEventListener("click", () => { mixdownActiveTimeline(); });
+
 addTrackButton?.addEventListener("click", () => {
   const project = currentTimelineProject();
   if (!project || !timelineHistory) return showToast("Grava primeiro uma take para criar tracks.");
