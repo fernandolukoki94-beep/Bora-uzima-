@@ -14,6 +14,7 @@ import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
 import { downloadBlob, mixedExportFilename } from "./export-audio.js";
 import { deriveProducerStudioState } from "./producer-studio-flow.js";
+import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
   TRANSPORT_STATES,
@@ -325,13 +326,16 @@ function renderTimeline() {
   if (projectTempo) projectTempo.value = normalized.tempo;
   if (projectKey) projectKey.value = normalized.key;
   timelineGrid.innerHTML = normalized.tracks.map((track) => {
+    const origin = trackOrigin(track);
+    const originLabel = origin === "producer-plan" ? "Producer Plan" : "Manual";
+    const originDescription = origin === "producer-plan" ? "Faixa gerada pelo Producer Plan" : "Faixa criada ou editada manualmente";
     const clips = track.clips.map((clip) => {
       const left = Math.min(92, Math.max(0, (clip.start / 40) * 100));
       const width = Math.max(8, Math.min(96 - left, (clip.duration / 40) * 100));
       const key = `${escapeHtml(track.id)}:${escapeHtml(clip.id)}`;
       return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · ${clip.gain.toFixed(2)}x · offset ${clip.sourceOffset.toFixed(1)}s</small><div class="clip-actions"><button class="mini-button" type="button" data-clip-action="move-left" data-clip-key="${key}">←</button><button class="mini-button" type="button" data-clip-action="move-right" data-clip-key="${key}">→</button><button class="mini-button" type="button" data-clip-action="trim" data-clip-key="${key}">Trim</button><button class="mini-button" type="button" data-clip-action="split" data-clip-key="${key}">Split</button><button class="mini-button" type="button" data-clip-action="shorter" data-clip-key="${key}">−Len</button><button class="mini-button" type="button" data-clip-action="longer" data-clip-key="${key}">+Len</button><button class="mini-button" type="button" data-clip-action="fade" data-clip-key="${key}">Fade</button><button class="mini-button" type="button" data-clip-action="gain" data-clip-key="${key}">Gain</button><button class="mini-button" type="button" data-duplicate-clip="${key}">Duplicar</button><button class="mini-button danger" type="button" data-delete-clip="${key}">Apagar</button></div></div>`;
     }).join("");
-    return `<div class="timeline-track"><div class="timeline-track-label">${escapeHtml(track.name)}<small>${escapeHtml(track.type)}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
+    return `<div class="timeline-track timeline-track--${origin}" data-track-origin="${origin}" aria-label="${escapeHtml(track.name)} · ${originDescription}"><div class="timeline-track-label"><div class="timeline-track-name"><span>${escapeHtml(track.name)}</span><span class="timeline-origin-badge timeline-origin-badge--${origin}" title="${originDescription}">${originLabel}</span></div><small>${escapeHtml(track.type)} · ${originDescription}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
   }).join("");
   if (timelineUndoButton) timelineUndoButton.disabled = !canUndo(timelineHistory);
   if (timelineRedoButton) timelineRedoButton.disabled = !canRedo(timelineHistory);
@@ -457,21 +461,14 @@ async function runProducerPlan(id) {
     saveProjects(analyzedProject);
     if (!setProductionPhase(id, PRODUCTION_STATES.ARRANGING, "A criar arranjo local", 25, renderProjects)) return;
     await new Promise((resolve) => window.setTimeout(resolve, 0));
-    let next = applyProducerMix(normalizeProject(analyzedProject.find((item) => item.id === id) || source), plan);
-    const clipDuration = Math.max(4, Math.min(16, Number(source.duration || 8)));
-    const specs = producerPlanClipSpecs(plan, clipDuration);
-    for (const [index, spec] of specs.entries()) {
-      if (!isProductionActive(id)) return;
-      let track = next.tracks.find((item) => item.type === spec.type);
-      if (!track) {
-        next = addTrack(next, { name: spec.type === "drums" ? "Beat Maker" : spec.name.split(" · ")[0], type: spec.type, color: spec.type === "drums" ? "#f4b860" : spec.type === "guitar" ? "#9c8cff" : "#62d6c7" });
-        track = next.tracks[next.tracks.length - 1];
-      }
-      const end = track.clips.reduce((latest, clip) => Math.max(latest, Number(clip.start || 0) + Number(clip.duration || 0)), 0);
-      next = addClip(next, track.id, { name: spec.name, start: end, duration: spec.duration, sourceOffset: 0, mimeType: "application/x-fernando-lucoco-event", event: spec.metadata });
-      setProductionPhase(id, PRODUCTION_STATES.ARRANGING, `A criar arranjo local · ${index + 1}/${specs.length}`, 25 + Math.round(((index + 1) / specs.length) * 45), renderProjects);
-      await new Promise((resolve) => window.setTimeout(resolve, 0));
-    }
+    const plannedProject = applyProducerMix(normalizeProject(analyzedProject.find((item) => item.id === id) || source), plan);
+    const specs = producerPlanClipSpecs(plan, Math.max(4, Math.min(16, Number(source.duration || 8))));
+    if (!isProductionActive(id)) return;
+    const next = materializeProducerPlan(plannedProject, plan, {
+      duration: source.duration,
+      onStep: ({ index, total }) => setProductionPhase(id, PRODUCTION_STATES.ARRANGING, `A criar arranjo local · ${index}/${total}`, 25 + Math.round((index / total) * 45), renderProjects),
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
     if (!setProductionPhase(id, PRODUCTION_STATES.MIXING, "A preparar mix local", 85, renderProjects)) return;
     await commitTimelineProject(next);
     completeProduction(id, renderProjects);

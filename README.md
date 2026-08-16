@@ -46,6 +46,12 @@ A cadeia vocal reversível V2 está agora ligada ao fluxo principal: **Original*
 
 O painel **Producer Studio V2** unifica agora a experiência: **Gravar → Analisar → Producer Plan → Vocal → Mix → Master → A/B → Exportar**. Mostra BPM e tonalidade estimados, confiança heurística, permite editar BPM/tom, apresenta o estado do arranjo, vocal e Mixdown e oferece pré-escuta A/B do Original e Mixed. A etapa Master é apresentada honestamente como preparação local de headroom; não afirma mastering profissional externo nem IA.
 
+### V2.1 — prova de integração ponta a ponta
+
+A V2.1 transforma o plano numa consequência musical verificável: `materializeProducerPlan()` converte o Producer Plan em tracks e clips reais de drums, bass, piano, guitarra, cordas e synth na timeline. A aplicação é determinística e reexecutável: clips gerados por um plano anterior são substituídos, enquanto clips manuais e a gravação vocal original permanecem intactos. A QA cobre sessão, plano, clips, variantes Enhanced/Pitch Corrected, serialização/reload e chegada ao Mixdown WAV. A suite local está em **115 testes aprovados e 0 falhas**. A validação física em Chrome Android e Safari iPhone continua separada e ainda requer evidência real por dispositivo.
+
+O ficheiro de requisitos recebido foi arquivado em [`docs/pasted_content-v21-requirements.txt`](./docs/pasted_content-v21-requirements.txt), com a respectiva matriz de conformidade em [`docs/v21-requirements-compliance.md`](./docs/v21-requirements-compliance.md). Estes documentos distinguem capacidades implementadas de validações físicas e de usabilidade ainda pendentes.
+
 ## Transição V1 → V2
 
 A V1 funcional local está consolidada com os instrumentos existentes, Beat Maker, bass validado pelo utilizador, timeline, mixer, Mixdown e Producer Plan determinístico. A V2 deixa de adicionar instrumentos e passa a transformar uma voz gravada numa produção guiada: análise, instrução de produção, arranjo, melhoria vocal reversível, mix e master local. Os critérios, limites e ordem de implementação estão em [`docs/v1-v2-transition.md`](./docs/v1-v2-transition.md).
@@ -100,7 +106,7 @@ Abra `http://localhost:8000`, autorize o microfone e experimente uma take curta.
 pnpm test
 ```
 
-A suite actual terminou com **111 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, Cordas e Synth Pad locais, estados e recuperação do Producer Plan, interpretação determinística de briefs de produção, análise local de áudio com silêncio, pitch aproximado, BPM limitado, pitch correction assistida local, integração no Producer Plan e persistência/reset das variantes Enhanced, Pitch Corrected e Mixed. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
+A suite actual terminou com **114 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, Cordas e Synth Pad locais, estados e recuperação do Producer Plan, interpretação determinística de briefs de produção, análise local de áudio com silêncio, pitch aproximado, BPM limitado, pitch correction assistida local, integração no Producer Plan e persistência/reset das variantes Enhanced, Pitch Corrected e Mixed. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
 
 ## Estado de QA e limites
 
@@ -157,3 +163,8 @@ Após a validação no Samsung Galaxy A06, o ganho vocal foi ajustado para aplic
 O renderer do Beat Maker passou a respeitar os canais personalizados guardados no grid quando um padrão é adicionado à timeline. Antes, esse caminho podia ignorar `event.channels` e regenerar apenas o preset nominal, fazendo com que uma configuração personalizada parecesse não tocar correctamente no Mixdown. Foi também adicionado um alias seguro para `drum`, encaminhado para uma síntese de kick audível, sem alterar os canais canónicos `kick`, `snare`, `clap`, `hihat`, `percussion` e `bass`.
 
 Foram adicionados testes determinísticos para o preview de drum genérico, canais personalizados e percurso completo até ao Mixdown. O problema de audibilidade ainda deve ser retestado no Samsung Galaxy A06, porque a suite confirma o sinal produzido pelo motor, mas não substitui a percepção acústica no dispositivo físico.
+
+## Indicador de origem na timeline
+A timeline distingue explicitamente a proveniência de cada faixa. Tracks materializadas pelo **Producer Plan** apresentam o badge `Producer Plan`, uma borda violeta e uma descrição acessível que informa que a faixa foi gerada pelo plano. Tracks criadas ou editadas manualmente apresentam o badge `Manual`. A distinção é derivada dos metadados dos clips, não do nome visível, e permanece segura para reexecução e reload.
+
+A suite de QA desta iteração alcançou **115 testes aprovados e 0 falhas**. O indicador é apenas uma representação visual: não altera o áudio, o Mixdown, a persistência ou a propriedade dos clips.

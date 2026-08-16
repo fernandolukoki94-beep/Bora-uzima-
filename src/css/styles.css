@@ -288,3 +288,13 @@
 .producer-flow-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.55rem;margin:1rem 0}.producer-stage{min-height:5.8rem;padding:.75rem;border:1px solid rgba(16,16,15,.12);border-radius:.75rem;background:rgba(255,255,255,.45);opacity:.65}.producer-stage span{display:block;color:#9b9181;font-size:.72rem}.producer-stage strong{display:block;margin:.35rem 0;font-size:.9rem}.producer-stage small{display:block;color:#746f66;line-height:1.35}.producer-stage.is-done{opacity:1;border-color:rgba(49,120,90,.55)}.producer-stage.is-done span{color:#31785a}.producer-stage.is-active{border-color:var(--coral);box-shadow:0 0 0 2px rgba(255,103,77,.12)}
 .producer-final-bar{align-items:center;padding-top:1rem;border-top:1px solid rgba(16,16,15,.12)}.producer-final-bar strong{display:block;margin-top:.25rem}.producer-final-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.45rem}
 @media (max-width:760px){.producer-analysis-grid{grid-template-columns:1fr}.producer-flow-grid{grid-template-columns:repeat(2,1fr)}.producer-stage:last-child{grid-column:span 2}.producer-studio-head,.producer-final-bar{display:grid}.producer-final-actions{justify-content:flex-start}.producer-final-actions .mini-button{flex:1}}
+
+/* Timeline provenance */
+.timeline-track--producer-plan .timeline-track-label { border-left: 3px solid #8b5cf6; background: rgba(139, 92, 246, .08); }
+.timeline-track--manual .timeline-track-label { border-left: 3px solid rgba(16, 16, 15, .2); }
+.timeline-track-name { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
+.timeline-origin-badge { display: inline-flex; align-items: center; min-height: 1.2rem; padding: .12rem .38rem; border-radius: 999px; font-size: .62rem; font-weight: 750; letter-spacing: .02em; white-space: nowrap; }
+.timeline-origin-badge--producer-plan { color: #4c1d95; background: #ddd6fe; border: 1px solid #a78bfa; }
+.timeline-origin-badge--manual { color: #57534e; background: #f5f5f4; border: 1px solid #d6d3d1; }
+.timeline-track--producer-plan .timeline-lane { background-color: rgba(139, 92, 246, .035); }
+@media (max-width: 680px) { .timeline-track-name { align-items: flex-start; flex-direction: column; gap: .25rem; } .timeline-origin-badge { font-size: .58rem; } }

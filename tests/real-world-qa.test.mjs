@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
-import { addClip, addTrack, createProject, updateTrack } from "../src/js/studio/project-model.js";
+import { addClip, addTrack, createProject, normalizeProject, updateTrack } from "../src/js/studio/project-model.js";
+import { buildProducerPlan } from "../src/js/producer-plan.js";
+import { materializeProducerPlan } from "../src/js/producer-arrangement.js";
 import { mixTimelineBuffers } from "../src/js/studio/mixdown.js";
 
 const rate = 44100;
@@ -22,7 +24,9 @@ function readPcm16(path) {
 }
 
 function peak(buffer) {
-  return Math.max(0, ...Array.from(buffer, (value) => Math.abs(value)));
+  let maximum = 0;
+  for (const value of buffer) maximum = Math.max(maximum, Math.abs(value));
+  return maximum;
 }
 
 test("fixtures WAV têm formato PCM, 44.1 kHz e não são silenciosas", () => {
@@ -34,6 +38,33 @@ test("fixtures WAV têm formato PCM, 44.1 kHz e não são silenciosas", () => {
     assert.ok(fixture.duration > 0);
     assert.ok(peak(fixture.samples) > 0.01);
   }
+});
+
+test("V2.1 completa preserva plano, clips, variantes e chega ao WAV após reload", () => {
+  const voice = readPcm16("test-audio/voice.wav");
+  let project = createProject({ id: "v21-e2e", name: "V2.1 E2E", tempo: 100, key: "C" });
+  const vocalId = project.tracks[0].id;
+  project = updateTrack(project, vocalId, { name: "Vocal", volume: 10 ** (-2 / 20), pan: 0 });
+  project = addClip(project, vocalId, { id: "voice-clip", blobKey: "voice", start: 0, duration: voice.duration, fadeIn: 0.02, fadeOut: 0.05 });
+  const plan = buildProducerPlan({ genre: "Afrobeat", tempo: 102, key: "A minor", duration: voice.duration, brief: "Afrobeat com bass, guitarra, piano e drums" });
+  project = materializeProducerPlan(project, plan, { duration: voice.duration });
+  project = {
+    ...project,
+    audioVariants: {
+      enhanced: { data: "data:audio/wav;base64,ZW5oYW5jZWQ=", mimeType: "audio/wav" },
+      pitchCorrected: { data: "data:audio/wav;base64,cGl0Y2g=", mimeType: "audio/wav" },
+    },
+  };
+  const reloaded = normalizeProject(JSON.parse(JSON.stringify(project)));
+  const generated = reloaded.tracks.flatMap((track) => track.clips.filter((clip) => clip.event?.producerPlan));
+  assert.equal(generated.length, 6);
+  assert.equal(reloaded.producerPlan.genre, "Afrobeat");
+  assert.equal(reloaded.tempo, plan.bpm);
+  assert.ok(reloaded.audioVariants.enhanced.data);
+  assert.ok(reloaded.audioVariants.pitchCorrected.data);
+  const result = mixTimelineBuffers(reloaded, new Map([["voice", voice.samples]]), { sampleRate: rate });
+  assert.ok(peak(result.left) > 0.01 || peak(result.right) > 0.01);
+  assert.ok(result.peakAfterHeadroom <= 0.98 + 1e-6);
 });
 
 test("sessão real-world vocal + beat + piano + guitarra chega ao WAV final", () => {
