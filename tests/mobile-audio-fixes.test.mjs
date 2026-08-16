@@ -37,6 +37,13 @@ test("controlos instrumentais têm feedback e alvos móveis", () => {
   assert.match(css, /\.beat-step \{/);
 });
 
+test("Producer Studio expõe Auto-Tune local e waveforms para vocal e beat", () => {
+  assert.match(app, /applyAutoTuneLocal/);
+  assert.match(app, /producerVocalWaveform/);
+  assert.match(app, /producerBeatWaveform/);
+  assert.match(css, /waveform-grid/);
+});
+
 test("ganho solicitado passa por limiter em vez de ser silenciosamente reduzido", () => {
   assert.match(effects, /gainNode\.gain\.value = Math\.max\(0\.05, Math\.min\(4, Number\(gain\)/);
   assert.match(effects, /limiter\.ratio\.value = 20/);

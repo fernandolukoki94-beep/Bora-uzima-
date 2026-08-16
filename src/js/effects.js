@@ -212,3 +212,46 @@ export function applyPitchCorrectionAssist(blob, { detuneCents = 0, presenceDb =
     source.connect(highPass).connect(pitch).connect(compressor).connect(output).connect(offline.destination);
   });
 }
+
+
+/**
+ * Auto-Tune local assistido: desloca a afinação da take por uma quantidade
+ * determinística de cents proporcional à intensidade. Não faz detecção nota-a-nota;
+ * cria uma nova variante reversível e mantém o Original intacto.
+ */
+export function normalizeAutoTuneIntensity(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+export function autoTuneParameters(intensity = 0.5) {
+  const safeIntensity = normalizeAutoTuneIntensity(intensity);
+  return { intensity: safeIntensity, correctionCents: Math.round(safeIntensity * 50), latencySafe: true };
+}
+
+export function applyAutoTuneLocal(blob, { intensity = 0.5, presenceDb = 1.5 } = {}) {
+  const parameters = autoTuneParameters(intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const highPass = offline.createBiquadFilter();
+    highPass.type = "highpass";
+    highPass.frequency.value = 75;
+    highPass.Q.value = 0.707;
+
+    const presence = offline.createBiquadFilter();
+    presence.type = "peaking";
+    presence.frequency.value = 2200;
+    presence.Q.value = 0.9;
+    presence.gain.value = Math.max(-4, Math.min(4, Number(presenceDb) || 0));
+
+    const compressor = offline.createDynamicsCompressor();
+    compressor.threshold.value = -20;
+    compressor.knee.value = 16;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.006;
+    compressor.release.value = 0.16;
+
+    const output = offline.createGain();
+    output.gain.value = 1.01;
+    source.detune.value = parameters.correctionCents;
+    source.connect(highPass).connect(presence).connect(compressor).connect(output).connect(offline.destination);
+  });
+}

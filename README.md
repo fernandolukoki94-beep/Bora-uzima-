@@ -197,3 +197,13 @@ O Producer Studio passou a aceitar um beat de áudio escolhido no dispositivo at
 A acção **Vocal + beat** materializa duas faixas de áudio na timeline: o vocal processado disponível (Pitch Corrected, Enhanced ou Original) e o beat importado. O resultado é renderizado para WAV através do Mixdown local, guardado como variante **Mixed** e exportável pela interface. O original vocal continua preservado e as variantes anteriores permanecem reversíveis.
 
 Esta etapa ainda não representa Auto-Tune avançado nem masterização IA profissional. Esses blocos continuam explicitamente marcados como próximos passos: Auto-Tune DSP validado em áudio real, blob dedicado em IndexedDB para beats grandes, provider IA com quota disponível e validação física em Samsung Galaxy A06, Chrome Android e Safari iPhone. A suite determinística passou de 127 para **131 testes**, sem falhas.
+
+## V2.3 — IndexedDB dedicado, Auto-Tune local e waveform
+
+A camada de armazenamento agora inclui a store IndexedDB `beats`, separada dos blobs vocais e preparada para ficheiros instrumentais maiores. Cada beat é associado ao projecto por uma chave estável, com MIME, nome, tamanho e data de actualização. Sessões antigas que ainda contenham `data` inline continuam a ser lidas através de fallback compatível; a limpeza de projecto remove também os beats dedicados.
+
+O Producer Studio expõe uma forma de onda local para o vocal e outra para o beat. A visualização usa a Web Audio API no dispositivo, apresenta duração e estados de indisponibilidade honestos, e não envia o áudio para um serviço externo.
+
+Foi acrescentado Auto-Tune local assistido. A intensidade de 0–100% é convertida deterministicamente numa correcção máxima de 0–50 cents, com passa-alto, presença e compressão ligeira para manter uma saída audível. O processamento cria uma variante `pitchCorrected` identificada como `local-autotune`; o Original e o Enhanced não são substituídos. O botão de reversão remove apenas essa variante e o seu blob, preservando as restantes versões.
+
+Esta implementação é um **assistente tonal local**, não um Auto-Tune profissional nota-a-nota. A detecção detalhada de pitch, edição de escala, formant correction e AI Mastering permanecem fases futuras. A suite determinística desta etapa terminou com **134 testes aprovados e 0 falhas**. A validação física no Samsung Galaxy A06, Chrome Android e Safari iPhone continua necessária.

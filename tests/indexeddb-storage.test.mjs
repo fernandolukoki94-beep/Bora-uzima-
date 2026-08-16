@@ -7,6 +7,7 @@ import {
   clearIndexedDb,
   deleteProjectData,
   getAudioBlob,
+  getBeatBlob,
   getMetadata,
   getProject,
   getTake,
@@ -14,6 +15,7 @@ import {
   indexedDbAvailable,
   migrateLocalStorageProjects,
   putAudioBlob,
+  putBeatBlob,
   putEffect,
   putProject,
   putTake,
@@ -56,7 +58,8 @@ test("cria o schema IndexedDB v2 e confirma disponibilidade", async () => {
   assert.equal(STORAGE_POLICY.status, "internal-beta");
   assert.equal(STORAGE_POLICY.primaryRead, "localStorage");
   assert.equal(STORAGE_POLICY.dualWrite, true);
-  assert.deepEqual(INDEXED_DB_SCHEMA.stores, ["projects", "takes", "blobs", "metadata", "effects"]);
+  assert.deepEqual(INDEXED_DB_SCHEMA.stores, ["projects", "takes", "blobs", "metadata", "effects", "beats"]);
+  assert.equal(INDEXED_DB_SCHEMA.dedicatedBeatStore, "beats");
   assert.equal(await indexedDbAvailable(), true);
 });
 
@@ -81,6 +84,16 @@ test("persiste projecto, take, blob original/processado e histórico de efeito",
   assert.equal((await getTake(project.id)).processedAudioData, true);
   assert.equal(await (await getAudioBlob(project.id, "original")).text(), "original");
   assert.equal(await (await getAudioBlob(project.id, "processed")).text(), "processed");
+});
+
+test("persiste beat numa store dedicada sem o converter em data URL", async () => {
+  const beat = new Blob(["beat-audio"], { type: "audio/wav" });
+  await putBeatBlob("beat-project", "beat-1", beat, { name: "instrumental.wav" });
+  const record = await getBeatBlob("beat-project", "beat-1");
+  assert.equal(await record.blob.text(), "beat-audio");
+  assert.equal(record.name, "instrumental.wav");
+  assert.equal(record.bytes, beat.size);
+  assert.equal(record.mimeType, "audio/wav");
 });
 
 test("persiste variantes vocais nomeadas sem confundir a origem", async () => {
@@ -164,6 +177,7 @@ test("remove projecto elimina blobs, take e projecto IndexedDB", async () => {
   await putAudioBlob("delete-me", "enhanced", new Blob(["enhanced"]));
   await putAudioBlob("delete-me", "pitch-corrected", new Blob(["pitch"]));
   await putAudioBlob("delete-me", "mixed", new Blob(["mixed"]));
+  await putBeatBlob("delete-me", "beat-1", new Blob(["beat"]), { name: "beat.wav" });
   await deleteProjectData("delete-me");
   assert.equal(await getProject("delete-me"), undefined);
   assert.equal(await getTake("delete-me"), undefined);
@@ -171,4 +185,5 @@ test("remove projecto elimina blobs, take e projecto IndexedDB", async () => {
   assert.equal(await getAudioBlob("delete-me", "enhanced"), null);
   assert.equal(await getAudioBlob("delete-me", "pitch-corrected"), null);
   assert.equal(await getAudioBlob("delete-me", "mixed"), null);
+  assert.equal(await getBeatBlob("delete-me", "beat-1"), null);
 });

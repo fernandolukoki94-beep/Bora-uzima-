@@ -30,3 +30,13 @@ test("pitch correction assistida limita cents ao intervalo seguro", async () => 
   assert.equal(normalizePitchCorrectionCents(500), 100);
   assert.equal(normalizePitchCorrectionCents("invalido"), 0);
 });
+
+test("Auto-Tune local normaliza intensidade e expõe correcção mensurável", async () => {
+  const { autoTuneParameters, normalizeAutoTuneIntensity } = await import("../src/js/effects.js");
+  assert.equal(normalizeAutoTuneIntensity(-1), 0);
+  assert.equal(normalizeAutoTuneIntensity(2), 1);
+  assert.equal(normalizeAutoTuneIntensity("invalido"), 0);
+  assert.deepEqual(autoTuneParameters(0), { intensity: 0, correctionCents: 0, latencySafe: true });
+  assert.deepEqual(autoTuneParameters(0.5), { intensity: 0.5, correctionCents: 25, latencySafe: true });
+  assert.deepEqual(autoTuneParameters(1), { intensity: 1, correctionCents: 50, latencySafe: true });
+});

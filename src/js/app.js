@@ -2,7 +2,7 @@ import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProject
 import { bindPlayerEvents } from "./player.js";
 import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./producer-plan.js";
 import { analyzeAudioDataUrl } from "./audio-analysis.js";
-import { applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement } from "./effects.js";
+import { applyAutoTuneLocal, autoTuneParameters, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
@@ -31,12 +31,15 @@ import {
 } from "./studio/transport.js";
 import {
   clearLocalStudioData,
+  deleteAudioBlob,
   deleteProjectData,
   estimateStorageUsage,
   indexedDbAvailable,
   getAudioBlob,
+  getBeatBlob,
   migrateLocalStorageProjects,
   putAudioBlob,
+  putBeatBlob,
   putEffect,
   putProject,
   putTake,
@@ -114,6 +117,15 @@ const producerBeatPreview = document.getElementById("producer-beat-preview");
 const producerVocalBeatMix = document.getElementById("producer-vocal-beat-mix");
 const producerBeatStatus = document.getElementById("producer-beat-status");
 const producerBeatAudio = document.getElementById("producer-beat-audio");
+const producerVocalWaveform = document.getElementById("producer-vocal-waveform");
+const producerBeatWaveform = document.getElementById("producer-beat-waveform");
+const producerVocalWaveformStatus = document.getElementById("producer-vocal-waveform-status");
+const producerBeatWaveformStatus = document.getElementById("producer-beat-waveform-status");
+const producerAutoTuneIntensity = document.getElementById("producer-autotune-intensity");
+const producerAutoTuneValue = document.getElementById("producer-autotune-value");
+const producerApplyAutoTune = document.getElementById("producer-apply-autotune");
+const producerResetAutoTune = document.getElementById("producer-reset-autotune");
+const producerAutoTuneStatus = document.getElementById("producer-autotune-status");
 let importedBeatObjectUrl = null;
 let activeTimelineId = null;
 let timelineHistory = null;
@@ -275,24 +287,86 @@ function currentTimelineProject() {
   const projects = readProjects();
   return projects.find((project) => project.id === activeTimelineId) || projects[0] || null;
 }
-function updateProducerBeatControls(project = currentTimelineProject()) {
+async function resolveBeatBlob(project) {
   const beat = project?.importedBeat;
-  const ready = Boolean(beat?.data);
+  if (!beat) return null;
+  if (beat.storageKey && await indexedDbAvailable()) {
+    const record = await getBeatBlob(project.id, beat.storageKey);
+    if (record?.blob) return record.blob;
+  }
+  return beat.data ? dataUrlToBlob(beat.data) : null;
+}
+
+function drawWaveform(canvas, samples, color = "#62d6c7") {
+  if (!canvas) return;
+  const context = canvas.getContext("2d");
+  const width = Math.max(160, canvas.clientWidth || 320);
+  const height = canvas.height || 72;
+  canvas.width = width;
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = "rgba(255,255,255,.035)";
+  context.fillRect(0, 0, width, height);
+  context.strokeStyle = color;
+  context.lineWidth = 1.5;
+  context.beginPath();
+  const step = Math.max(1, Math.floor(samples.length / width));
+  for (let x = 0; x < width; x += 1) {
+    let peak = 0;
+    for (let index = x * step; index < Math.min(samples.length, (x + 1) * step); index += 1) peak = Math.max(peak, Math.abs(samples[index]));
+    const y = height / 2 - peak * (height * 0.42);
+    const y2 = height / 2 + peak * (height * 0.42);
+    context.moveTo(x, y);
+    context.lineTo(x, y2);
+  }
+  context.stroke();
+}
+
+async function drawBlobWaveform(blob, canvas, status, color) {
+  if (!blob) { if (status) status.textContent = "Aguardando áudio"; return; }
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error("Web Audio API indisponível");
+    const context = new AudioContextClass();
+    const buffer = await context.decodeAudioData(await blob.arrayBuffer());
+    const channel = buffer.getChannelData(0);
+    drawWaveform(canvas, channel, color);
+    if (status) status.textContent = `${buffer.duration.toFixed(1)} s · waveform local`;
+    await context.close();
+  } catch (error) {
+    console.warn("Waveform indisponível", error);
+    if (status) status.textContent = "Pré-visualização indisponível";
+  }
+}
+
+async function updateProducerBeatControls(project = currentTimelineProject()) {
+  const beat = project?.importedBeat;
+  const beatBlob = await resolveBeatBlob(project);
+  const ready = Boolean(beat && beatBlob);
   if (producerBeatPreview) producerBeatPreview.disabled = !ready;
+  if (producerApplyAutoTune) producerApplyAutoTune.disabled = !getVariantData(project, "original");
+  if (producerResetAutoTune) producerResetAutoTune.disabled = !project?.audioVariants?.pitchCorrected;
   if (producerVocalBeatMix) producerVocalBeatMix.disabled = !ready || !getVariantData(project, "original");
-  if (producerBeatStatus) producerBeatStatus.textContent = ready ? `${beat.name} · ${formatBytes(beat.size)} · pronto para juntar` : "Nenhum beat importado.";
+  if (producerBeatStatus) producerBeatStatus.textContent = ready ? `${beat.name} · ${formatBytes(beat.size)} · IndexedDB dedicado` : "Nenhum beat importado.";
   if (producerBeatAudio) {
     producerBeatAudio.hidden = !ready;
-    if (ready && producerBeatAudio.src !== beat.data) producerBeatAudio.src = beat.data;
+    if (ready) {
+      if (importedBeatObjectUrl) URL.revokeObjectURL(importedBeatObjectUrl);
+      importedBeatObjectUrl = URL.createObjectURL(beatBlob);
+      producerBeatAudio.src = importedBeatObjectUrl;
+    }
   }
+  await drawBlobWaveform(beatBlob, producerBeatWaveform, producerBeatWaveformStatus, "#62d6c7");
+  await drawBlobWaveform(getVariantData(project, "original") ? await dataUrlToBlob(getVariantData(project, "original")) : null, producerVocalWaveform, producerVocalWaveformStatus, "#f06aa8");
 }
 async function importProducerBeat(file) {
   const project = currentTimelineProject();
   if (!project) { showToast("Grava primeiro uma take para importar um beat."); return; }
   try {
     const beat = createImportedBeat(file);
-    beat.data = await blobToDataUrl(file);
-    const updated = readProjects().map((item) => item.id === project.id ? { ...item, importedBeat: beat, status: "Beat importado localmente" } : item);
+    beat.storageKey = beat.id;
+    beat.data = null;
+    if (await indexedDbAvailable()) await putBeatBlob(project.id, beat.storageKey, file, beat);
+    const updated = readProjects().map((item) => item.id === project.id ? { ...item, importedBeat: beat, status: "Beat importado em IndexedDB" } : item);
     saveProjects(updated);
     if (importedBeatObjectUrl) URL.revokeObjectURL(importedBeatObjectUrl);
     importedBeatObjectUrl = beat.url;
@@ -305,6 +379,48 @@ async function importProducerBeat(file) {
     showToast(error instanceof Error ? error.message : "Não foi possível importar o beat.");
   }
 }
+async function applyLocalAutoTune() {
+  const project = currentTimelineProject();
+  const sourceData = getVariantData(project, "original");
+  if (!project || !sourceData) return showToast("Grava primeiro uma take vocal.");
+  const intensity = Number(producerAutoTuneIntensity?.value || 50) / 100;
+  const parameters = autoTuneParameters(intensity);
+  producerApplyAutoTune.disabled = true;
+  if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `A processar ${Math.round(intensity * 100)}% · ${parameters.correctionCents} cents…`;
+  try {
+    const blob = await applyAutoTuneLocal(await dataUrlToBlob(sourceData), { intensity });
+    const data = await blobToDataUrl(blob);
+    const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: { ...(item.audioVariants || {}), pitchCorrected: { data, mimeType: "audio/wav", bytes: blob.size, source: "local-autotune", intensity, correctionCents: parameters.correctionCents, updatedAt: new Date().toISOString() } }, pitchCorrectionApplied: `Auto-Tune ${Math.round(intensity * 100)}%`, status: "Auto-Tune local disponível" } : item);
+    saveProjects(updated);
+    if (await indexedDbAvailable()) await Promise.all([putAudioBlob(project.id, "pitch-corrected", blob), putEffect({ id: `${project.id}:auto-tune`, projectId: project.id, type: "auto-tune-local", parameters, createdAt: new Date().toISOString() }), putProject(updated.find((item) => item.id === project.id))]);
+    if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `Aplicado · ${parameters.correctionCents} cents · reversível`;
+    renderProjects();
+    showToast("Auto-Tune local aplicado. O Original continua preservado.");
+  } catch (error) {
+    if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = "Não foi possível processar nesta sessão.";
+    showToast(error instanceof Error ? error.message : "Auto-Tune local falhou.");
+  } finally {
+    producerApplyAutoTune.disabled = false;
+  }
+}
+
+async function resetLocalAutoTune() {
+  const project = currentTimelineProject();
+  if (!project) return;
+  const updated = readProjects().map((item) => {
+    if (item.id !== project.id) return item;
+    const variants = { ...(item.audioVariants || {}) };
+    if (variants.pitchCorrected?.source !== "local-autotune") return item;
+    delete variants.pitchCorrected;
+    return { ...item, audioVariants: variants, pitchCorrectionApplied: false, status: "Auto-Tune revertido; vocal anterior preservado" };
+  });
+  saveProjects(updated);
+  try { if (await indexedDbAvailable()) await Promise.all([deleteAudioBlob(project.id, "pitch-corrected"), putProject(updated.find((item) => item.id === project.id))]); } catch { showToast("A variante foi revertida localmente; a limpeza IndexedDB será tentada novamente."); }
+  renderProjects();
+  if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = "Original recuperado; Auto-Tune revertido.";
+  showToast("Auto-Tune revertido. Original e Enhanced continuam disponíveis.");
+}
+
 async function mixImportedBeatWithVocal() {
   const project = currentTimelineProject();
   const beat = project?.importedBeat;
@@ -320,7 +436,9 @@ async function mixImportedBeatWithVocal() {
     arrangement = addTrack(arrangement, { id: `${project.id}-beat`, name: `Beat · ${beat.name}`, type: "audio", color: "#62d6c7" });
     arrangement = addClip(arrangement, `${project.id}-vocal`, { id: `${project.id}-vocal-clip`, blobKey: vocalKey, name: "Vocal processado", duration: Number(project.duration || 0), mimeType: "audio/wav", gain: 1 });
     arrangement = addClip(arrangement, `${project.id}-beat`, { id: `${project.id}-beat-clip`, blobKey: beatKey, name: beat.name, duration: Number(project.duration || 0), mimeType: beat.type, gain: 1.15 });
-    const sources = new Map([[vocalKey, await dataUrlToBlob(vocalData)], [beatKey, await dataUrlToBlob(beat.data)]]);
+    const beatBlob = await resolveBeatBlob(project);
+    if (!beatBlob) throw new Error("O beat dedicado não está disponível");
+    const sources = new Map([[vocalKey, await dataUrlToBlob(vocalData)], [beatKey, beatBlob]]);
     const wav = await renderTimelineToWav(arrangement, sources, { headroom: 0.86 });
     const mixedData = await blobToDataUrl(wav);
     const next = readProjects().map((item) => item.id === project.id ? {
@@ -931,12 +1049,10 @@ producerBeatFile?.addEventListener("change", async (event) => {
   event.target.value = "";
 });
 producerBeatPreview?.addEventListener("click", async () => {
-  const project = currentTimelineProject();
-  const data = project?.importedBeat?.data;
-  if (!data) return showToast("Importa primeiro um beat local.");
+  const beatBlob = await resolveBeatBlob(currentTimelineProject());
+  if (!beatBlob) return showToast("Importa primeiro um beat local.");
   try {
     producerBeatAudio.hidden = false;
-    producerBeatAudio.src = data;
     await producerBeatAudio.play();
     producerBeatStatus.textContent = "Beat em reprodução.";
   } catch {
@@ -944,6 +1060,13 @@ producerBeatPreview?.addEventListener("click", async () => {
     showToast("Toca novamente para ouvir o beat.");
   }
 });
+producerAutoTuneIntensity?.addEventListener("input", () => {
+  const intensity = Number(producerAutoTuneIntensity.value || 0);
+  if (producerAutoTuneValue) producerAutoTuneValue.textContent = `${intensity}%`;
+  if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = `${Math.round(intensity * 0.5)} cents de correcção prevista.`;
+});
+producerApplyAutoTune?.addEventListener("click", applyLocalAutoTune);
+producerResetAutoTune?.addEventListener("click", resetLocalAutoTune);
 producerVocalBeatMix?.addEventListener("click", mixImportedBeatWithVocal);
 
 list?.addEventListener("click", (event) => {

@@ -1,7 +1,7 @@
 import { normalizeProject } from "./studio/project-model.js";
 
 const DB_NAME = "fernando-lucoco-music";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const DEFAULT_STORAGE_KEY = "fernando-lucoco-music-projects";
 const STORES = {
   projects: "projects",
@@ -9,6 +9,7 @@ const STORES = {
   blobs: "blobs",
   metadata: "metadata",
   effects: "effects",
+  beats: "beats",
 };
 
 function isSupported() {
@@ -26,6 +27,7 @@ function openDatabase() {
       if (!database.objectStoreNames.contains(STORES.blobs)) database.createObjectStore(STORES.blobs, { keyPath: "key" });
       if (!database.objectStoreNames.contains(STORES.metadata)) database.createObjectStore(STORES.metadata, { keyPath: "key" });
       if (!database.objectStoreNames.contains(STORES.effects)) database.createObjectStore(STORES.effects, { keyPath: "id" });
+      if (!database.objectStoreNames.contains(STORES.beats)) database.createObjectStore(STORES.beats, { keyPath: "key" });
     };
     request.onsuccess = () => {
       const database = request.result;
@@ -111,11 +113,37 @@ export async function getAudioBlob(projectId, kind) {
   return record?.blob || null;
 }
 
+export async function deleteAudioBlob(projectId, kind) {
+  return withStore(STORES.blobs, "readwrite", (store) => requestToPromise(store.delete(`${projectId}:${kind}`)));
+}
+
+export async function putBeatBlob(projectId, beatId, blob, metadata = {}) {
+  const key = `${projectId}:${beatId}`;
+  return withStore(STORES.beats, "readwrite", (store) => requestToPromise(store.put({ key, projectId, beatId, blob, bytes: blob?.size || 0, mimeType: blob?.type || metadata.type || "audio/octet-stream", name: metadata.name || "beat-importado", updatedAt: new Date().toISOString() })));
+}
+
+export async function getBeatBlob(projectId, beatId) {
+  const record = await withStore(STORES.beats, "readonly", (store) => requestToPromise(store.get(`${projectId}:${beatId}`)));
+  return record || null;
+}
+
+export async function deleteBeatBlob(projectId, beatId) {
+  return withStore(STORES.beats, "readwrite", (store) => requestToPromise(store.delete(`${projectId}:${beatId}`)));
+}
+
 export async function resetProjectEffects(projectId) {
   const database = await openDatabase();
   try {
-    const transaction = database.transaction([STORES.projects, STORES.blobs, STORES.effects], "readwrite");
+    const transaction = database.transaction([STORES.projects, STORES.blobs, STORES.effects, STORES.beats], "readwrite");
     for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
+    const beats = transaction.objectStore(STORES.beats);
+    const beatRequest = beats.openCursor();
+    beatRequest.onsuccess = () => {
+      const cursor = beatRequest.result;
+      if (!cursor) return;
+      if (cursor.value.projectId === projectId) cursor.delete();
+      cursor.continue();
+    };
     const projectStore = transaction.objectStore(STORES.projects);
     const projectRequest = projectStore.get(projectId);
     projectRequest.onsuccess = () => {
@@ -149,6 +177,14 @@ export async function deleteProjectData(projectId) {
     transaction.objectStore(STORES.takes).delete(projectId);
     transaction.objectStore(STORES.blobs).delete(`${projectId}:original`);
     for (const kind of ["processed", "enhanced", "pitch-corrected", "mixed"]) transaction.objectStore(STORES.blobs).delete(`${projectId}:${kind}`);
+    const beats = transaction.objectStore(STORES.beats);
+    const beatRequest = beats.openCursor();
+    beatRequest.onsuccess = () => {
+      const cursor = beatRequest.result;
+      if (!cursor) return;
+      if (cursor.value.projectId === projectId) cursor.delete();
+      cursor.continue();
+    };
     const effects = transaction.objectStore(STORES.effects);
     const effectRequest = effects.openCursor();
     effectRequest.onsuccess = () => {
@@ -295,6 +331,7 @@ export const INDEXED_DB_SCHEMA = {
   database: DB_NAME,
   version: DB_VERSION,
   stores: Object.values(STORES),
+  dedicatedBeatStore: STORES.beats,
   strategy: "dual-write-progressive-migration-with-localStorage-fallback",
 };
 

@@ -108,6 +108,14 @@
                 <span id="producer-beat-status" class="action-feedback" role="status" aria-live="polite">Nenhum beat importado.</span>
               </div>
               <audio id="producer-beat-audio" controls preload="metadata" hidden></audio>
+              <div class="waveform-grid" aria-label="Formas de onda da sessão">
+                <div class="waveform-card"><div class="waveform-card-head"><strong>Vocal</strong><span id="producer-vocal-waveform-status">Aguardando áudio</span></div><canvas id="producer-vocal-waveform" height="72" aria-label="Forma de onda do vocal"></canvas></div>
+                <div class="waveform-card"><div class="waveform-card-head"><strong>Beat</strong><span id="producer-beat-waveform-status">Aguardando beat</span></div><canvas id="producer-beat-waveform" height="72" aria-label="Forma de onda do beat"></canvas></div>
+              </div>
+            </section>
+            <section class="producer-autotune-panel" aria-labelledby="producer-autotune-title">
+              <div class="panel-heading compact"><div><div class="section-kicker">Processamento vocal local</div><h4 id="producer-autotune-title">Auto-Tune assistido</h4><p>Correcção tonal local, mensurável e reversível. Não substitui análise nota-a-nota profissional.</p></div><span class="pill">Sem upload</span></div>
+              <div class="autotune-controls"><label for="producer-autotune-intensity">Intensidade <output id="producer-autotune-value" for="producer-autotune-intensity">50%</output><input id="producer-autotune-intensity" type="range" min="0" max="100" step="5" value="50" /></label><button class="mini-button primary" id="producer-apply-autotune" type="button" disabled>Aplicar Auto-Tune</button><button class="mini-button" id="producer-reset-autotune" type="button" disabled>Reverter Auto-Tune</button><span id="producer-autotune-status" class="action-feedback" role="status" aria-live="polite">Original preservado.</span></div>
             </section>
             <div class="producer-final-bar"><div><div class="section-kicker">08 · Ouvir e exportar</div><strong id="producer-final-status">Cria um Mixed para comparar versões.</strong><span id="producer-action-feedback" class="producer-action-feedback" role="status" aria-live="polite" data-state="idle">Pronto para ouvir</span></div><div class="producer-final-actions"><button class="mini-button" id="producer-ab-original" type="button">A/B Original</button><button class="mini-button" id="producer-ab-mixed" type="button" disabled>A/B Mixed</button><button class="mini-button primary" id="producer-export" type="button" disabled>Exportar música</button></div></div>
           </div>
