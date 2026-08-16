@@ -8,7 +8,7 @@ function getContext() {
   return getContext.instance;
 }
 
-export async function playNote(note, { duration = 0.35, type = "triangle", volume = 0.16 } = {}) {
+export async function playNote(note, { duration = 0.35, type = "triangle", volume = 0.16, instrument = "piano" } = {}) {
   const context = getContext();
   if (context.state === "suspended") await context.resume();
   const oscillator = context.createOscillator();
@@ -16,17 +16,31 @@ export async function playNote(note, { duration = 0.35, type = "triangle", volum
   const gain = context.createGain();
   const start = context.currentTime;
   const safeDuration = Math.max(0.08, duration);
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(noteToFrequency(note), start);
+  const frequency = noteToFrequency(note);
+  const timbre = ["piano", "guitar", "strings", "synth"].includes(instrument) ? instrument : "piano";
+  oscillator.type = timbre === "synth" ? "sawtooth" : type;
+  oscillator.frequency.setValueAtTime(frequency, start);
   filter.type = "lowpass";
-  filter.frequency.setValueAtTime(type === "square" ? 4200 : 5600, start);
-  filter.Q.setValueAtTime(0.35, start);
+  filter.frequency.setValueAtTime(timbre === "strings" ? 3200 : timbre === "synth" ? 2400 : type === "square" ? 4200 : 5600, start);
+  filter.Q.setValueAtTime(timbre === "synth" ? 0.7 : 0.35, start);
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume), start + Math.min(0.035, safeDuration * 0.18));
   gain.gain.exponentialRampToValueAtTime(0.0001, start + safeDuration);
   oscillator.connect(filter).connect(gain).connect(context.destination);
   oscillator.start(start);
   oscillator.stop(start + safeDuration + 0.04);
+  if (timbre !== "synth") {
+    const harmonic = context.createOscillator();
+    const harmonicGain = context.createGain();
+    harmonic.type = timbre === "strings" ? "sawtooth" : "triangle";
+    harmonic.frequency.setValueAtTime(frequency * (timbre === "guitar" ? 2 : 3), start);
+    harmonicGain.gain.setValueAtTime(0.0001, start);
+    harmonicGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * (timbre === "strings" ? 0.16 : 0.2)), start + 0.03);
+    harmonicGain.gain.exponentialRampToValueAtTime(0.0001, start + safeDuration * 0.78);
+    harmonic.connect(filter).connect(harmonicGain).connect(context.destination);
+    harmonic.start(start);
+    harmonic.stop(start + safeDuration + 0.04);
+  }
 }
 
 export async function playChord(name, options = {}) {
@@ -69,13 +83,35 @@ function scheduleDrumHit(context, instrument, at, velocity = 0.8) {
     return;
   }
   const oscillator = context.createOscillator();
-  oscillator.type = "sine";
   const isKick = safeInstrument === "kick";
+  const isBass = safeInstrument === "bass";
+  oscillator.type = isBass ? "triangle" : "sine";
   oscillator.frequency.setValueAtTime(isKick ? 155 : 65, at);
-  oscillator.frequency.exponentialRampToValueAtTime(isKick ? 48 : 48, at + duration * (isKick ? 0.72 : 1));
+  oscillator.frequency.exponentialRampToValueAtTime(isKick ? 48 : 52, at + duration * (isKick ? 0.72 : 1));
   oscillator.connect(gain).connect(context.destination);
   oscillator.start(at);
   oscillator.stop(at + duration + 0.03);
+  if (isBass) {
+    // O fundamental abaixo de 60 Hz pode desaparecer em altifalantes de telemóvel.
+    // Mantemos o sub grave, mas acrescentamos corpo e presença audível no médio-grave.
+    const harmonics = [
+      { frequency: 130, endFrequency: 104, type: "triangle", level: 0.2 },
+      { frequency: 195, endFrequency: 156, type: "sine", level: 0.11 },
+    ];
+    harmonics.forEach(({ frequency, endFrequency, type, level }) => {
+      const harmonic = context.createOscillator();
+      const harmonicGain = context.createGain();
+      harmonic.type = type;
+      harmonic.frequency.setValueAtTime(frequency, at);
+      harmonic.frequency.exponentialRampToValueAtTime(endFrequency, at + duration);
+      harmonicGain.gain.setValueAtTime(0.0001, at);
+      harmonicGain.gain.exponentialRampToValueAtTime(level, at + 0.006);
+      harmonicGain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+      harmonic.connect(harmonicGain).connect(context.destination);
+      harmonic.start(at);
+      harmonic.stop(at + duration + 0.03);
+    });
+  }
 }
 
 export async function playDrumHit(instrument = "kick", { velocity = 0.8 } = {}) {

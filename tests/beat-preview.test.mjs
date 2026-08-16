@@ -23,3 +23,11 @@ test("renderer offline mantém todos os canais de bateria", () => {
 test("preview de bateria não depende do mapa de notas do piano", () => {
   assert.doesNotMatch(app.match(/beatGrid\?\.addEventListener\([\s\S]*?\}\);\n\s*pianoRoll/)[0], /frequencies\s*=/);
 });
+
+test("bass do preview reforça presença móvel com corpo e harmónico superior", () => {
+  assert.match(audioEngine, /O fundamental abaixo de 60 Hz/);
+  assert.match(audioEngine, /frequency: 130/);
+  assert.match(audioEngine, /frequency: 195/);
+  assert.match(audioEngine, /type: "triangle"/);
+  assert.match(audioEngine, /type: "sine"/);
+});
