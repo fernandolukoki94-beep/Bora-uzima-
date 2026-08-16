@@ -99,6 +99,16 @@
               <article class="producer-stage" id="producer-stage-mix"><span>06</span><strong>Mix</strong><small id="producer-mix-status">Aguardando timeline</small></article>
               <article class="producer-stage" id="producer-stage-master"><span>07</span><strong>Master</strong><small>Headroom local, sem prometer masterização externa</small></article>
             </div>
+            <section class="producer-beat-panel" aria-labelledby="producer-beat-title">
+              <div class="panel-heading compact"><div><div class="section-kicker">Instrumental externo</div><h4 id="producer-beat-title">Juntar um beat teu</h4><p>O ficheiro fica local no dispositivo e o original vocal nunca é substituído.</p></div></div>
+              <div class="producer-beat-controls">
+                <label class="file-picker"><span>Escolher beat</span><input id="producer-beat-file" type="file" accept="audio/*,.wav,.mp3,.ogg,.webm,.m4a,.aac,.flac"></label>
+                <button class="mini-button" id="producer-beat-preview" type="button" disabled>▶ Ouvir beat</button>
+                <button class="mini-button primary" id="producer-vocal-beat-mix" type="button" disabled>＋ Vocal + beat</button>
+                <span id="producer-beat-status" class="action-feedback" role="status" aria-live="polite">Nenhum beat importado.</span>
+              </div>
+              <audio id="producer-beat-audio" controls preload="metadata" hidden></audio>
+            </section>
             <div class="producer-final-bar"><div><div class="section-kicker">08 · Ouvir e exportar</div><strong id="producer-final-status">Cria um Mixed para comparar versões.</strong><span id="producer-action-feedback" class="producer-action-feedback" role="status" aria-live="polite" data-state="idle">Pronto para ouvir</span></div><div class="producer-final-actions"><button class="mini-button" id="producer-ab-original" type="button">A/B Original</button><button class="mini-button" id="producer-ab-mixed" type="button" disabled>A/B Mixed</button><button class="mini-button primary" id="producer-export" type="button" disabled>Exportar música</button></div></div>
           </div>
         </section>

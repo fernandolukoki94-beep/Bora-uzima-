@@ -14,6 +14,21 @@ function mockResponse() {
   };
 }
 
+async function withEnv(values, callback) {
+  const previous = {};
+  for (const [key, value] of Object.entries(values)) {
+    previous[key] = process.env[key];
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  try { return await callback(); } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
 const validInput = {
   takeId: "take-1",
   genre: "Afrobeat",
@@ -31,10 +46,53 @@ test("IA server-side rejeita campos desconhecidos", async () => {
 });
 
 test("IA server-side não altera o fluxo quando o provedor não está configurado", async () => {
-  const res = mockResponse();
-  await handler({ method: "POST", body: validInput }, res);
-  assert.equal(res.statusCode, 503);
-  assert.equal(res.body.status, "provider_unavailable");
+  await withEnv({ AI_PROVIDER_URL: undefined, AI_PROVIDER_KEY: undefined, OPENAI_API_KEY: undefined }, async () => {
+    const res = mockResponse();
+    await handler({ method: "POST", body: validInput }, res);
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.body.status, "provider_unavailable");
+  });
+});
+
+test("IA server-side rejeita resposta com confidence, chain ou tamanhos inválidos", async () => {
+  const originalFetch = globalThis.fetch;
+  await withEnv({ AI_PROVIDER_URL: "https://provider.test", AI_PROVIDER_KEY: "test-key" }, async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      async json() {
+        return { choices: [{ message: { content: JSON.stringify({ summary: "ok", chain: ["x"], confidence: "certain" }) } }] };
+      },
+    });
+    try {
+      const res = mockResponse();
+      await handler({ method: "POST", body: validInput }, res);
+      assert.equal(res.statusCode, 502);
+      assert.equal(res.body.status, "invalid_provider_response");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+test("IA server-side aceita resposta completa válida do provider", async () => {
+  const originalFetch = globalThis.fetch;
+  await withEnv({ AI_PROVIDER_URL: "https://provider.test", AI_PROVIDER_KEY: "test-key" }, async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      async json() {
+        return { choices: [{ message: { content: JSON.stringify({ summary: "Afrobeat romântico", chain: ["vocal enhancement", "warm EQ", "medium compression"], confidence: "medium" }) } }] };
+      },
+    });
+    try {
+      const res = mockResponse();
+      await handler({ method: "POST", body: validInput }, res);
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.advice.confidence, "medium");
+      assert.equal(res.body.advice.chain.length, 3);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 test("cliente IA envia apenas metadados e devolve recomendação pronta", async () => {

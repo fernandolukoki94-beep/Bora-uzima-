@@ -17,6 +17,8 @@ import { deriveProducerStudioState } from "./producer-studio-flow.js";
 import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback } from "./action-feedback.js";
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
 import { requestProductionAdvice } from "./ai-producer-client.js";
+import { adviceToProducerPlan } from "./ai-advice-to-plan.js";
+import { createImportedBeat, revokeImportedBeat } from "./beat-import.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
   TRANSPORT_STATES,
@@ -107,6 +109,12 @@ const producerAbOriginal = document.getElementById("producer-ab-original");
 const producerAbMixed = document.getElementById("producer-ab-mixed");
 const producerExport = document.getElementById("producer-export");
 const producerActionFeedback = document.getElementById("producer-action-feedback");
+const producerBeatFile = document.getElementById("producer-beat-file");
+const producerBeatPreview = document.getElementById("producer-beat-preview");
+const producerVocalBeatMix = document.getElementById("producer-vocal-beat-mix");
+const producerBeatStatus = document.getElementById("producer-beat-status");
+const producerBeatAudio = document.getElementById("producer-beat-audio");
+let importedBeatObjectUrl = null;
 let activeTimelineId = null;
 let timelineHistory = null;
 let transportTimers = [];
@@ -266,6 +274,76 @@ async function exportMixedVersion(id) {
 function currentTimelineProject() {
   const projects = readProjects();
   return projects.find((project) => project.id === activeTimelineId) || projects[0] || null;
+}
+function updateProducerBeatControls(project = currentTimelineProject()) {
+  const beat = project?.importedBeat;
+  const ready = Boolean(beat?.data);
+  if (producerBeatPreview) producerBeatPreview.disabled = !ready;
+  if (producerVocalBeatMix) producerVocalBeatMix.disabled = !ready || !getVariantData(project, "original");
+  if (producerBeatStatus) producerBeatStatus.textContent = ready ? `${beat.name} · ${formatBytes(beat.size)} · pronto para juntar` : "Nenhum beat importado.";
+  if (producerBeatAudio) {
+    producerBeatAudio.hidden = !ready;
+    if (ready && producerBeatAudio.src !== beat.data) producerBeatAudio.src = beat.data;
+  }
+}
+async function importProducerBeat(file) {
+  const project = currentTimelineProject();
+  if (!project) { showToast("Grava primeiro uma take para importar um beat."); return; }
+  try {
+    const beat = createImportedBeat(file);
+    beat.data = await blobToDataUrl(file);
+    const updated = readProjects().map((item) => item.id === project.id ? { ...item, importedBeat: beat, status: "Beat importado localmente" } : item);
+    saveProjects(updated);
+    if (importedBeatObjectUrl) URL.revokeObjectURL(importedBeatObjectUrl);
+    importedBeatObjectUrl = beat.url;
+    activeTimelineId = project.id;
+    renderProjects();
+    await refreshStorageStatus();
+    showToast(`Beat “${beat.name}” importado localmente. O original vocal permanece intacto.`);
+  } catch (error) {
+    if (producerBeatStatus) producerBeatStatus.textContent = error instanceof Error ? error.message : "Não foi possível importar o beat.";
+    showToast(error instanceof Error ? error.message : "Não foi possível importar o beat.");
+  }
+}
+async function mixImportedBeatWithVocal() {
+  const project = currentTimelineProject();
+  const beat = project?.importedBeat;
+  const vocalData = getVariantData(project, "pitchCorrected") || getVariantData(project, "enhanced") || getVariantData(project, "original");
+  if (!project || !beat?.data || !vocalData) return showToast("Precisas de uma take vocal e de um beat importado.");
+  producerVocalBeatMix.disabled = true;
+  producerBeatStatus.textContent = "A preparar Vocal + beat local…";
+  try {
+    const vocalKey = `${project.id}:pitch-corrected`;
+    const beatKey = `${project.id}:imported-beat`;
+    let arrangement = normalizeProject({ ...project, tracks: [] });
+    arrangement = addTrack(arrangement, { id: `${project.id}-vocal`, name: "Vocal processado", type: "audio", color: "#f06aa8" });
+    arrangement = addTrack(arrangement, { id: `${project.id}-beat`, name: `Beat · ${beat.name}`, type: "audio", color: "#62d6c7" });
+    arrangement = addClip(arrangement, `${project.id}-vocal`, { id: `${project.id}-vocal-clip`, blobKey: vocalKey, name: "Vocal processado", duration: Number(project.duration || 0), mimeType: "audio/wav", gain: 1 });
+    arrangement = addClip(arrangement, `${project.id}-beat`, { id: `${project.id}-beat-clip`, blobKey: beatKey, name: beat.name, duration: Number(project.duration || 0), mimeType: beat.type, gain: 1.15 });
+    const sources = new Map([[vocalKey, await dataUrlToBlob(vocalData)], [beatKey, await dataUrlToBlob(beat.data)]]);
+    const wav = await renderTimelineToWav(arrangement, sources, { headroom: 0.86 });
+    const mixedData = await blobToDataUrl(wav);
+    const next = readProjects().map((item) => item.id === project.id ? {
+      ...arrangement,
+      ...item,
+      tracks: arrangement.tracks,
+      audioVariants: { ...(item.audioVariants || {}), mixed: { data: mixedData, mimeType: "audio/wav", bytes: wav.size, source: "local-vocal-beat-mix", updatedAt: new Date().toISOString() } },
+      status: "Vocal + beat disponível",
+    } : item);
+    saveProjects(next);
+    try { if (await indexedDbAvailable()) await Promise.all([putAudioBlob(project.id, "mixed", wav), putProject(next.find((item) => item.id === project.id))]); } catch { showToast("O Mixed ficou no armazenamento local; a cópia IndexedDB será tentada novamente."); }
+    activeTimelineId = project.id;
+    timelineHistory = createHistoryState(normalizeProject(next.find((item) => item.id === project.id)));
+    renderProjects();
+    await refreshStorageStatus();
+    showToast("Vocal + beat misturados localmente. Original, Enhanced e Pitch Corrected continuam reversíveis.");
+  } catch (error) {
+    console.error("Vocal + beat falhou", error);
+    producerBeatStatus.textContent = error instanceof Error ? error.message : "Não foi possível criar o Mixed.";
+    showToast("Não foi possível misturar Vocal + beat neste navegador. O original permanece preservado.");
+  } finally {
+    producerVocalBeatMix.disabled = false;
+  }
 }
 function syncTimelineHistory(project) {
   if (!project) { activeTimelineId = null; timelineHistory = null; return; }
@@ -557,6 +635,7 @@ function renderProducerStudio() {
   setProducerStage("producer-stage-vocal", state.hasVocal);
   setProducerStage("producer-stage-mix", state.hasMix);
   setProducerStage("producer-stage-master", state.hasMaster);
+  updateProducerBeatControls(project);
 }
 
 function renderProjects() {
@@ -811,9 +890,25 @@ producerRequestAi?.addEventListener("click", async () => {
       intent: project.productionBrief || "demo vocal",
     });
     const advice = result.advice;
+    const recommendationPlan = adviceToProducerPlan({
+      advice,
+      base: {
+        genre: project.genre || "Afrobeat",
+        tempo: project.tempo || 100,
+        key: project.key || "C",
+        duration: Number(project.duration || 60),
+        brief: project.productionBrief || "",
+        analysis: project.analysis || null,
+        preferAnalysis: Boolean(project.analysis?.hasAudio),
+      },
+    });
+    const nextProjects = readProjects().map((item) => item.id === project.id
+      ? { ...item, aiRecommendation: advice, aiRecommendedPlan: recommendationPlan }
+      : item);
+    saveProjects(nextProjects);
     if (producerAiStatus) {
       producerAiStatus.dataset.state = "success";
-      producerAiStatus.textContent = `${advice.summary} Cadeia: ${advice.chain.join(" → ")} · confiança ${advice.confidence}.`;
+      producerAiStatus.textContent = `${advice.summary} Cadeia: ${advice.chain.join(" → ")} · confiança ${advice.confidence}. Plano local preparado; aplica-o no controlo Producer Plan.`;
     }
   } catch (error) {
     if (producerAiStatus) {
@@ -830,6 +925,26 @@ producerExport?.addEventListener("click", () => {
   const project = currentTimelineProject();
   if (project) exportMixedVersion(project.id);
 });
+producerBeatFile?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (file) await importProducerBeat(file);
+  event.target.value = "";
+});
+producerBeatPreview?.addEventListener("click", async () => {
+  const project = currentTimelineProject();
+  const data = project?.importedBeat?.data;
+  if (!data) return showToast("Importa primeiro um beat local.");
+  try {
+    producerBeatAudio.hidden = false;
+    producerBeatAudio.src = data;
+    await producerBeatAudio.play();
+    producerBeatStatus.textContent = "Beat em reprodução.";
+  } catch {
+    producerBeatStatus.textContent = "O navegador bloqueou a pré-escuta. Usa os controlos do áudio.";
+    showToast("Toca novamente para ouvir o beat.");
+  }
+});
+producerVocalBeatMix?.addEventListener("click", mixImportedBeatWithVocal);
 
 list?.addEventListener("click", (event) => {
   const deleteButton = event.target.closest("[data-delete-id]");

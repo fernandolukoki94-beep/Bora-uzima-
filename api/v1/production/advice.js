@@ -24,6 +24,15 @@ function validate(input) {
   return null;
 }
 
+function validateAdvice(advice) {
+  if (!advice || typeof advice !== "object" || Array.isArray(advice)) return "Resposta IA inválida.";
+  if (typeof advice.summary !== "string" || advice.summary.trim().length < 1 || advice.summary.length > 500) return "summary inválido.";
+  if (!Array.isArray(advice.chain) || advice.chain.length < 1 || advice.chain.length > 6) return "chain inválida.";
+  if (advice.chain.some((item) => typeof item !== "string" || item.trim().length < 1 || item.length > 120)) return "item chain inválido.";
+  if (!["low", "medium", "high"].includes(advice.confidence)) return "confidence inválida.";
+  return null;
+}
+
 function providerPayload(input) {
   return {
     messages: [
@@ -70,21 +79,30 @@ export default async function handler(req, res) {
   const validationError = validate(input);
   if (validationError) return json(res, 400, { status: "invalid_request", message: validationError });
 
-  const providerUrl = process.env.AI_PROVIDER_URL;
-  const providerKey = process.env.AI_PROVIDER_KEY;
-  if (!providerUrl || !providerKey) return json(res, 503, { status: "provider_unavailable", message: "Assistência IA server-side ainda não configurada; o fluxo local continua disponível." });
+  const providerUrl = process.env.AI_PROVIDER_URL || "https://api.openai.com/v1/chat/completions";
+  const providerKey = process.env.AI_PROVIDER_KEY || process.env.OPENAI_API_KEY;
+  if (!providerKey) return json(res, 503, { status: "provider_unavailable", message: "Assistência IA server-side ainda não configurada; o fluxo local continua disponível." });
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
     const response = await fetch(providerUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${providerKey}` },
-      body: JSON.stringify(providerPayload(input)),
+      body: JSON.stringify({ ...providerPayload(input), model: process.env.AI_MODEL || "gpt-4o-mini" }),
+      signal: controller.signal,
     });
-    if (!response.ok) return json(res, 503, { status: "provider_unavailable" });
+    if (!response.ok) {
+      const status = response.status === 429
+        ? "provider_quota_exhausted"
+        : (response.status === 401 || response.status === 403 ? "provider_auth_failed" : "provider_unavailable");
+      return json(res, 503, { status });
+    }
     const result = await response.json();
     const content = result?.choices?.[0]?.message?.content;
     const advice = typeof content === "string" ? JSON.parse(content) : content;
-    if (!advice || typeof advice.summary !== "string" || !Array.isArray(advice.chain)) throw new Error("Resposta IA inválida");
+    const adviceError = validateAdvice(advice);
+    if (adviceError) return json(res, 502, { status: "invalid_provider_response" });
     return json(res, 200, {
       requestId: crypto.randomUUID(),
       status: "ready",
@@ -93,5 +111,7 @@ export default async function handler(req, res) {
     });
   } catch {
     return json(res, 503, { status: "provider_unavailable", message: "A recomendação IA está temporariamente indisponível; nada local foi alterado." });
+  } finally {
+    clearTimeout(timeout);
   }
 }

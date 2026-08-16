@@ -183,3 +183,17 @@ O commit `9305105` misturou documentação e implementação por ter sido criado
 A validação física comunicada nesta iteração foi concluída no Chrome Android. O Beat Maker e os instrumentais receberam um reforço moderado de ganho no Producer Plan, com headroom preservado e cobertura determinística; esta alteração não modifica o Original vocal.
 
 A V2.2 introduz a primeira assistência IA **server-side** através de `POST /api/v1/production/advice`. O browser envia apenas metadados da take e recebe uma recomendação estruturada; não envia áudio nem contém tokens. Sem fornecedor configurado, a API responde `503 provider_unavailable` e o fluxo local continua disponível. A documentação técnica está em [`docs/v22-ai-producer-progress.md`](docs/v22-ai-producer-progress.md). A suite desta etapa terminou com **121 testes aprovados e 0 falhas**. Safari iPhone e processamento IA de áudio permanecem pendentes.
+
+### V2.2 — AI Recommendation → Producer Plan
+A recomendação IA validada agora pode ser convertida de forma determinística numa intenção compatível com o Producer Plan local. A conversão preserva `localOnly` e `originalPreserved`, guarda a proposta no projecto e não aplica áudio automaticamente; a execução continua a exigir acção explícita do utilizador. A suite passou a **127 testes aprovados e 0 falhas**.
+
+A repetição com OpenAI permanece bloqueada por `insufficient_quota`, apesar da credencial server-side autenticar correctamente no endpoint leve de modelos. Não é tratado como sucesso do provider real. A validação Safari iPhone continua pendente e requer teste físico no dispositivo.
+
+
+## V2.2 — instrumental externo e mini-produtor local
+
+O Producer Studio passou a aceitar um beat de áudio escolhido no dispositivo através de um selector local com validação de formato e limite de 80 MB. O ficheiro é convertido para dados persistidos na sessão local, pode ser pré-escutado no navegador e fica associado ao projecto sem upload automático.
+
+A acção **Vocal + beat** materializa duas faixas de áudio na timeline: o vocal processado disponível (Pitch Corrected, Enhanced ou Original) e o beat importado. O resultado é renderizado para WAV através do Mixdown local, guardado como variante **Mixed** e exportável pela interface. O original vocal continua preservado e as variantes anteriores permanecem reversíveis.
+
+Esta etapa ainda não representa Auto-Tune avançado nem masterização IA profissional. Esses blocos continuam explicitamente marcados como próximos passos: Auto-Tune DSP validado em áudio real, blob dedicado em IndexedDB para beats grandes, provider IA com quota disponível e validação física em Samsung Galaxy A06, Chrome Android e Safari iPhone. A suite determinística passou de 127 para **131 testes**, sem falhas.
