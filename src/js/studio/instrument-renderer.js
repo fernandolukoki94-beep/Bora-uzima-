@@ -1,5 +1,5 @@
 import { CHORDS, midiToFrequency, noteToFrequency } from "./instruments.js";
-import { createBeatEvents } from "./sequencer.js";
+import { createBeatEvents, createGridEvents } from "./sequencer.js";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value) || 0));
@@ -54,8 +54,12 @@ function addKick(buffer, start, sampleRate, velocity = 0.8) {
   }
 }
 
+function normalizeDrumInstrument(instrument) {
+  return instrument === "drum" || instrument === "drums" ? "kick" : instrument;
+}
+
 function renderDrum(buffer, event, sampleRate) {
-  const instrument = event.instrument;
+  const instrument = normalizeDrumInstrument(event.instrument);
   if (instrument === "kick") {
     addKick(buffer, event.time || 0, sampleRate, event.velocity);
     return;
@@ -71,13 +75,13 @@ export function renderInstrumentClip(clip = {}, { sampleRate = 44100, tempo = 10
   const event = clip.event || clip.metadata || {};
   const instrument = event.instrument || clip.instrument || clip.type;
   if (!buffer.length) return buffer;
-  if (instrument === "drums" || instrument === "beat") {
+  if (instrument === "drums" || instrument === "drum" || instrument === "beat") {
     const sequence = event.events
       ? { events: event.events }
-      : createBeatEvents({ pattern: event.preset || "Afrobeat", bpm: event.bpm || tempo, bars: event.bars || 1, channels: event.channels }).events.length
-        ? createBeatEvents({ pattern: event.preset || "Afrobeat", bpm: event.bpm || tempo, bars: event.bars || 1 }).events
-        : [];
-    sequence.forEach((item) => renderDrum(buffer, item, sampleRate));
+      : event.channels
+        ? createGridEvents({ channels: event.channels, bpm: event.bpm || tempo, bars: event.bars || 1 })
+        : createBeatEvents({ pattern: event.preset || "Afrobeat", bpm: event.bpm || tempo, bars: event.bars || 1 });
+    sequence.events.forEach((item) => renderDrum(buffer, item, sampleRate));
     return buffer;
   }
   if (event.kind === "note" || event.note) {

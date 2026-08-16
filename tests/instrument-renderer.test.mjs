@@ -39,3 +39,38 @@ test("Mixdown inclui clips instrumentais sem buffer externo", () => {
   assert.ok(peak(mixed.left) > 0);
   assert.equal(project.tracks.find((track) => track.id === vocal).clips.length, 0);
 });
+
+test("renderer de drum genérico usa uma síntese audível segura", () => {
+  const buffer = renderInstrumentClip({ type: "drum", duration: 1, event: { instrument: "drum", events: [{ instrument: "drum", time: 0, velocity: 1 }] } }, { sampleRate: 8000 });
+  assert.equal(buffer.length, 8000);
+  assert.ok(peak(buffer) > 0);
+});
+
+test("renderer de Beat respeita canais personalizados do grid", () => {
+  const buffer = renderInstrumentClip({
+    type: "drums",
+    duration: 2,
+    event: {
+      instrument: "drums",
+      bpm: 104,
+      bars: 1,
+      channels: { kick: [0], snare: [], clap: [], hihat: [], percussion: [], bass: [] },
+    },
+  }, { sampleRate: 8000 });
+  assert.equal(buffer.length, 16000);
+  assert.ok(peak(buffer) > 0);
+});
+
+test("Mixdown mantém audível um Beat Maker personalizado", () => {
+  let project = createProject({ id: "custom-beat-project", tempo: 104 });
+  project = addTrack(project, { id: "custom-beat", type: "drums", name: "Drum" });
+  project = addClip(project, "custom-beat", {
+    id: "custom-beat-clip",
+    type: "drums",
+    duration: 2,
+    event: { instrument: "drums", bpm: 104, bars: 1, channels: { kick: [0], snare: [], clap: [], hihat: [], percussion: [], bass: [] } },
+  });
+  const mixed = mixTimelineBuffers(project, new Map(), { sampleRate: 8000 });
+  assert.equal(mixed.clipCount, 1);
+  assert.ok(peak(mixed.left) > 0);
+});

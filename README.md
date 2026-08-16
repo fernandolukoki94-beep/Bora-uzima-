@@ -22,7 +22,7 @@ A demonstração pública está disponível em [fernando-lucoco-music.vercel.app
 | Instrument Lab | Pré-escuta local implementada | Notas, acordes de piano e pads de guitarra através de Web Audio local. |
 | Piano roll | V1 visual/local | Grelha de 16 passos com notas e quantização no núcleo de instrumentos. |
 | Beat Maker | V1 local | 16 passos, seis canais, presets e padrões Afrobeat, Amapiano, Kuduro, Afro House e Rumba. |
-| Mixing local | V1 com painel e exportação | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel persiste controlos e o Mixdown exporta WAV local com headroom. Clips instrumentais continuam a ser eventos sem áudio renderizado no mix final. |
+| Mixing local | V1 com painel e exportação | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel persiste controlos e o Mixdown exporta WAV local com headroom. Clips instrumentais são renderizados localmente quando não existe blob externo. |
 | Mastering e IA | Não implementado | Não há cadeia profissional de mastering nem AI Producer. |
 
 ## Arquitectura
@@ -73,7 +73,7 @@ Abra `http://localhost:8000`, autorize o microfone e experimente uma take curta.
 pnpm test
 ```
 
-A suite actual terminou com **64 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1 e renderer instrumental V1.2.
+A suite actual terminou com **86 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2 e regressões do Beat Maker personalizado.
 
 ## Estado de QA e limites
 
@@ -123,4 +123,10 @@ A suite local alcançou **80 testes aprovados e 0 falhas**. O reteste no Samsung
 
 ### Correcção de audibilidade pós-QA Android
 
-Após a validação no Samsung Galaxy A06, o ganho vocal foi ajustado para aplicar o ganho solicitado antes de um limiter suave, em vez de reduzir silenciosamente a diferença para cumprir o headroom. O preview e o renderer offline também reforçam de forma controlada kick e bass. A suite local está em **82 testes aprovados**; a percepção final ainda deve ser confirmada novamente no dispositivo real.
+Após a validação no Samsung Galaxy A06, o ganho vocal foi ajustado para aplicar o ganho solicitado antes de um limiter suave, em vez de reduzir silenciosamente a diferença para cumprir o headroom. O preview e o renderer offline também reforçam de forma controlada kick e bass. A suite local está em **86 testes aprovados**; a percepção final ainda deve ser confirmada novamente no dispositivo real.
+
+### Correcção do drum e dos padrões personalizados
+
+O renderer do Beat Maker passou a respeitar os canais personalizados guardados no grid quando um padrão é adicionado à timeline. Antes, esse caminho podia ignorar `event.channels` e regenerar apenas o preset nominal, fazendo com que uma configuração personalizada parecesse não tocar correctamente no Mixdown. Foi também adicionado um alias seguro para `drum`, encaminhado para uma síntese de kick audível, sem alterar os canais canónicos `kick`, `snare`, `clap`, `hihat`, `percussion` e `bass`.
+
+Foram adicionados testes determinísticos para o preview de drum genérico, canais personalizados e percurso completo até ao Mixdown. O problema de audibilidade ainda deve ser retestado no Samsung Galaxy A06, porque a suite confirma o sinal produzido pelo motor, mas não substitui a percepção acústica no dispositivo físico.
