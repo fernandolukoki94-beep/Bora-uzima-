@@ -138,3 +138,33 @@ export function applyFade(blob, fadeSeconds = 0.12) {
     source.connect(gainNode).connect(offline.destination);
   });
 }
+
+/**
+ * Vocal enhancement local: removes low rumble, adds controlled presence and compression.
+ * This is a deterministic local effect, not AI vocal repair or mastering.
+ */
+export function applyVocalEnhancement(blob, { presenceDb = 2.5, outputGain = 1.05 } = {}) {
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const highPass = offline.createBiquadFilter();
+    highPass.type = "highpass";
+    highPass.frequency.value = 80;
+    highPass.Q.value = 0.707;
+
+    const presence = offline.createBiquadFilter();
+    presence.type = "peaking";
+    presence.frequency.value = 2600;
+    presence.Q.value = 0.8;
+    presence.gain.value = Math.max(-6, Math.min(6, presenceDb));
+
+    const compressor = offline.createDynamicsCompressor();
+    compressor.threshold.value = -20;
+    compressor.knee.value = 18;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.008;
+    compressor.release.value = 0.18;
+
+    const output = offline.createGain();
+    output.gain.value = Math.max(0.5, Math.min(1.2, outputGain));
+    source.connect(highPass).connect(presence).connect(compressor).connect(output).connect(offline.destination);
+  });
+}

@@ -212,3 +212,17 @@
 .mixer-switches .mini-button { flex: 1; }
 .mixer-switches .mini-button.active { background: var(--ink); border-color: var(--ink); color: var(--cream); }
 @media (max-width: 680px) { .mixer-tracks { grid-template-columns: 1fr; } }
+
+/* Mobile instrument feedback and readable mixer values */
+.key, .piano-step, .beat-step, .chord-pad .mini-button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.key.is-playing, .piano-step.is-playing, .beat-step.is-playing { background: var(--gold); color: var(--ink); border-color: var(--gold); transform: translateY(2px); box-shadow: 0 1px 0 rgba(16,16,15,.12); }
+.piano-step { min-width: 42px; min-height: 48px; font-weight: 750; }
+.beat-step { min-width: 38px; min-height: 44px; }
+.control-hint { color: #938a7d; font-size: .7rem; font-variant-numeric: tabular-nums; }
+.mixer-track label > span:first-child { display: flex; justify-content: space-between; gap: .5rem; }
+.mixer-track input[type="range"] { touch-action: pan-x; }
+@media (max-width: 680px) {
+  .keyboard { gap: 6px; padding-inline: 2px; }
+  .key { min-width: 48px; min-height: 64px; }
+  .beat-row { grid-template-columns: 5.5rem repeat(16, 40px); min-width: 42rem; }
+}

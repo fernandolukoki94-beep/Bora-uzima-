@@ -1,7 +1,7 @@
 import { blobToDataUrl, escapeHtml, getFileExtension, makeProjectId, readProjects, saveProjects } from "./storage.js";
 import { bindPlayerEvents } from "./player.js";
 import { simulateProductionPipeline } from "./production.js";
-import { applyCompressor, applyFade, applyGain, applyNormalize } from "./effects.js";
+import { applyCompressor, applyFade, applyGain, applyNormalize, applyVocalEnhancement } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
@@ -84,6 +84,9 @@ let transportState = createTransportState(0);
 let transportStartedAt = 0;
 let transportBasePosition = 0;
 let transportAudio = [];
+const linearToDb = (value) => value <= 0.001 ? -60 : 20 * Math.log10(value);
+const dbToLinear = (value) => value <= -60 ? 0 : Math.pow(10, value / 20);
+const formatGainDb = (value) => value <= 0.001 ? "−∞ dB" : `${linearToDb(value).toFixed(1)} dB`;
 if (pianoRoll) {
   pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
 }
@@ -105,6 +108,12 @@ async function refreshStorageStatus() {
   const quotaText = estimate.quota ? ` de ${formatBytes(estimate.quota)}` : "";
   storageStatus.textContent = `${estimate.indexedDbAvailable ? "IndexedDB activo" : "fallback localStorage"} · ${formatBytes(estimate.localBytes)}${quotaText} usados localmente`;
   storageStatus.dataset.storageMode = estimate.indexedDbAvailable ? "indexeddb" : "fallback";
+}
+
+function flashControl(button) {
+  if (!button) return;
+  button.classList.add("is-playing");
+  window.setTimeout(() => button.classList.remove("is-playing"), 180);
 }
 
 function showToast(message) {
@@ -254,7 +263,7 @@ function renderMixer(project) {
     if (mixerHeadroom) mixerHeadroom.textContent = "Headroom 0 dB";
     return;
   }
-  mixerTracks.innerHTML = project.tracks.map((track) => `<div class="mixer-track" data-mixer-track="${escapeHtml(track.id)}"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label>Ganho <output>${Number(track.volume ?? 1).toFixed(2)}x</output><input type="range" min="0" max="2" step="0.01" value="${Number(track.volume ?? 1)}" data-mixer-field="volume" aria-label="Ganho de ${escapeHtml(track.name)}"></label><label>Pan <output>${Number(track.pan ?? 0).toFixed(2)}</output><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button></div></div>`).join("");
+  mixerTracks.innerHTML = project.tracks.map((track) => { const volume = Number(track.volume ?? 1); return `<div class="mixer-track" data-mixer-track="${escapeHtml(track.id)}"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button></div></div>`; }).join("");
   const active = project.tracks.filter((track) => !track.muted);
   const estimatedPeak = active.reduce((sum, track) => sum + Number(track.volume ?? 1), 0);
   const headroomDb = estimatedPeak > 0 ? 20 * Math.log10(Math.max(0.0001, 0.98 / estimatedPeak)) : 0;
@@ -362,10 +371,13 @@ function renderProjects() {
     const compressor = originalData && !project.compressorApplied
       ? `<button class="mini-button" type="button" data-compressor-id="${escapeHtml(project.id)}">Compressor local</button>`
       : "";
+    const vocalEnhancement = originalData && !project.vocalEnhancementApplied
+      ? `<button class="mini-button" type="button" data-vocal-enhance-id="${escapeHtml(project.id)}">Melhorar voz</button>`
+      : "";
     const resetEffects = processedData
       ? `<button class="mini-button" type="button" data-reset-effects-id="${escapeHtml(project.id)}">Repor original</button>`
       : "";
-    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${legacyNotice}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${legacyNotice}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderTimeline();
 }
@@ -471,6 +483,9 @@ function applyLocalNormalize(id) {
 function applyLocalCompressor(id) {
   return applyLocalEffect(id, "compressorApplied", applyCompressor, "Compressor local aplicado. Original e processada estão separados.");
 }
+function applyLocalVocalEnhancement(id) {
+  return applyLocalEffect(id, "vocalEnhancementApplied", applyVocalEnhancement, "Melhoria vocal local aplicada. O original continua preservado.");
+}
 
 async function resetEffects(id) {
   const project = readProjects().find((item) => item.id === id);
@@ -520,6 +535,7 @@ list.addEventListener("click", (event) => {
   const fadeButton = event.target.closest("[data-fade-id]");
   const normalizeButton = event.target.closest("[data-normalize-id]");
   const compressorButton = event.target.closest("[data-compressor-id]");
+  const vocalEnhancementButton = event.target.closest("[data-vocal-enhance-id]");
   const resetEffectsButton = event.target.closest("[data-reset-effects-id]");
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
   if (processButton) simulateProductionPipeline(processButton.dataset.processId, { renderProjects, showToast });
@@ -527,6 +543,7 @@ list.addEventListener("click", (event) => {
   if (fadeButton) applyLocalFade(fadeButton.dataset.fadeId);
   if (normalizeButton) applyLocalNormalize(normalizeButton.dataset.normalizeId);
   if (compressorButton) applyLocalCompressor(compressorButton.dataset.compressorId);
+  if (vocalEnhancementButton) applyLocalVocalEnhancement(vocalEnhancementButton.dataset.vocalEnhanceId);
   if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
 });
 
@@ -536,7 +553,10 @@ mixerTracks?.addEventListener("input", (event) => {
   if (!control || !trackNode || !timelineHistory) return;
   const field = control.dataset.mixerField;
   if (field !== "volume" && field !== "pan") return;
-  const value = Number(control.value);
+  const rawValue = Number(control.value);
+  const value = field === "volume" ? dbToLinear(rawValue) : rawValue;
+  const output = trackNode.querySelector(`[data-mixer-output="${field}"]`);
+  if (output) output.textContent = field === "volume" ? formatGainDb(value) : value.toFixed(2);
   const trackId = trackNode.dataset.mixerTrack;
   const track = timelineHistory.present.tracks.find((item) => item.id === trackId);
   if (!track) return;
@@ -648,6 +668,7 @@ transportStop?.addEventListener("click", stopTimeline);
 keyboardNotes?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-note]");
   if (!button) return;
+  flashControl(button);
   try { await playNote(button.dataset.note); } catch (error) { showToast(error.message); }
 });
 playChordButton?.addEventListener("click", async () => {
@@ -659,7 +680,8 @@ addChordTimeline?.addEventListener("click", () => {
 guitarChords?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-guitar-chord]");
   if (!button) return;
-  try { await playChord(button.dataset.guitarChord, { type: "sawtooth", duration: 0.65, volume: 0.1 }); } catch (error) { showToast(error.message); }
+  flashControl(button);
+  try { await playChord(button.dataset.guitarChord, { type: "triangle", duration: 0.65, volume: 0.1 }); } catch (error) { showToast(error.message); }
 });
 addGuitarTimeline?.addEventListener("click", () => {
   insertInstrumentClip({ name: `Guitarra · ${chordSelect?.value || "C"}`, type: "guitar", metadata: { instrument: "guitar", chord: chordSelect?.value || "C" } });
@@ -706,13 +728,15 @@ beatGrid?.addEventListener("click", async (event) => {
   button.classList.toggle("is-active");
   const channel = button.dataset.beatChannel;
   const frequencies = { kick: "C2", snare: "D3", clap: "E3", hihat: "C5", percussion: "G4", bass: "C2" };
+  flashControl(button);
   try { await playNote(frequencies[channel] || "C3", { type: channel === "hihat" ? "square" : "sine", duration: channel === "kick" ? 0.18 : 0.08, volume: channel === "hihat" ? 0.04 : 0.1 }); } catch (error) { showToast(error.message); }
 });
 pianoRoll?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-piano-note]");
   if (!button) return;
   button.classList.toggle("is-active");
-  try { await playNote(button.dataset.pianoNote, { type: "sine", duration: 0.2, volume: 0.12 }); } catch (error) { showToast(error.message); }
+  flashControl(button);
+  try { await playNote(button.dataset.pianoNote, { type: "triangle", duration: 0.28, volume: 0.11 }); } catch (error) { showToast(error.message); }
 });
 playPatternButton?.addEventListener("click", async () => {
   try {

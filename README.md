@@ -104,3 +104,12 @@ O produto é dirigido e desenvolvido por **Fernando Lucoco**. O projecto é disp
 ---
 
 **Fernando Lucoco Music · 2026**
+
+
+## Correcções pós-QA Android — Samsung Galaxy A06
+
+A avaliação real num Samsung Galaxy A06 com Android 16 e Google Chrome confirmou que a V1.2 é utilizável, mas revelou pontos de acabamento na escala de ganho, no teclado instrumental, no Beat Maker e na resposta vocal. Esta iteração substitui os quatro níveis ambíguos de ganho por uma escala contínua de **−∞ a +6 dB**, mantendo o schema linear persistido; adiciona valores visíveis, feedback táctil e alvos maiores para mobile.
+
+O áudio local do teclado e do Beat Maker recebeu envelopes mais suaves, filtros, queda de frequência no kick e ruído determinístico filtrado para snare/clap/hihat. Foi acrescentada uma **Melhoria vocal local** com passa-alto, presença e compressor. Esta função reduz problemas básicos de rumble e dinâmica, mas não é Vocal Engine profissional, correcção de afinação, IA ou mastering.
+
+A suite passou para **73 testes aprovados, 0 falhas**. A promoção do IndexedDB para fonte primária continua bloqueada até nova verificação no dispositivo após estas correcções.
