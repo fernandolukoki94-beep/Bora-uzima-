@@ -51,7 +51,9 @@ test("kick e bass têm níveis dedicados acima da percussão genérica", () => {
 test("kick usa síntese dedicada com ataque e queda de frequência no preview e no Mixdown", () => {
   const renderer = fs.readFileSync(new URL("../src/js/studio/instrument-renderer.js", import.meta.url), "utf8");
   assert.match(audio, /isKick \? 155 : 65/);
-  assert.match(audio, /isKick \? 48 : 48/);
+  assert.match(audio, /isKick \? 48 : 52/);
+  assert.match(audio, /isBass/);
+  assert.match(audio, /harmonic\.frequency/);
   assert.match(renderer, /function addKick/);
   assert.match(renderer, /Math\.pow\(48 \/ 155/);
   assert.match(renderer, /const attack/);

@@ -67,6 +67,7 @@ const playChordButton = document.getElementById("play-chord");
 const patternSelect = document.getElementById("pattern-select");
 const playPatternButton = document.getElementById("play-pattern");
 const guitarChords = document.getElementById("guitar-chords");
+const extraInstruments = document.getElementById("extra-instruments");
 const pianoRoll = document.getElementById("piano-roll");
 const beatGrid = document.getElementById("beat-grid");
 const beatPreset = document.getElementById("beat-preset");
@@ -683,7 +684,19 @@ guitarChords?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-guitar-chord]");
   if (!button) return;
   flashControl(button);
-  try { await playChord(button.dataset.guitarChord, { type: "triangle", duration: 0.65, volume: 0.1 }); } catch (error) { showToast(error.message); }
+  try { await playChord(button.dataset.guitarChord, { type: "triangle", duration: 0.65, volume: 0.1, instrument: "guitar" }); } catch (error) { showToast(error.message); }
+});
+extraInstruments?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-extra-instrument]");
+  if (!button) return;
+  const instrument = button.dataset.extraInstrument;
+  const chord = button.dataset.extraChord || "C";
+  flashControl(button);
+  try {
+    await playChord(chord, { duration: instrument === "strings" ? 0.9 : 0.7, volume: instrument === "strings" ? 0.08 : 0.07, instrument });
+    insertInstrumentClip({ name: `${instrument === "strings" ? "Cordas" : "Synth Pad"} · ${chord}`, type: "instrument", duration: instrument === "strings" ? 1.2 : 0.9, metadata: { instrument, chord } });
+    showToast(`${instrument === "strings" ? "Cordas" : "Synth Pad"} preparado localmente.`);
+  } catch (error) { showToast(error.message); }
 });
 addGuitarTimeline?.addEventListener("click", () => {
   insertInstrumentClip({ name: `Guitarra · ${chordSelect?.value || "C"}`, type: "guitar", metadata: { instrument: "guitar", chord: chordSelect?.value || "C" } });

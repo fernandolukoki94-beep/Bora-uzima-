@@ -74,3 +74,26 @@ test("Mixdown mantém audível um Beat Maker personalizado", () => {
   assert.equal(mixed.clipCount, 1);
   assert.ok(peak(mixed.left) > 0);
 });
+
+test("renderer de Bass produz corpo e harmónicos audíveis", () => {
+  const buffer = renderInstrumentClip({ type: "drums", duration: 1, event: { instrument: "drums", events: [{ instrument: "bass", time: 0, velocity: 1 }] } }, { sampleRate: 8000 });
+  assert.ok(peak(buffer) > 0.05);
+  assert.deepEqual(Array.from(buffer), Array.from(renderInstrumentClip({ type: "drums", duration: 1, event: { instrument: "drums", events: [{ instrument: "bass", time: 0, velocity: 1 }] } }, { sampleRate: 8000 })));
+});
+
+test("renderer distingue os canais de percussão sem silêncio", () => {
+  for (const instrument of ["snare", "clap", "hihat", "percussion"]) {
+    const buffer = renderInstrumentClip({ type: "drums", duration: 1, event: { instrument: "drums", events: [{ instrument, time: 0, velocity: 1 }] } }, { sampleRate: 8000 });
+    assert.ok(peak(buffer) > 0, `${instrument} não pode ser silencioso`);
+  }
+});
+
+test("novos timbres locais de cordas e synth pad produzem clips audíveis", () => {
+  for (const instrument of ["strings", "synth"]) {
+    const clip = { type: "instrument", duration: 1.4, event: { instrument, chord: "C", velocity: 0.8 } };
+    const first = renderInstrumentClip(clip, { sampleRate: 8000 });
+    const second = renderInstrumentClip(clip, { sampleRate: 8000 });
+    assert.ok(peak(first) > 0, `${instrument} não pode ser silencioso`);
+    assert.deepEqual(Array.from(first), Array.from(second));
+  }
+});
