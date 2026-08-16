@@ -73,7 +73,7 @@ Abra `http://localhost:8000`, autorize o microfone e experimente uma take curta.
 pnpm test
 ```
 
-A suite actual terminou com **60 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine e integração V1.1.
+A suite actual terminou com **64 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1 e renderer instrumental V1.2.
 
 ## Estado de QA e limites
 
@@ -83,9 +83,9 @@ IndexedDB permanece em **beta interna**. A promoção para fonte principal só d
 
 ## Music Engine V1.1 e mixing local
 
-O marco V1.1 adiciona timeline funcional com Play, Pause, Stop, Beginning, relógio e playhead; Beat Maker com sequências locais; piano e guitarra ligados a notas e acordes sonoros; eventos inseridos como clips; controlos rápidos não destrutivos de mover, trim, split, resize, fade, ganho, duplicação e remoção; um painel Mixer visual com ganho, pan, mute, solo e headroom; e Mixdown WAV local com protecção de headroom. O Mixdown actual renderiza clips de áudio persistidos; eventos instrumentais ainda requerem um renderer dedicado. O processamento é local e mensurável, sem afirmar qualidade de estúdio profissional.
+O marco V1.1 adicionou timeline funcional com Play, Pause, Stop, Beginning, relógio e playhead; Beat Maker com sequências locais; piano e guitarra ligados a notas e acordes sonoros; eventos inseridos como clips; controlos rápidos não destrutivos de mover, trim, split, resize, fade, ganho, duplicação e remoção; um painel Mixer visual com ganho, pan, mute, solo e headroom; e Mixdown WAV local com protecção de headroom. O processamento é local e mensurável, sem afirmar qualidade de estúdio profissional. O renderer instrumental foi introduzido na V1.2 e está descrito abaixo.
 
-O Mixdown local já está disponível como primeira exportação verificável. O Sprint de Integração V1.1 agora cobre persistência do Mixer, cadeia de sete edições com Undo/Redo, cinco presets de Beat, eventos de Piano/Guitarra, invariantes de trim/split, reload do projecto e prova de que gain, pan, mute, solo e headroom alteram a saída WAV. Só depois de validar o fluxo em dispositivos físicos serão considerados renderer completo de instrumentos, processamento avançado e um AI Producer server-side. Cloud, colaboração, social, Creator Economy e a aplicação mobile permanecem fases posteriores documentadas em [`docs/platform-roadmap.md`](./docs/platform-roadmap.md). Nenhuma credencial é colocada no HTML ou JavaScript público.
+O Mixdown local já está disponível como primeira exportação verificável. A V1.2 adiciona um renderer determinístico local de Piano, Guitarra e Beat, permitindo que clips instrumentais sem blob externo entrem no Mixdown através do scheduler offline. A suite prova áudio não silencioso, duração, determinismo e inclusão no mix. O renderer usa síntese local simples, não pretende substituir instrumentos de estúdio e ainda precisa de validação com áudio real e dispositivos físicos antes de ser considerado produção. Cloud, colaboração, social, Creator Economy e a aplicação mobile permanecem fases posteriores documentadas em [`docs/platform-roadmap.md`](./docs/platform-roadmap.md). Nenhuma credencial é colocada no HTML ou JavaScript público.
 
 ## Documentação e legado
 

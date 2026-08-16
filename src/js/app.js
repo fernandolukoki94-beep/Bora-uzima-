@@ -9,6 +9,7 @@ import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitCli
 import { playChord, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
+import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
 import {
   TRANSPORT_STATES,
@@ -282,7 +283,8 @@ async function mixdownActiveTimeline() {
       if (blob) sources.set(clip.blobKey || clip.id, blob);
     }
   }
-  if (!sources.size) { showToast("Não encontrei áudio local exportável nesta timeline."); return; }
+  const hasInstrumentClip = timelineHistory.present.tracks.some((track) => track.clips.some((clip) => isInstrumentClip(clip)));
+  if (!sources.size && !hasInstrumentClip) { showToast("Não encontrei áudio local exportável nesta timeline."); return; }
   timelineMixdownButton.disabled = true;
   timelineMixdownButton.textContent = "A preparar WAV…";
   try {

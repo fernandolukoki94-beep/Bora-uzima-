@@ -1,4 +1,5 @@
 import { audioBufferToWav } from "../effects.js";
+import { isInstrumentClip, renderInstrumentClip } from "./instrument-renderer.js";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value) || 0));
@@ -29,7 +30,7 @@ export function mixTimelineBuffers(project = {}, buffers = new Map(), { sampleRa
     const trackGain = clamp(track.volume ?? track.gain ?? 1, 0, 2);
     const pan = panGains(track.pan);
     (track.clips || []).forEach((clip) => {
-      const source = buffers.get(clip.blobKey) || buffers.get(clip.id);
+      const source = buffers.get(clip.blobKey) || buffers.get(clip.id) || (isInstrumentClip(clip) ? renderInstrumentClip(clip, { sampleRate, tempo: project.tempo }) : null);
       if (!(source instanceof Float32Array)) return;
       clipCount += 1;
       const start = Math.max(0, Math.floor(Number(clip.start || 0) * sampleRate));
@@ -90,7 +91,12 @@ export async function renderTimelineToWav(project, blobByKey, options = {}) {
     (project.tracks || []).forEach((track) => {
       if (track.muted || (soloActive && !track.solo)) return;
       (track.clips || []).forEach((clip) => {
-        const sourceBuffer = decoded.get(clip.blobKey) || decoded.get(clip.id);
+        let sourceBuffer = decoded.get(clip.blobKey) || decoded.get(clip.id);
+        if (!sourceBuffer && isInstrumentClip(clip)) {
+          const rendered = renderInstrumentClip(clip, { sampleRate, tempo: project.tempo });
+          sourceBuffer = offline.createBuffer(1, rendered.length, sampleRate);
+          sourceBuffer.copyToChannel(rendered, 0);
+        }
         if (!sourceBuffer) return;
         const source = offline.createBufferSource();
         source.buffer = sourceBuffer;
