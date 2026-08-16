@@ -74,6 +74,17 @@ export function buildProducerPlan({ genre = "Afrobeat", tempo = 100, key = "C", 
   const analyzedBpm = preferAnalysis && analysis?.hasAudio && analysis?.bpmConfidence >= 0.2 ? analysis.bpm : tempo;
   const analyzedKey = preferAnalysis && analysis?.hasAudio && analysis?.keyConfidence >= 0.2 ? analysis.key : key;
   const bpm = safeTempo(analyzedBpm || beat.bpm);
+  const requested = interpretation.requestedInstruments;
+  // Keep the complete local palette materialisable for backwards compatibility;
+  // Production Direction now controls focus/priority rather than silently removing instruments.
+  const instruments = [...ALL_PRODUCER_INSTRUMENTS];
+  const focusInstruments = [...new Set([...(profile.instruments || []), ...requested, "drums", "bass"])]
+    .filter((instrument) => ALL_PRODUCER_INSTRUMENTS.includes(instrument));
+  const sectionDynamics = interpretation.energy === "high"
+    ? { intro: 0.72, verse: 0.86, chorus: 1, outro: 0.68 }
+    : interpretation.energy === "low"
+      ? { intro: 0.58, verse: 0.72, chorus: 0.84, outro: 0.56 }
+      : { intro: 0.64, verse: 0.8, chorus: 0.92, outro: 0.6 };
   return {
     version: "producer-plan-v1",
     genre: GENRE_PRESETS[selectedGenre] ? selectedGenre : "Afrobeat",
@@ -83,10 +94,14 @@ export function buildProducerPlan({ genre = "Afrobeat", tempo = 100, key = "C", 
     key: analyzedKey || "C",
     analysis: analysis ? { ...analysis } : null,
     structure: structureForDuration(duration),
-    // V2 file requirement: every local voice-production plan must materialise the complete
-    // starter palette in the timeline. Genre presets still determine the beat and defaults,
-    // while the six local instruments remain available for the user to edit or remove.
-    instruments: [...ALL_PRODUCER_INSTRUMENTS],
+    arrangement: {
+      mode: "automatic",
+      sections: structureForDuration(duration).map((section) => ({ name: section, intensity: sectionDynamics[section] || 0.8 })),
+      energy: interpretation.energy,
+      focusInstruments,
+      generatedFrom: [selectedGenre, bpm, analyzedKey || "C", interpretation.text].filter(Boolean),
+    },
+    instruments,
     beat: {
       preset: beat.name,
       bpm: beat.bpm,
@@ -95,9 +110,14 @@ export function buildProducerPlan({ genre = "Afrobeat", tempo = 100, key = "C", 
     vocal: { ...VOCAL_CHAIN },
     mix: {
       vocalPriority: "high",
-      bassDb: -2,
-      instrumentalDb: -4,
+      bassDb: interpretation.energy === "high" ? -3 : interpretation.energy === "low" ? -1.5 : -2,
+      instrumentalDb: interpretation.energy === "high" ? -5 : -4,
       masterHeadroomDb: -1,
+      mastering: {
+        compressor: { threshold: 0.72, ratio: interpretation.energy === "high" ? 3.2 : 2.6, attack: 0.012, release: 0.14 },
+        limiter: { ceiling: 0.89, release: 0.08 },
+        targetLoudness: -14,
+      },
     },
     execution: {
       localOnly: true,
@@ -127,7 +147,9 @@ export function applyProducerMix(project, plan) {
     tracks: (normalized.tracks || []).map((track) => {
       if (track.type === "audio") return { ...track, volume: 1 };
       if (track.type === "drums" || track.type === "guitar" || track.type === "instrument") {
-        return { ...track, volume: linearFromDb(plan.mix.instrumentalDb) };
+        const isBass = track.name?.toLowerCase().includes("bass");
+        const db = isBass ? plan.mix.bassDb : plan.mix.instrumentalDb;
+        return { ...track, volume: linearFromDb(db) };
       }
       return track;
     }),

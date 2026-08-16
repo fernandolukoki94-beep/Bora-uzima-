@@ -40,3 +40,13 @@ test("mixdown limita headroom e exporta WAV estéreo", async () => {
   assert.equal(new TextDecoder().decode(bytes.slice(0, 4)), "RIFF");
   assert.equal(new TextDecoder().decode(bytes.slice(8, 12)), "WAVE");
 });
+
+test("masterização local comprime picos, respeita ceiling e mede loudness", async () => {
+  const { applyMastering } = await import("../src/js/studio/mixdown.js");
+  const left = new Float32Array([0.2, 0.8, -1.2, 0.4]);
+  const right = new Float32Array([0.2, 0.8, -1.2, 0.4]);
+  const metrics = applyMastering(left, right, { threshold: 0.7, ratio: 3, ceiling: 0.89 });
+  assert.ok(metrics.peakBefore > metrics.peakAfter);
+  assert.ok(metrics.peakAfter <= 0.89 + 1e-6);
+  assert.ok(Number.isFinite(metrics.loudnessDb));
+});

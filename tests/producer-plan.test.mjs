@@ -69,3 +69,20 @@ test("Producer Plan materializa a paleta completa de seis instrumentos locais", 
   );
   assert.ok(clips.every((clip) => clip.metadata?.producerPlan === true));
 });
+
+test("Direcção de Produção transforma briefing em arranjo e instrumentalização automáticos", () => {
+  const plan = buildProducerPlan({
+    genre: "Demo vocal",
+    brief: "Afrobeat dançante com guitarra, baixo e synth, voz clara e master quente",
+    tempo: 104,
+    key: "A minor",
+    duration: 45,
+  });
+  assert.equal(plan.arrangement.mode, "automatic");
+  assert.deepEqual(plan.structure, ["intro", "verse", "chorus", "outro"]);
+  assert.ok(plan.arrangement.sections.some((section) => section.name === "chorus" && section.intensity > 0.8));
+  assert.ok(plan.instruments.includes("guitar"));
+  assert.ok(plan.instruments.includes("bass"));
+  assert.ok(plan.instruments.includes("synth"));
+  assert.equal(plan.mix.mastering.limiter.ceiling, 0.89);
+});

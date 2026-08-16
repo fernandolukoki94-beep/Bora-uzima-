@@ -10,6 +10,36 @@ function panGains(pan = 0) {
   return { left: Math.cos(angle), right: Math.sin(angle) };
 }
 
+export function applyMastering(left, right, { threshold = 0.72, ratio = 2.8, ceiling = 0.89 } = {}) {
+  const safeThreshold = clamp(threshold, 0.25, 0.95);
+  const safeRatio = Math.max(1, Number(ratio) || 1);
+  const safeCeiling = clamp(ceiling, 0.5, 0.98);
+  let peakBefore = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    const process = (sample) => {
+      const absolute = Math.abs(sample);
+      peakBefore = Math.max(peakBefore, absolute);
+      if (absolute <= safeThreshold) return sample;
+      const compressed = safeThreshold + (absolute - safeThreshold) / safeRatio;
+      return Math.sign(sample) * compressed;
+    };
+    left[index] = process(left[index]);
+    right[index] = process(right[index]);
+  }
+  let compressedPeak = 0;
+  for (let index = 0; index < left.length; index += 1) compressedPeak = Math.max(compressedPeak, Math.abs(left[index]), Math.abs(right[index]));
+  const scale = compressedPeak > safeCeiling ? safeCeiling / compressedPeak : 1;
+  let sumSquares = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    left[index] *= scale;
+    right[index] *= scale;
+    sumSquares += (left[index] ** 2 + right[index] ** 2) / 2;
+  }
+  const peakAfter = compressedPeak * scale;
+  const rms = left.length ? Math.sqrt(sumSquares / left.length) : 0;
+  return { peakBefore, compressedPeak, scale, peakAfter, rms, loudnessDb: rms > 0 ? 20 * Math.log10(rms) : -Infinity };
+}
+
 export function calculateMixdownLength(project = {}, sampleRate = 44100) {
   const seconds = (project.tracks || []).reduce((total, track) => (
     (track.clips || []).reduce((trackTotal, clip) => Math.max(trackTotal, Number(clip.start || 0) + Number(clip.duration || 0)), total)
@@ -49,15 +79,8 @@ export function mixTimelineBuffers(project = {}, buffers = new Map(), { sampleRa
     });
   });
 
-  let peak = 0;
-  for (let index = 0; index < length; index += 1) peak = Math.max(peak, Math.abs(left[index]), Math.abs(right[index]));
-  const safeHeadroom = clamp(headroom, 0.05, 1);
-  const scale = peak > safeHeadroom ? safeHeadroom / peak : 1;
-  for (let index = 0; index < length; index += 1) {
-    left[index] *= scale;
-    right[index] *= scale;
-  }
-  return { left, right, sampleRate, clipCount, peakBeforeHeadroom: peak, peakAfterHeadroom: peak * scale, scale };
+  const mastering = applyMastering(left, right, { ceiling: clamp(headroom, 0.5, 0.98) });
+  return { left, right, sampleRate, clipCount, peakBeforeHeadroom: mastering.peakBefore, peakAfterHeadroom: mastering.peakAfter, scale: mastering.scale, loudnessDb: mastering.loudnessDb, mastering };
 }
 
 export function createStereoAudioBuffer({ left, right, sampleRate = 44100 }) {
@@ -117,7 +140,11 @@ export async function renderTimelineToWav(project, blobByKey, options = {}) {
         source.start(start, Math.max(0, Number(clip.sourceOffset || 0)), duration);
       });
     });
-    return audioBufferToWav(await offline.startRendering());
+    const rendered = await offline.startRendering();
+    const left = new Float32Array(rendered.getChannelData(0));
+    const right = new Float32Array(rendered.numberOfChannels > 1 ? rendered.getChannelData(1) : rendered.getChannelData(0));
+    applyMastering(left, right, { ceiling: options.headroom || 0.89, ...(options.mastering || {}) });
+    return audioBufferToWav(createStereoAudioBuffer({ left, right, sampleRate }));
   } finally {
     await context.close();
   }

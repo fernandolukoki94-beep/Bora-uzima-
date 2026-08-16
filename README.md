@@ -267,3 +267,12 @@ A integração AI Producer foi corrigida para deixar de ser apenas uma recomenda
 O servidor recebe apenas metadados validados: género, preset vocal, duração, BPM, tonalidade e intenção do artista. Não recebe o áudio e nunca envia chaves para o browser. A IA define o plano de produção; o Web Audio Engine local executa o arranjo, os efeitos reversíveis, o mixdown e o master com headroom. O `Original` é preservado e o projecto guarda `producerPlanSource: "ai"`, a cadeia recomendada e o instante de aplicação para permitir auditoria e restauração.
 
 A interface comunica agora estados distintos, incluindo “A IA está a criar o arranjo e a instrumentalização”, “A IA materializa a faixa do produtor” e “A preparar vocal, mix e master local seguro”. Se o provider estiver indisponível, expirar ou esgotar quota, nada é inventado: o fluxo local continua disponível. Isto significa que a IA actua como produtora de arranjo e decisão, mas a execução áudio é local; processamento áudio remoto por IA continua fora do escopo até existir um serviço seguro, com quota e testes reais.
+
+
+## AI Producer — Direcção automática e qualidade local
+
+A Direcção de Produção transforma género, BPM, tonalidade, preset vocal e briefing do artista num plano automático de arranjo. O plano define secções com intensidades distintas, identifica os instrumentos prioritários e materializa a paleta local na timeline sem remover opções de edição humana. Ao reaplicar o plano, os clips gerados são substituídos de forma idempotente e as faixas manuais permanecem intactas.
+
+A produção continua local-first: a IA server-side interpreta a intenção e recomenda a cadeia, enquanto o motor Web Audio local executa a instrumentalização, o processamento vocal, o mix e a masterização. A masterização local passou a incluir compressão determinística, limiter com ceiling seguro e métricas de pico, RMS e loudness aproximado. Isto melhora headroom e consistência sem apresentar o resultado como masterização externa de estúdio.
+
+A suite actual terminou com **143 testes aprovados, 0 falhas**. A quota do provider IA e a validação física em dispositivos reais continuam a ser limitações separadas.
