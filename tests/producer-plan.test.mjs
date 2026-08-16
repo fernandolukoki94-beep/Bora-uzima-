@@ -12,7 +12,8 @@ test("Producer Plan cria uma proposta determinística de produção local", () =
   assert.deepEqual(plan.structure, ["intro", "verse", "chorus", "verse", "chorus", "outro"]);
   assert.ok(plan.instruments.includes("bass"));
   assert.equal(plan.vocal.compression, "medium");
-  assert.equal(plan.mix.bassDb, -3);
+  assert.equal(plan.mix.bassDb, -2);
+  assert.equal(plan.mix.instrumentalDb, -4);
   assert.equal(plan.execution.localOnly, true);
   assert.equal(plan.execution.originalPreserved, true);
 });

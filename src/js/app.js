@@ -16,6 +16,7 @@ import { downloadBlob, mixedExportFilename } from "./export-audio.js";
 import { deriveProducerStudioState } from "./producer-studio-flow.js";
 import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback } from "./action-feedback.js";
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
+import { requestProductionAdvice } from "./ai-producer-client.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
   TRANSPORT_STATES,
@@ -95,6 +96,8 @@ const producerKeyInput = document.getElementById("producer-key-input");
 const producerGenre = document.getElementById("producer-genre");
 const producerBriefPreview = document.getElementById("producer-brief-preview");
 const producerRunPlan = document.getElementById("producer-run-plan");
+const producerRequestAi = document.getElementById("producer-request-ai");
+const producerAiStatus = document.getElementById("producer-ai-status");
 const producerSaveAnalysis = document.getElementById("producer-save-analysis");
 const producerPlanStatus = document.getElementById("producer-plan-status");
 const producerVocalStatus = document.getElementById("producer-vocal-status");
@@ -791,6 +794,35 @@ producerSaveAnalysis?.addEventListener("click", () => {
 producerRunPlan?.addEventListener("click", () => {
   const project = currentTimelineProject();
   if (project) runProducerPlan(project.id);
+});
+producerRequestAi?.addEventListener("click", async () => {
+  const project = currentTimelineProject();
+  if (!project) return showToast("Grava primeiro uma take para pedir uma recomendação IA.");
+  producerRequestAi.disabled = true;
+  producerAiStatus?.setAttribute("data-state", "loading");
+  if (producerAiStatus) producerAiStatus.textContent = "A pedir recomendação server-side…";
+  try {
+    const result = await requestProductionAdvice({
+      takeId: project.id,
+      genre: project.genre || "Afrobeat",
+      vocalPreset: project.preset || "Natural",
+      durationSeconds: Number(project.duration || 0),
+      locale: "pt-PT",
+      intent: project.productionBrief || "demo vocal",
+    });
+    const advice = result.advice;
+    if (producerAiStatus) {
+      producerAiStatus.dataset.state = "success";
+      producerAiStatus.textContent = `${advice.summary} Cadeia: ${advice.chain.join(" → ")} · confiança ${advice.confidence}.`;
+    }
+  } catch (error) {
+    if (producerAiStatus) {
+      producerAiStatus.dataset.state = "error";
+      producerAiStatus.textContent = error.message || "Recomendação IA indisponível; o fluxo local continua disponível.";
+    }
+  } finally {
+    producerRequestAi.disabled = false;
+  }
 });
 producerAbOriginal?.addEventListener("click", () => playProducerPreview("original"));
 producerAbMixed?.addEventListener("click", () => playProducerPreview("mixed"));

@@ -95,8 +95,8 @@ export function buildProducerPlan({ genre = "Afrobeat", tempo = 100, key = "C", 
     vocal: { ...VOCAL_CHAIN },
     mix: {
       vocalPriority: "high",
-      bassDb: -3,
-      instrumentalDb: -6,
+      bassDb: -2,
+      instrumentalDb: -4,
       masterHeadroomDb: -1,
     },
     execution: {
