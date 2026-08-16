@@ -14,6 +14,7 @@ import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
 import { downloadBlob, mixedExportFilename } from "./export-audio.js";
 import { deriveProducerStudioState } from "./producer-studio-flow.js";
+import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback } from "./action-feedback.js";
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
@@ -102,6 +103,7 @@ const producerFinalStatus = document.getElementById("producer-final-status");
 const producerAbOriginal = document.getElementById("producer-ab-original");
 const producerAbMixed = document.getElementById("producer-ab-mixed");
 const producerExport = document.getElementById("producer-export");
+const producerActionFeedback = document.getElementById("producer-action-feedback");
 let activeTimelineId = null;
 let timelineHistory = null;
 let transportTimers = [];
@@ -193,31 +195,67 @@ function audioBlock(label, data, mimeType, projectName) {
 }
 
 let producerPreviewAudio = null;
+let producerActionStates = { ab: ACTION_FEEDBACK_STATES.IDLE, export: ACTION_FEEDBACK_STATES.IDLE };
 
-function playProducerPreview(variant) {
+function setProducerActionFeedback(action, event, message = "") {
+  producerActionStates = { ...producerActionStates, [action]: transitionActionFeedback(producerActionStates[action], event) };
+  const state = producerActionStates[action];
+  const label = message || actionFeedbackLabel(action, state);
+  if (producerActionFeedback) {
+    producerActionFeedback.textContent = label;
+    producerActionFeedback.dataset.state = state;
+    producerActionFeedback.dataset.action = action;
+  }
+  const buttons = action === "ab" ? [producerAbOriginal, producerAbMixed] : [producerExport];
+  buttons.forEach((button) => {
+    if (!button) return;
+    button.classList.toggle("is-busy", state === ACTION_FEEDBACK_STATES.LOADING);
+    button.classList.toggle("is-success", state === ACTION_FEEDBACK_STATES.SUCCESS);
+    button.classList.toggle("is-error", state === ACTION_FEEDBACK_STATES.ERROR);
+    button.setAttribute("aria-busy", String(state === ACTION_FEEDBACK_STATES.LOADING));
+  });
+}
+
+async function playProducerPreview(variant) {
   const project = currentTimelineProject();
   const data = getVariantData(project, variant);
-  if (!data) return showToast(`${variant === "mixed" ? "Mixed" : "Original"} ainda não disponível.`);
+  setProducerActionFeedback("ab", "start", variant === "mixed" ? "A preparar Mixed…" : "A preparar Original…");
+  if (!data) {
+    setProducerActionFeedback("ab", "error", `${variant === "mixed" ? "Mixed" : "Original"} ainda não disponível.`);
+    showToast(`${variant === "mixed" ? "Mixed" : "Original"} ainda não disponível.`);
+    return;
+  }
   producerPreviewAudio?.pause();
   producerPreviewAudio = new Audio(data);
   producerPreviewAudio.playsInline = true;
-  producerPreviewAudio.onended = () => { producerPreviewAudio = null; };
-  producerPreviewAudio.play().catch(() => showToast("O navegador bloqueou a pré-escuta. Toca primeiro num controlo de áudio."));
+  producerPreviewAudio.onended = () => { producerPreviewAudio = null; setProducerActionFeedback("ab", "reset"); };
+  try {
+    await producerPreviewAudio.play();
+    setProducerActionFeedback("ab", "success", `${variant === "mixed" ? "Mixed" : "Original"} em reprodução`);
+  } catch (error) {
+    console.error("Pré-escuta A/B falhou", error);
+    setProducerActionFeedback("ab", "error", "O navegador bloqueou a pré-escuta. Toca novamente para tentar.");
+    showToast("O navegador bloqueou a pré-escuta. Toca novamente para tentar.");
+  }
 }
 
 async function exportMixedVersion(id) {
   const project = readProjects().find((item) => item.id === id);
   const mixedData = getVariantData(project, "mixed");
+  setProducerActionFeedback("export", "start");
   if (!project || !mixedData) {
+    setProducerActionFeedback("export", "error", "Cria primeiro o Mixed através do Mixdown local.");
     showToast("Primeiro cria o Mixed através do Mixdown local.");
     return;
   }
   try {
     const mixedBlob = await dataUrlToBlob(mixedData);
     downloadBlob(mixedBlob, mixedExportFilename(project.name));
+    setProducerActionFeedback("export", "success");
     showToast("A versão Mixed foi exportada em WAV.");
   } catch (error) {
     console.error("Exportação Mixed falhou", error);
+    setProducerActionFeedback("export", "error", "Não foi possível preparar o WAV. Tenta novamente.");
     showToast("Não foi possível exportar o Mixed. Tenta novamente neste navegador.");
   }
 }

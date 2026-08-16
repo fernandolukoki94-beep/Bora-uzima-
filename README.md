@@ -168,3 +168,7 @@ Foram adicionados testes determinísticos para o preview de drum genérico, cana
 A timeline distingue explicitamente a proveniência de cada faixa. Tracks materializadas pelo **Producer Plan** apresentam o badge `Producer Plan`, uma borda violeta e uma descrição acessível que informa que a faixa foi gerada pelo plano. Tracks criadas ou editadas manualmente apresentam o badge `Manual`. A distinção é derivada dos metadados dos clips, não do nome visível, e permanece segura para reexecução e reload.
 
 A suite de QA desta iteração alcançou **115 testes aprovados e 0 falhas**. O indicador é apenas uma representação visual: não altera o áudio, o Mixdown, a persistência ou a propriedade dos clips.
+
+### Feedback de teste A/B e exportação
+
+As acções A/B e Exportar música têm feedback visual e acessível para os estados **a preparar**, **concluído** e **erro**. Durante a preparação, o controlo mostra um indicador de actividade e impede cliques duplicados; no sucesso, apresenta confirmação persistente até à próxima acção; em erro, comunica uma instrução de recuperação. A região `aria-live` mantém a informação disponível para tecnologias assistivas e o CSS respeita `prefers-reduced-motion`. A suite local passou a **118 testes aprovados e 0 falhas**.
