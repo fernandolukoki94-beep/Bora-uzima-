@@ -30,3 +30,8 @@ Nesta iteração, a aplicação **não muda ainda o armazenamento principal**. F
 ## Critérios de aceitação futuros
 
 A migração só será considerada pronta quando preservar takes originais e processadas, sobreviver a reload, não bloquear a interface, recuperar após falha de quota, manter os downloads WAV e passar testes físicos nos dois browsers móveis prioritários.
+
+
+## Adaptador experimental criado nesta iteração
+
+Foi criado `src/js/indexeddb-storage.js` com um object store `audio-blobs`, chaves separadas para `original` e `processed`, operações de leitura, escrita e remoção por projecto, e detecção explícita de indisponibilidade. O adaptador ainda não substitui `storage.js`: a aplicação continua a usar o caminho estável actual até existirem testes de migração lazy, quota, reload, modo privado, recuperação e compatibilidade física. Não há migração destrutiva nem remoção automática de dados do utilizador.

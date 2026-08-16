@@ -2,7 +2,7 @@ function writeAscii(view, offset, value) {
   for (let index = 0; index < value.length; index += 1) view.setUint8(offset + index, value.charCodeAt(index));
 }
 
-function audioBufferToWav(audioBuffer) {
+export function audioBufferToWav(audioBuffer) {
   const channels = audioBuffer.numberOfChannels;
   const sampleRate = audioBuffer.sampleRate;
   const frameCount = audioBuffer.length;
@@ -37,24 +37,59 @@ function audioBufferToWav(audioBuffer) {
   return new Blob([buffer], { type: "audio/wav" });
 }
 
-export async function applyGain(blob, gain = 1.4125) {
+export function getPeak(audioBuffer) {
+  let peak = 0;
+  for (let channel = 0; channel < audioBuffer.numberOfChannels; channel += 1) {
+    const samples = audioBuffer.getChannelData(channel);
+    for (let index = 0; index < samples.length; index += 1) peak = Math.max(peak, Math.abs(samples[index]));
+  }
+  return peak;
+}
+
+export function calculateSafeGain(audioBuffer, requestedGain = 1.4125, headroom = 0.98) {
+  const peak = getPeak(audioBuffer);
+  const safeGain = peak > 0 ? Math.min(requestedGain, headroom / peak) : requestedGain;
+  return { peak, requestedGain, appliedGain: safeGain, limited: safeGain < requestedGain };
+}
+
+function withDecodedAudio(blob, renderGraph) {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   const OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!AudioContextClass || !OfflineContextClass) throw new Error("Web Audio API indisponível");
+  return (async () => {
+    const audioContext = new AudioContextClass();
+    try {
+      const decoded = await audioContext.decodeAudioData(await blob.arrayBuffer());
+      const offline = new OfflineContextClass(decoded.numberOfChannels, decoded.length, decoded.sampleRate);
+      const source = offline.createBufferSource();
+      source.buffer = decoded;
+      renderGraph({ offline, source, decoded });
+      source.start(0);
+      return audioBufferToWav(await offline.startRendering());
+    } finally {
+      await audioContext.close();
+    }
+  })();
+}
 
-  const audioContext = new AudioContextClass();
-  try {
-    const decoded = await audioContext.decodeAudioData(await blob.arrayBuffer());
-    const offline = new OfflineContextClass(decoded.numberOfChannels, decoded.length, decoded.sampleRate);
-    const source = offline.createBufferSource();
+export function applyGain(blob, gain = 1.4125) {
+  return withDecodedAudio(blob, ({ offline, source, decoded }) => {
     const gainNode = offline.createGain();
-    source.buffer = decoded;
-    gainNode.gain.value = gain;
+    const { appliedGain } = calculateSafeGain(decoded, gain);
+    gainNode.gain.value = appliedGain;
     source.connect(gainNode).connect(offline.destination);
-    source.start(0);
-    const rendered = await offline.startRendering();
-    return audioBufferToWav(rendered);
-  } finally {
-    await audioContext.close();
-  }
+  });
+}
+
+export function applyFade(blob, fadeSeconds = 0.12) {
+  return withDecodedAudio(blob, ({ offline, source, decoded }) => {
+    const gainNode = offline.createGain();
+    const duration = decoded.duration;
+    const fade = Math.min(fadeSeconds, Math.max(0.01, duration / 2));
+    gainNode.gain.setValueAtTime(0, 0);
+    gainNode.gain.linearRampToValueAtTime(1, fade);
+    gainNode.gain.setValueAtTime(1, Math.max(fade, duration - fade));
+    gainNode.gain.linearRampToValueAtTime(0, duration);
+    source.connect(gainNode).connect(offline.destination);
+  });
 }

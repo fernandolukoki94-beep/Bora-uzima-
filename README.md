@@ -39,7 +39,7 @@ A versão publicada foi verificada com uma take sintética no navegador: reprodu
 
 A estrutura e as decisões desta iteração estão em [`docs/site-structure.md`](./docs/site-structure.md). O roadmap V2–V6 está em [`docs/product-roadmap.md`](./docs/product-roadmap.md), e a descrição técnica recomendada para currículo/portfólio está em [`docs/portfolio-description.md`](./docs/portfolio-description.md). O índice de QA está em [`docs/qa-index.md`](./docs/qa-index.md), com os relatórios detalhados em [`qa-web-findings.md`](./qa-web-findings.md) e [`qa-mobile-findings.md`](./qa-mobile-findings.md).
 
-As páginas `manutencao.html`, `python.html`, `redes.html` e `web.html` são legadas do portfólio anterior. Foram preservadas nesta fase para não quebrar links antigos, mas não representam funcionalidades do produto musical.
+As páginas `manutencao.html`, `python.html`, `redes.html` e `web.html` são legadas do portfólio anterior e foram movidas para [`legacy/`](./legacy/), com uma nota de contexto própria. Foram preservadas fora da raiz do produto musical para reduzir confusão no portfólio; qualquer redireccionamento externo deve ser validado antes de ser adicionado.
 
 ## Como testar localmente
 
@@ -69,7 +69,7 @@ O contrato proposto para uma futura assistência IA está em [`docs/ai-backend-c
 
 - **Frontend:** HTML5, CSS moderno e JavaScript sem dependências externas.
 - **Áudio:** MediaDevices API, MediaRecorder API e Web Audio API para ganho e fade locais experimentais.
-- **Persistência:** localStorage, com dados mantidos localmente por instalação/navegador.
+- **Persistência:** localStorage actualmente activo; adaptador IndexedDB experimental em `src/js/indexeddb-storage.js`, ainda não activado como armazenamento principal.
 - **Publicação:** GitHub Pages e Vercel, com alias público `fernando-lucoco-music.vercel.app`.
 
 ## Roadmap resumido
@@ -100,10 +100,10 @@ A gestão de áudio passou a distinguir explicitamente `originalAudioData` de `p
 
 O ganho +3 dB mede o pico antes da conversão PCM e aplica headroom/limitação para reduzir clipping. Esta protecção não substitui um limiter de masterização profissional. O pipeline visual foi renomeado conceptualmente para **simulação de produção**, porque `PROCESSING`, `MIXING`, `MASTERING` e `COMPLETED` continuam a representar estados de interface, não processamento avançado.
 
-Os achados completos estão em [`docs/evaluation-findings.md`](./docs/evaluation-findings.md) e a evidência deste ciclo está em [`qa-web-findings.md`](./qa-web-findings.md). O URL oficial de demonstração continua a ser [fernando-lucoco-music.vercel.app](https://fernando-lucoco-music.vercel.app/); o GitHub Pages é apenas uma alternativa estática documentada.
+Os achados completos estão em [`docs/evaluation-findings.md`](./docs/evaluation-findings.md) e a evidência deste ciclo está em [`qa-web-findings.md`](./qa-web-findings.md). O URL oficial de demonstração continua a ser [fernando-lucoco-music.vercel.app](https://fernando-lucoco-music.vercel.app/); o GitHub Pages é apenas uma alternativa estática documentada. A matriz de achados está em [`docs/evaluation-findings.md`](./docs/evaluation-findings.md), a checklist física em [`docs/mobile-physical-checklist.md`](./docs/mobile-physical-checklist.md) e os testes automáticos DSP em [`tests/dsp-validation.test.mjs`](./tests/dsp-validation.test.mjs).
 
 ## Ajuda de utilização e armazenamento
 
 A interface inclui agora uma faixa de ajuda junto ao workspace: autorizar o microfone, gravar uma take curta, ouvir o original, descarregar versões e compreender que o áudio fica local neste navegador. Em dispositivos móveis, o teste deve ser feito em HTTPS ou localhost, começando por uma take curta antes de bloquear o ecrã ou mudar de aplicação.
 
-O fluxo de take controlada foi verificado no preview local com áudio sintético: o original é preservado, o processamento é separado e os downloads WAV mantêm extensões coerentes. O teste com voz real continua a exigir um iPhone com Safari e um Android com Chrome. A avaliação de IndexedDB está em [`docs/storage-evaluation.md`](./docs/storage-evaluation.md); nesta iteração não houve migração destrutiva, porque a aplicação precisa primeiro de um adaptador assíncrono com fallback e testes de quota.
+O fluxo de take controlada foi verificado no preview local com áudio sintético: o original é preservado, o processamento é separado e os downloads WAV mantêm extensões coerentes. O teste com voz real continua a exigir um iPhone com Safari e um Android com Chrome. A avaliação de IndexedDB está em [`docs/storage-evaluation.md`](./docs/storage-evaluation.md); nesta iteração foi criado um adaptador experimental assíncrono com fallback, mas não houve migração destrutiva nem activação como armazenamento principal. A aplicação precisa primeiro de testes de quota, reload, modo privado, recuperação e compatibilidade física.

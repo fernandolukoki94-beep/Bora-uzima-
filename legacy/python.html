@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Curso de Python - BORA UZIMA. Data Science, Automação, Desenvolvimento de Software">
+    <meta name="keywords" content="python, programação, data science, automação, machine learning">
+    <meta name="author" content="BORA UZIMA">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Python - BORA UZIMA">
+    <meta property="og:description" content="Curso completo de Python para Data Science e Desenvolvimento">
+    <meta property="og:type" content="website">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23667eea'>🐍</text></svg>">
+    
+    <title>Python - BORA UZIMA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent: #f093fb;
+            --text-dark: #333;
+            --text-light: #666;
+            --bg-light: #f8f9fa;
+            --bg-white: #ffffff;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+        }
+
+        header {
+            background: var(--bg-white);
+            color: var(--text-dark);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        nav a {
+            color: var(--text-dark);
+            text-decoration: none;
+            margin-left: 2rem;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        .hero {
+            background: var(--bg-white);
+            padding: 4rem 0;
+            text-align: center;
+            margin: 2rem 0;
+            border-radius: 10px;
+            box-shadow: var(--shadow-lg);
+            animation: slideDown 0.6s ease-out;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+
+        .course-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .info-card {
+            background: var(--bg-light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .info-card strong {
+            color: var(--primary);
+            display: block;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .section {
+            background: var(--bg-white);
+            padding: 3rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        .section h3 {
+            color: var(--secondary);
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .module-card {
+            background: var(--bg-light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s;
+        }
+
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .module-number {
+            background: var(--primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .module-card h4 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .technologies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .tech-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .pricing {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .price-card {
+            background: var(--bg-light);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .price-card:hover {
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .price-card h4 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .price {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin: 1rem 0;
+            font-weight: bold;
+        }
+
+        .price small {
+            font-size: 1rem;
+            color: var(--text-light);
+        }
+
+        .features {
+            list-style: none;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+
+        .features li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .features li:before {
+            content: "✅ ";
+            color: var(--primary);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .faq {
+            margin: 2rem 0;
+        }
+
+        .faq-item {
+            background: var(--bg-light);
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary);
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-question:hover {
+            background: white;
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s;
+            padding: 0 1.5rem;
+        }
+
+        .faq-answer.active {
+            max-height: 500px;
+            padding: 1.5rem;
+        }
+
+        .faq-icon {
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+
+        .faq-icon.active {
+            transform: rotate(180deg);
+        }
+
+        footer {
+            background: var(--bg-white);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            nav a {
+                margin-left: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">🐍 BORA UZIMA</div>
+                <div>
+                    <a href="index.html">Voltar</a>
+                    <a href="index.html#inscricao">Inscrever-se</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero">
+                <h1>🐍 Python</h1>
+                <p>Domine a programação versátil mais procurada no mercado</p>
+                
+                <div class="course-info">
+                    <div class="info-card">
+                        <strong>10 Semanas</strong>
+                        Duração do curso
+                    </div>
+                    <div class="info-card">
+                        <strong>25h/semana</strong>
+                        Horas de aprendizado
+                    </div>
+                    <div class="info-card">
+                        <strong>100%</strong>
+                        Taxa de sucesso
+                    </div>
+                    <div class="info-card">
+                        <strong>Para Todos</strong>
+                        Nível: Iniciante a Avançado
+                    </div>
+                </div>
+
+                <button class="btn" onclick="document.location='index.html#inscricao'">Inscrever-se Agora</button>
+            </section>
+
+            <!-- Descrição do Curso -->
+            <section class="section">
+                <h2>📚 Sobre o Curso</h2>
+                <p>
+                    Python é a linguagem de programação mais versátil e procurada do mundo. Este curso transforma iniciantes em programadores profissionais 
+                    capazes de criar desde scripts de automação até sistemas complexos de análise de dados.
+                </p>
+                <p style="margin-top: 1rem;">
+                    Durante 10 semanas, aprendera programação orientada a objetos, manipulação de dados, automação e introdução a Machine Learning.
+                </p>
+            </section>
+
+            <!-- Módulos -->
+            <section class="section">
+                <h2>🎯 Módulos do Curso</h2>
+                <p>O curso está dividido em 5 módulos intensivos:</p>
+                
+                <div class="modules">
+                    <div class="module-card">
+                        <div class="module-number">1</div>
+                        <h4>Fundamentos Python</h4>
+                        <p>Sintaxe, tipos de dados, controle de fluxo, funções</p>
+                        <div class="technologies">
+                            <span class="tech-badge">Python Basics</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-number">2</div>
+                        <h4>POO em Python</h4>
+                        <p>Classes, objetos, herança, polimorfismo, encapsulamento</p>
+                        <div class="technologies">
+                            <span class="tech-badge">OOP</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-number">3</div>
+                        <h4>Manipulação de Dados</h4>
+                        <p>Pandas, NumPy, leitura de arquivos, análise básica</p>
+                        <div class="technologies">
+                            <span class="tech-badge">Pandas</span>
+                            <span class="tech-badge">NumPy</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-number">4</div>
+                        <h4>Automação & Scripts</h4>
+                        <p>Web scraping, automação de tarefas, APIs REST</p>
+                        <div class="technologies">
+                            <span class="tech-badge">BeautifulSoup</span>
+                            <span class="tech-badge">Requests</span>
+                        </div>
+                    </div>
+
+                    <div class="module-card">
+                        <div class="module-number">5</div>
+                        <h4>Intro a Machine Learning</h4>
+                        <p>Scikit-learn, regressão, classificação, visualização</p>
+                        <div class="technologies">
+                            <span class="tech-badge">Scikit-learn</span>
+                            <span class="tech-badge">Matplotlib</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tecnologias -->
+            <section class="section">
+                <h2>🛠️ Tecnologias Aprendidas</h2>
+                <div class="technologies" style="justify-content: center;">
+                    <span class="tech-badge">Python 3</span>
+                    <span class="tech-badge">Jupyter</span>
+                    <span class="tech-badge">Pandas</span>
+                    <span class="tech-badge">NumPy</span>
+                    <span class="tech-badge">Matplotlib</span>
+                    <span class="tech-badge">Scikit-learn</span>
+                    <span class="tech-badge">BeautifulSoup</span>
+                    <span class="tech-badge">Requests</span>
+                    <span class="tech-badge">Flask</span>
+                    <span class="tech-badge">Git</span>
+                </div>
+            </section>
+
+            <!-- Preços -->
+            <section class="section">
+                <h2>💰 Planos e Preços</h2>
+                
+                <div class="pricing">
+                    <div class="price-card">
+                        <h4>Plano Básico</h4>
+                        <div class="price">AOA 40,000 <small>/mês</small></div>
+                        <p>Acesso às aulas em vídeo</p>
+                        <ul class="features">
+                            <li>Vídeo aulas gravadas</li>
+                            <li>Material de referência</li>
+                            <li>Exercícios práticos</li>
+                            <li>Certificado de conclusão</li>
+                        </ul>
+                        <button class="btn" onclick="document.location='index.html#inscricao'" style="width: 100%;">Inscrever</button>
+                    </div>
+
+                    <div class="price-card">
+                        <h4>⭐ Plano Premium</h4>
+                        <div class="price">AOA 100,000 <small>/mês</small></div>
+                        <p>Tudo incluído + mentoria</p>
+                        <ul class="features">
+                            <li>Aulas ao vivo 3x/semana</li>
+                            <li>Mentoría individual</li>
+                            <li>Projetos práticos</li>
+                            <li>Code review detalhado</li>
+                            <li>Suporte prioritário</li>
+                            <li>Certificado profissional</li>
+                        </ul>
+                        <button class="btn" onclick="document.location='index.html#inscricao'" style="width: 100%;">Inscrever</button>
+                    </div>
+
+                    <div class="price-card">
+                        <h4>Plano Data Science</h4>
+                        <div class="price">AOA 150,000 <small>/mês</small></div>
+                        <p>Especialização em análise de dados</p>
+                        <ul class="features">
+                            <li>Todas do Premium</li>
+                            <li>Projeto de Data Science real</li>
+                            <li>Modelagem preditiva</li>
+                            <li>Portfolio project</li>
+                            <li>Job placement support</li>
+                        </ul>
+                        <button class="btn" onclick="document.location='index.html#inscricao'" style="width: 100%;">Inscrever</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="section">
+                <h2>❓ Perguntas Frequentes</h2>
+                
+                <div class="faq">
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            Python é fácil de aprender?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Sim! Python é conhecido por sua sintaxe simples e legível. É perfeito para iniciantes sem comprometer o poder para profissionais avançados.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            Qual é a diferença entre este curso e outros?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Este curso combina teoria e prática, com foco em projetos reais. Você trabalha em projectos desde o início e constrói um portfólio profissional.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            Posso trabalhar com Python como freelancer?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Absolutamente! Muitos freelancers ganham bem criando scripts de automação, web scraping, e análise de dados com Python.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            Qual salário posso esperar?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Um programador Python junior ganha entre AOA 250,000 a 450,000. Seniors podem ganhar muito mais, especialmente em Data Science.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            Devo aprender Python ou JavaScript primeiro?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Depende dos seus objetivos. Python é melhor para Data Science, automação e back-end. JavaScript para web front-end. Ideal aprender ambos!
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            Posso fazer este curso e depois Data Science?
+                            <span class="faq-icon">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Sim! Este curso é a base perfeita. Pode então especializar-se em Data Science, Machine Learning ou outros caminhos com Python.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Final -->
+            <section class="section" style="text-align: center; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white;">
+                <h2 style="color: white;">🚀 Comece sua Jornada com Python Hoje!</h2>
+                <p style="color: rgba(255,255,255,0.9); margin: 1rem 0;">
+                    Junte-se a centenas de alunos que estão transformando suas carreiras com Python!
+                </p>
+                <button class="btn" onclick="document.location='index.html#inscricao'" style="background: white; color: var(--primary);">Inscrever-se Agora</button>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p><strong>BORA UZIMA - Centro de Formação Profissional</strong></p>
+        <p>Email: info@borauzima.com | Telefone: +244 923-456-789</p>
+        <p>&copy; 2026 BORA UZIMA. Todos os direitos reservados.</p>
+    </footer>
+
+    <script>
+        function toggleFaq(element) {
+            const answer = element.nextElementSibling;
+            const icon = element.querySelector('.faq-icon');
+            
+            document.querySelectorAll('.faq-answer').forEach(item => {
+                if (item !== answer) {
+                    item.classList.remove('active');
+                    item.previousElementSibling.querySelector('.faq-icon').classList.remove('active');
+                }
+            });
+            
+            answer.classList.toggle('active');
+            icon.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

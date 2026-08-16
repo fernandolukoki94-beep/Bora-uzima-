@@ -6,12 +6,12 @@ export function updateProjectStatus(id, status, renderProjects) {
   renderProjects();
 }
 
-export function processProject(id, { renderProjects, showToast }) {
+export function simulateProductionPipeline(id, { renderProjects, showToast }) {
   const project = readProjects().find((item) => item.id === id);
   if (!project) return;
 
   updateProjectStatus(id, "PROCESSING · simulado", renderProjects);
-  showToast("Fluxo visual iniciado: análise vocal local simulada.");
+  showToast("Fluxo visual iniciado: pipeline de produção simulado; nenhum DSP foi aplicado.");
   window.setTimeout(() => updateProjectStatus(id, "MIXING · simulado", renderProjects), 1100);
   window.setTimeout(() => updateProjectStatus(id, "MASTERING · simulado", renderProjects), 2200);
   window.setTimeout(() => {

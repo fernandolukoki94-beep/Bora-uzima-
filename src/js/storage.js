@@ -21,8 +21,12 @@ export function blobToDataUrl(blob) {
   });
 }
 
-export function getFileExtension(mimeType) {
-  return mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
+export function getFileExtension(mimeType = "") {
+  const normalized = String(mimeType).toLowerCase();
+  if (normalized.includes("wav")) return "wav";
+  if (normalized.includes("mp4")) return "m4a";
+  if (normalized.includes("ogg")) return "ogg";
+  return "webm";
 }
 
 export function escapeHtml(value) {
