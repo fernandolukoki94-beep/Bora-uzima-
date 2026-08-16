@@ -19,8 +19,8 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Reprodução e descarregamento | Pronto | Takes novas podem ser reproduzidas e descarregadas no próprio navegador. |
 | Eliminação local | Pronto | Cada sessão pode ser apagada com confirmação explícita. |
 | Presets de produção | Pronto como interface visual | Natural é referência; Auto-Tune, Vocal brilhante/íntimo e direcções de género ficam marcados como intenção/em desenvolvimento e não processam o áudio. |
-| Efeito local de ganho | Pronto em V1 experimental | Aplica +3 dB com Web Audio API e exporta WAV PCM localmente; a take original é preservada até o utilizador aplicar o efeito. |
-| Processamento musical avançado | Não feito | O fluxo PROCESSING → MIXING → MASTERING continua a ser uma simulação visual; não existe ainda EQ, compressor, reverb, Auto-Tune, IA ou masterização. |
+| Efeitos locais de ganho e fade | Pronto em V1 experimental | Aplica +3 dB ou fade in/out com Web Audio API e exporta WAV PCM localmente; a take original é preservada até o utilizador aplicar o efeito. |
+| Processamento musical avançado | Não feito | O fluxo PROCESSING → MIXING → MASTERING continua a ser uma simulação visual; não existe ainda EQ, compressor, reverb, Auto-Tune, IA ou masterização. Ganho e fade são os únicos efeitos reais disponíveis. |
 | Upload e sincronização | Não feito | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
 
 ## Compatibilidade móvel web
@@ -31,7 +31,7 @@ A verificação automatizada foi executada no preview local com Chromium e confi
 
 ## QA verificado
 
-A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. O áudio sintético foi removido no final do teste. O detalhe dos testes está em [`qa-web-findings.md`](./qa-web-findings.md).
+A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. Também foram executados testes determinísticos do ganho +3 dB e do fade in/out, medindo RMS/atenuação e preservação do original. O áudio sintético foi removido no final do teste. O detalhe está em [`qa-web-findings.md`](./qa-web-findings.md).
 
 > Importante: estes estados são uma simulação honesta da experiência de produção. O projecto ainda não executa DSP, auto-tune, remoção de ruído, mixing, mastering ou IA reais.
 
@@ -63,16 +63,18 @@ A implementação mobile em `/home/ubuntu/bora-uzima-mobile` permanece separada 
 
 O produto é dirigido e desenvolvido por **Fernando Lucoco**. O nome técnico do repositório não foi alterado nesta fase para preservar o histórico do projecto original e os endereços já partilhados.
 
+O contrato proposto para uma futura assistência IA está em [`docs/ai-backend-contract.md`](./docs/ai-backend-contract.md). Ele define pedidos server-side apenas com metadados na primeira fase, autenticação futura, limites de payload, rate limiting, privacidade, estados de erro e a regra de que nenhuma credencial chega ao cliente.
+
 ## Stack actual
 
 - **Frontend:** HTML5, CSS moderno e JavaScript sem dependências externas.
-- **Áudio:** MediaDevices API, MediaRecorder API e Web Audio API para o ganho local experimental.
+- **Áudio:** MediaDevices API, MediaRecorder API e Web Audio API para ganho e fade locais experimentais.
 - **Persistência:** localStorage, com dados mantidos localmente por instalação/navegador.
 - **Publicação:** GitHub Pages e Vercel, com alias público `fernando-lucoco-music.vercel.app`.
 
 ## Roadmap resumido
 
-A versão web continua como prioridade. O primeiro efeito áudio real local já existe como ganho de +3 dB para WAV; o próximo marco é validar a operação com takes reais e criar testes de qualidade antes de adicionar efeitos DSP adicionais. O roadmap completo e os critérios de entrada estão em [`docs/product-roadmap.md`](./docs/product-roadmap.md).
+A versão web continua como prioridade. Os primeiros efeitos áudio reais locais — ganho de +3 dB e fade in/out para WAV — já existem; o próximo marco é validar ambos com takes reais e criar testes de qualidade antes de adicionar efeitos DSP adicionais. O roadmap completo e os critérios de entrada estão em [`docs/product-roadmap.md`](./docs/product-roadmap.md).
 
 ## Licença
 
@@ -91,3 +93,17 @@ A gravação e a reprodução continuam reais no navegador. Os estados `PROCESSI
 Não foi adicionada nenhuma chave OpenAI, Expo Dev ou token ao site. Essa decisão é intencional: credenciais no HTML ou JavaScript público ficam expostas. Uma futura integração IA deverá ser server-side, com variáveis de ambiente seguras, e só será activada depois de existir uma pipeline áudio real e testável. A análise está em [`docs/ai-integration.md`](./docs/ai-integration.md).
 
 A execução passo a passo do ficheiro está consolidada em [`docs/requirements-matrix.md`](./docs/requirements-matrix.md). A matriz distingue funcionalidades concluídas, validações que ainda exigem hardware físico e fases futuras como DSP, contas, cloud e IA.
+
+## Correcções da avaliação mais recente
+
+A gestão de áudio passou a distinguir explicitamente `originalAudioData` de `processedAudioData`. O download original conserva o formato de origem e o download processado usa a extensão correspondente ao MIME real, incluindo `audio/wav` e `audio/x-wav`. Os efeitos locais são aplicados sem apagar a gravação original, permitindo comparar e reprocessar a take.
+
+O ganho +3 dB mede o pico antes da conversão PCM e aplica headroom/limitação para reduzir clipping. Esta protecção não substitui um limiter de masterização profissional. O pipeline visual foi renomeado conceptualmente para **simulação de produção**, porque `PROCESSING`, `MIXING`, `MASTERING` e `COMPLETED` continuam a representar estados de interface, não processamento avançado.
+
+Os achados completos estão em [`docs/evaluation-findings.md`](./docs/evaluation-findings.md) e a evidência deste ciclo está em [`qa-web-findings.md`](./qa-web-findings.md). O URL oficial de demonstração continua a ser [fernando-lucoco-music.vercel.app](https://fernando-lucoco-music.vercel.app/); o GitHub Pages é apenas uma alternativa estática documentada.
+
+## Ajuda de utilização e armazenamento
+
+A interface inclui agora uma faixa de ajuda junto ao workspace: autorizar o microfone, gravar uma take curta, ouvir o original, descarregar versões e compreender que o áudio fica local neste navegador. Em dispositivos móveis, o teste deve ser feito em HTTPS ou localhost, começando por uma take curta antes de bloquear o ecrã ou mudar de aplicação.
+
+O fluxo de take controlada foi verificado no preview local com áudio sintético: o original é preservado, o processamento é separado e os downloads WAV mantêm extensões coerentes. O teste com voz real continua a exigir um iPhone com Safari e um Android com Chrome. A avaliação de IndexedDB está em [`docs/storage-evaluation.md`](./docs/storage-evaluation.md); nesta iteração não houve migração destrutiva, porque a aplicação precisa primeiro de um adaptador assíncrono com fallback e testes de quota.
