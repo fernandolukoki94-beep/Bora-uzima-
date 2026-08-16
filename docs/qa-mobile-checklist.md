@@ -4,6 +4,10 @@
 
 Validar a experiência web-first em dispositivos reais antes de promover o IndexedDB para fonte de leitura primária. Este documento não afirma compatibilidade perfeita; regista critérios reproduzíveis para Safari iOS e Chrome Android.
 
+## Preflight automático
+
+Antes de testar a gravação, abrir o diagnóstico local do projecto ou executar `runMobilePreflight(window)` na consola do navegador. Registar o resultado de MediaRecorder, AudioContext, OfflineAudioContext, IndexedDB, `mediaDevices.getUserMedia` e Blob URLs. Um preflight incompleto não reprova sozinho o dispositivo, mas exige registar a limitação e testar o fluxo alternativo correspondente.
+
 ## Safari iPhone
 
 | Área | Procedimento | Critério de aprovação |
@@ -29,4 +33,6 @@ Validar a experiência web-first em dispositivos reais antes de promover o Index
 
 ## Registo
 
-Para cada dispositivo, registar modelo, sistema operativo, navegador/versão, data, resultado de cada linha e mensagens visíveis. Não incluir áudio pessoal, tokens ou dados pessoais no relatório público. A promoção de IndexedDB só é recomendada se todos os critérios de persistência e recuperação passarem em ambos os ambientes; caso contrário, manter a leitura primária em localStorage e continuar a escrita dual.
+Para cada dispositivo, registar modelo, sistema operativo, navegador/versão, data, resultado do preflight e resultado de cada linha. Usar o seguinte formato: `Dispositivo | OS | navegador/versão | preflight | gravação | reprodução | interrupção | timeline | Mixer | Mixdown | persistência | observações`. Não incluir áudio pessoal, tokens ou dados pessoais no relatório público.
+
+A promoção de IndexedDB só é recomendada se todos os critérios de persistência e recuperação passarem em ambos os ambientes, sem perda silenciosa depois de reload, fechar/reabrir, quota reduzida ou modo privado. Caso contrário, manter a leitura primária em localStorage e continuar a escrita dual.
