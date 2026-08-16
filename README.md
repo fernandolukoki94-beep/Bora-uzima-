@@ -1,6 +1,6 @@
 # Fernando Lucoco Music
 
-**Fernando Lucoco Music** é um estúdio vocal web-first para transformar ideias em demos com um fluxo simples, claro e local-first. A primeira versão foi desenhada para funcionar directamente no navegador, sem custos externos e sem enviar áudio automaticamente para um servidor.
+**Fernando Lucoco Music** é um estúdio web local-first de gravação vocal e processamento áudio, construído com MediaRecorder e Web Audio API para transformar ideias em demos no navegador. A primeira versão funciona sem custos externos e sem enviar áudio automaticamente para um servidor.
 
 > A tua voz. A tua demo. O teu próximo take.
 
@@ -69,7 +69,7 @@ O contrato proposto para uma futura assistência IA está em [`docs/ai-backend-c
 
 - **Frontend:** HTML5, CSS moderno e JavaScript sem dependências externas.
 - **Áudio:** MediaDevices API, MediaRecorder API e Web Audio API para ganho e fade locais experimentais.
-- **Persistência:** localStorage actualmente activo; adaptador IndexedDB experimental em `src/js/indexeddb-storage.js`, ainda não activado como armazenamento principal.
+- **Persistência:** `localStorage` continua activo como fallback estável; o adaptador IndexedDB v2 em `src/js/indexeddb-storage.js` define stores para `projects`, `takes`, `blobs`, `metadata` e `effects`, mas ainda não está activado como armazenamento principal.
 - **Publicação:** GitHub Pages e Vercel, com alias público `fernando-lucoco-music.vercel.app`.
 
 ## Roadmap resumido
@@ -113,6 +113,6 @@ O fluxo de take controlada foi verificado no preview local com áudio sintético
 
 O repositório inclui agora `package.json` com o comando `npm test` e o workflow `.github/workflows/qa.yml`. A suite determinística executa cinco testes sem dependências externas: header e metadados WAV, medição de pico, limite seguro de ganho, silêncio sem mutação da entrada e ganho unitário sem clipping. Resultado local desta iteração: **5 testes, 5 passados, 0 falhas**.
 
-O adaptador IndexedDB continua experimental e preparado para blobs, enquanto `localStorage` permanece compatível como caminho estável. A migração principal ainda requer validação de quota, reload, fechar/reabrir, modo privado, armazenamento cheio, apagar e recuperar projecto. A checklist física para Chrome Android e Safari iPhone também continua pendente de execução num dispositivo real.
+O adaptador IndexedDB v2 continua experimental e preparado para projectos, takes, blobs, metadata e efeitos, enquanto `localStorage` permanece compatível como caminho estável. A migração principal ainda requer validação de quota, reload, fechar/reabrir, modo privado, armazenamento cheio, apagar e recuperar projecto. A checklist física para Chrome Android e Safari iPhone também continua pendente de execução num dispositivo real.
 
 A ordem de evolução mantém-se deliberadamente conservadora: IndexedDB e testes DSP, depois testes móveis reais, V1.1, fade, EQ, compressor e limiter; só depois backend/cloud, contas e eventual IA. Login, PostgreSQL, pagamentos e integração OpenAI não fazem parte desta fase.

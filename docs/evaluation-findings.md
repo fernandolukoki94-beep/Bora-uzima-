@@ -46,3 +46,23 @@ No Chrome Android, a checklist deve cobrir permitir/negar microfone, gravação 
 A ordem de evolução preservada é: V1 gravação, storage, playback e DSP simples; V2 EQ, compressor e reverb; depois backend, contas e cloud; só posteriormente V4/V5 IA. Não adicionar login, PostgreSQL, cloud, IA ou aplicação nativa antes de estabilizar a pipeline DSP local.
 
 A conclusão da avaliação é que o produto deve evoluir de um site de gravação para uma aplicação web de processamento de áudio com uma pequena pipeline DSP real, mantendo honestidade sobre mixing, mastering e IA ainda não concluídos.
+
+## Veredicto da avaliação complementar
+
+A avaliação confirma que a V1 já possui uma base forte de portfólio: MediaRecorder, Web Audio API, DSP inicial, WAV, persistência local, QA automatizado, modularização e CI. A prioridade seguinte não é adicionar IA: é fechar IndexedDB, testar recuperação e executar validação física em Android Chrome e iPhone Safari.
+
+### Ordem adoptada
+
+1. IndexedDB com `projects`, `takes`, `blobs`, `metadata` e `effects`.
+2. Testes de reload, fechar/reabrir, quota, armazenamento cheio, apagar, recuperar e modo privado.
+3. Teste físico real em Android Chrome e iPhone Safari; não declarar “mobile fully tested” antes da evidência.
+4. V1.1: fade, comparação original/processado, undo/reset e histórico de efeitos.
+5. DSP avançado: EQ, compressor, noise gate, reverb e limiter.
+6. Backend, contas e cloud apenas depois da V1 local estar comprovada.
+7. IA apenas quando existir uma necessidade concreta do produto.
+
+### Posicionamento público recomendado
+
+> Local-first vocal recording and audio-processing web studio built with Web Audio API.
+
+Este posicionamento é mais preciso do que apresentar o projecto apenas como um site de música e não afirma funcionalidades futuras como concluídas.

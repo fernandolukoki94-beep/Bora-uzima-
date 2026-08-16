@@ -35,3 +35,10 @@ A migração só será considerada pronta quando preservar takes originais e pro
 ## Adaptador experimental criado nesta iteração
 
 Foi criado `src/js/indexeddb-storage.js` com um object store `audio-blobs`, chaves separadas para `original` e `processed`, operações de leitura, escrita e remoção por projecto, e detecção explícita de indisponibilidade. O adaptador ainda não substitui `storage.js`: a aplicação continua a usar o caminho estável actual até existirem testes de migração lazy, quota, reload, modo privado, recuperação e compatibilidade física. Não há migração destrutiva nem remoção automática de dados do utilizador.
+
+
+## Adaptador IndexedDB v2
+
+O adaptador experimental foi ampliado para um schema de cinco stores: `projects`, `takes`, `blobs`, `metadata` e `effects`. A migração opcional `migrateLocalStorageProjects()` copia metadados e o estado original/processado para IndexedDB, sem apagar a fonte no `localStorage`. O schema está na versão 2 e mantém o caminho localStorage como fallback.
+
+A activação principal continua deliberadamente pendente. Antes de mudar o caminho padrão, ainda são necessários testes em browser para reload, fechar/reabrir, quota, modo privado, apagar, recuperar e falhas durante uma transacção. A migração deve ser iniciada por uma decisão explícita da aplicação, com confirmação de leitura e possibilidade de rollback lógico, não por uma escrita silenciosa.
