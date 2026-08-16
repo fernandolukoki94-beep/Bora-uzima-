@@ -18,7 +18,7 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Sessões locais | Pronto | Nome, tratamento vocal, género, duração, data e estado são guardados no `localStorage` deste navegador. |
 | Reprodução e descarregamento | Pronto | Takes novas podem ser reproduzidas e descarregadas no próprio navegador. |
 | Eliminação local | Pronto | Cada sessão pode ser apagada com confirmação explícita. |
-| Presets de produção | Pronto como interface | Inclui Natural, Auto-Tune leve/forte, Vocal brilhante/íntimo e géneros de produção. |
+| Presets de produção | Pronto como interface visual | Natural é referência; Auto-Tune, Vocal brilhante/íntimo e direcções de género ficam marcados como intenção/em desenvolvimento e não processam o áudio. |
 | Processamento musical real | Não feito | O fluxo PROCESSING → MIXING → MASTERING é apenas uma simulação visual local; nenhum DSP, IA ou masterização real foi executado. |
 | Upload e sincronização | Não feito | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
 
@@ -33,6 +33,12 @@ A verificação automatizada foi executada no preview local com Chromium e confi
 A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. O áudio sintético foi removido no final do teste. O detalhe dos testes está em [`qa-web-findings.md`](./qa-web-findings.md).
 
 > Importante: estes estados são uma simulação honesta da experiência de produção. O projecto ainda não executa DSP, auto-tune, remoção de ruído, mixing, mastering ou IA reais.
+
+## Documentação do projecto
+
+A estrutura e as decisões desta iteração estão em [`docs/site-structure.md`](./docs/site-structure.md). O roadmap V2–V6 está em [`docs/product-roadmap.md`](./docs/product-roadmap.md), e a descrição técnica recomendada para currículo/portfólio está em [`docs/portfolio-description.md`](./docs/portfolio-description.md). O índice de QA está em [`docs/qa-index.md`](./docs/qa-index.md), com os relatórios detalhados em [`qa-web-findings.md`](./qa-web-findings.md) e [`qa-mobile-findings.md`](./qa-mobile-findings.md).
+
+As páginas `manutencao.html`, `python.html`, `redes.html` e `web.html` são legadas do portfólio anterior. Foram preservadas nesta fase para não quebrar links antigos, mas não representam funcionalidades do produto musical.
 
 ## Como testar localmente
 
@@ -63,13 +69,9 @@ O produto é dirigido e desenvolvido por **Fernando Lucoco**. O nome técnico do
 - **Persistência:** localStorage, com dados mantidos localmente por instalação/navegador.
 - **Publicação:** GitHub Pages e Vercel, com alias público `fernando-lucoco-music.vercel.app`.
 
-## Roadmap
+## Roadmap resumido
 
-1. Testar reprodução, descarregamento e eliminação em Chrome, Safari iOS e Chrome Android.
-2. Substituir a simulação por um pipeline de áudio real apenas depois de definir processamento local ou backend sem custos inesperados.
-3. Implementar análise vocal e recomendações somente quando houver testes reais de pitch, timing, ruído e dinâmica.
-4. Publicar a versão estabilizada no Vercel e registar o URL público no portfólio.
-5. Retomar a versão mobile depois da experiência web cumprir os critérios de qualidade.
+A versão web continua como prioridade. O próximo marco técnico é um primeiro efeito áudio real, começando por operações locais simples e mensuráveis, antes de considerar backend, contas, cloud, IA ou colaboração. O roadmap completo e os critérios de entrada estão em [`docs/product-roadmap.md`](./docs/product-roadmap.md).
 
 ## Licença
 
