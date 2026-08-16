@@ -22,6 +22,12 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Processamento musical real | Não feito | O fluxo PROCESSING → MIXING → MASTERING é apenas uma simulação visual local; nenhum DSP, IA ou masterização real foi executado. |
 | Upload e sincronização | Não feito | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
 
+## QA verificado
+
+A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. O áudio sintético foi removido no final do teste. O detalhe dos testes está em [`qa-web-findings.md`](./qa-web-findings.md).
+
+> Importante: estes estados são uma simulação honesta da experiência de produção. O projecto ainda não executa DSP, auto-tune, remoção de ruído, mixing, mastering ou IA reais.
+
 ## Como testar localmente
 
 Clone o repositório e sirva a pasta com qualquer servidor HTTP local. O acesso ao microfone costuma exigir `localhost` ou HTTPS; abrir o ficheiro directamente pode impedir a permissão de gravação em alguns navegadores.
