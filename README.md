@@ -22,6 +22,12 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Processamento musical real | Não feito | O fluxo PROCESSING → MIXING → MASTERING é apenas uma simulação visual local; nenhum DSP, IA ou masterização real foi executado. |
 | Upload e sincronização | Não feito | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
 
+## Compatibilidade móvel web
+
+A interface foi optimizada para Safari iPhone e Chrome Android com alvos touch de pelo menos 44px, campos de entrada de 16px para evitar zoom involuntário, safe-area no aviso flutuante, cartões empilhados em ecrãs pequenos, reprodução `playsinline`/`webkit-playsinline`, pausa automática de outros players, fallback MIME (`audio/mp4` → `audio/webm` → `audio/ogg`) e mensagens específicas para permissões, HTTPS, microfone ausente e interrupção ao sair da página.
+
+A verificação automatizada foi executada no preview local com Chromium e confirmou markup, MIME candidates, reprodução, descarregamento, eliminação e limpeza de `localStorage`. **Ainda não afirmo compatibilidade perfeita em dispositivos físicos:** falta testar manualmente um iPhone com Safari e um Android com Chrome, incluindo permitir/negar microfone, bloquear o ecrã, voltar à aplicação e reproduzir uma take longa.
+
 ## QA verificado
 
 A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. O áudio sintético foi removido no final do teste. O detalhe dos testes está em [`qa-web-findings.md`](./qa-web-findings.md).
