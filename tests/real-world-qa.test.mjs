@@ -48,6 +48,19 @@ test("V2.1 completa preserva plano, clips, variantes e chega ao WAV após reload
   project = addClip(project, vocalId, { id: "voice-clip", blobKey: "voice", start: 0, duration: voice.duration, fadeIn: 0.02, fadeOut: 0.05 });
   const plan = buildProducerPlan({ genre: "Afrobeat", tempo: 102, key: "A minor", duration: voice.duration, brief: "Afrobeat com bass, guitarra, piano e drums" });
   project = materializeProducerPlan(project, plan, { duration: voice.duration });
+  const manualTrackId = project.tracks.find((track) => track.type === "instrument")?.id;
+  project = addClip(project, manualTrackId, {
+    id: "manual-piano-clip",
+    name: "Ideia manual",
+    type: "instrument",
+    start: 0,
+    duration: 1,
+    event: { instrument: "piano", manual: true },
+  });
+  project = materializeProducerPlan(project, plan, { duration: voice.duration });
+  const manualClip = project.tracks.flatMap((track) => track.clips).find((clip) => clip.id === "manual-piano-clip");
+  assert.ok(manualClip);
+  assert.equal(manualClip.event.manual, true);
   project = {
     ...project,
     audioVariants: {

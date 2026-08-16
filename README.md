@@ -172,3 +172,9 @@ A suite de QA desta iteração alcançou **115 testes aprovados e 0 falhas**. O 
 ### Feedback de teste A/B e exportação
 
 As acções A/B e Exportar música têm feedback visual e acessível para os estados **a preparar**, **concluído** e **erro**. Durante a preparação, o controlo mostra um indicador de actividade e impede cliques duplicados; no sucesso, apresenta confirmação persistente até à próxima acção; em erro, comunica uma instrução de recuperação. A região `aria-live` mantém a informação disponível para tecnologias assistivas e o CSS respeita `prefers-reduced-motion`. A suite local passou a **118 testes aprovados e 0 falhas**.
+
+### Marco E2E real V2.1
+
+A regressão ponta a ponta agora prova que uma sessão pode criar a gravação vocal, aplicar a análise e o Producer Plan, materializar clips na timeline, receber um clip manual, reaplicar o plano sem remover o clip manual, preservar as variantes vocais, chegar ao Mixdown e sobreviver à serialização/reload. Esta cobertura automatizada não substitui a validação física no Samsung Galaxy A06, Chrome Android e Safari iPhone; esses testes continuam explicitamente pendentes. A suite mantém **118 testes aprovados e 0 falhas**.
+
+O commit `9305105` misturou documentação e implementação por ter sido criado durante a sincronização da matriz V2.1. A partir daí, as alterações passaram a usar mensagens semânticas separadas, como `feat: integrate producer studio v2 flow` e `feat: add visual feedback for ab and export`, sem reescrever o histórico público.
