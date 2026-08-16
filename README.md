@@ -44,6 +44,8 @@ Esta V1 não afirma que um LLM faz Auto-Tune, masterização profissional ou ger
 
 A cadeia vocal reversível V2 está agora ligada ao fluxo principal: **Original** é a única fonte de processamento individual; **Enhanced** e **Pitch Corrected** são WAVs locais separados; **Mixed** é o resultado WAV do Mixdown da timeline. Cada variante recebe uma chave própria no IndexedDB (`original`, `enhanced`, `pitch-corrected`, `mixed`) e pode ser reproduzida ou descarregada sem substituir a gravação original. O campo legacy `Processada` continua apenas para compatibilidade com sessões antigas. Quando o Mixed existe, o cartão do projecto mostra também **Exportar Mixed WAV**, que cria um download local com o nome `<take>-mixed.wav`, sem enviar o áudio para um servidor.
 
+O painel **Producer Studio V2** unifica agora a experiência: **Gravar → Analisar → Producer Plan → Vocal → Mix → Master → A/B → Exportar**. Mostra BPM e tonalidade estimados, confiança heurística, permite editar BPM/tom, apresenta o estado do arranjo, vocal e Mixdown e oferece pré-escuta A/B do Original e Mixed. A etapa Master é apresentada honestamente como preparação local de headroom; não afirma mastering profissional externo nem IA.
+
 ## Transição V1 → V2
 
 A V1 funcional local está consolidada com os instrumentos existentes, Beat Maker, bass validado pelo utilizador, timeline, mixer, Mixdown e Producer Plan determinístico. A V2 deixa de adicionar instrumentos e passa a transformar uma voz gravada numa produção guiada: análise, instrução de produção, arranjo, melhoria vocal reversível, mix e master local. Os critérios, limites e ordem de implementação estão em [`docs/v1-v2-transition.md`](./docs/v1-v2-transition.md).
@@ -98,7 +100,7 @@ Abra `http://localhost:8000`, autorize o microfone e experimente uma take curta.
 pnpm test
 ```
 
-A suite actual terminou com **108 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, Cordas e Synth Pad locais, estados e recuperação do Producer Plan, interpretação determinística de briefs de produção, análise local de áudio com silêncio, pitch aproximado, BPM limitado, pitch correction assistida local, integração no Producer Plan e persistência/reset das variantes Enhanced, Pitch Corrected e Mixed. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
+A suite actual terminou com **111 testes aprovados, 0 falhas e 0 testes ignorados**. A cobertura inclui WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, Project Model, histórico, timeline, transport, sequencer, eventos de áudio, notas, quantização, presets, padrões de bateria, mixing engine, integração V1.1, renderer instrumental V1.2, bass e percussão melhorados, Cordas e Synth Pad locais, estados e recuperação do Producer Plan, interpretação determinística de briefs de produção, análise local de áudio com silêncio, pitch aproximado, BPM limitado, pitch correction assistida local, integração no Producer Plan e persistência/reset das variantes Enhanced, Pitch Corrected e Mixed. O bass possui agora um contrato específico de presença móvel com fundamental, corpo médio-grave e harmónico superior.
 
 ## Estado de QA e limites
 

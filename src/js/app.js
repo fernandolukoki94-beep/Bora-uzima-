@@ -13,6 +13,7 @@ import { getBeatPreset } from "./studio/instruments.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
 import { downloadBlob, mixedExportFilename } from "./export-audio.js";
+import { deriveProducerStudioState } from "./producer-studio-flow.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
   TRANSPORT_STATES,
@@ -81,6 +82,25 @@ const resetBeat = document.getElementById("reset-beat");
 const addChordTimeline = document.getElementById("add-chord-timeline");
 const addGuitarTimeline = document.getElementById("add-guitar-timeline");
 const addBeatTimeline = document.getElementById("add-beat-timeline");
+const producerStudioEmpty = document.getElementById("producer-studio-empty");
+const producerStudioContent = document.getElementById("producer-studio-content");
+const producerAnalysisTitle = document.getElementById("producer-analysis-title");
+const producerBpm = document.getElementById("producer-bpm");
+const producerKey = document.getElementById("producer-key");
+const producerConfidence = document.getElementById("producer-confidence");
+const producerBpmInput = document.getElementById("producer-bpm-input");
+const producerKeyInput = document.getElementById("producer-key-input");
+const producerGenre = document.getElementById("producer-genre");
+const producerBriefPreview = document.getElementById("producer-brief-preview");
+const producerRunPlan = document.getElementById("producer-run-plan");
+const producerSaveAnalysis = document.getElementById("producer-save-analysis");
+const producerPlanStatus = document.getElementById("producer-plan-status");
+const producerVocalStatus = document.getElementById("producer-vocal-status");
+const producerMixStatus = document.getElementById("producer-mix-status");
+const producerFinalStatus = document.getElementById("producer-final-status");
+const producerAbOriginal = document.getElementById("producer-ab-original");
+const producerAbMixed = document.getElementById("producer-ab-mixed");
+const producerExport = document.getElementById("producer-export");
 let activeTimelineId = null;
 let timelineHistory = null;
 let transportTimers = [];
@@ -169,6 +189,19 @@ function audioBlock(label, data, mimeType, projectName) {
   const safeLabel = escapeHtml(`${label} de ${projectName}`);
   const extension = getFileExtension(mimeType || "audio/webm");
   return `<div class="audio-version"><span>${escapeHtml(label)}</span><audio class="project-audio" controls preload="metadata" playsinline webkit-playsinline aria-label="Reproduzir ${safeLabel}" src="${escapeHtml(data)}"></audio><a class="mini-button" download="${escapeHtml(projectName)}-${extension === "wav" ? "processada" : "original"}.${extension}" href="${escapeHtml(data)}">Descarregar ${escapeHtml(label.toLowerCase())}</a></div>`;
+}
+
+let producerPreviewAudio = null;
+
+function playProducerPreview(variant) {
+  const project = currentTimelineProject();
+  const data = getVariantData(project, variant);
+  if (!data) return showToast(`${variant === "mixed" ? "Mixed" : "Original"} ainda não disponível.`);
+  producerPreviewAudio?.pause();
+  producerPreviewAudio = new Audio(data);
+  producerPreviewAudio.playsInline = true;
+  producerPreviewAudio.onended = () => { producerPreviewAudio = null; };
+  producerPreviewAudio.play().catch(() => showToast("O navegador bloqueou a pré-escuta. Toca primeiro num controlo de áudio."));
 }
 
 async function exportMixedVersion(id) {
@@ -420,9 +453,11 @@ async function runProducerPlan(id) {
       analysis = null;
     }
     const plan = buildProducerPlan({ genre: source.genre, tempo: source.tempo, key: source.key, duration: source.duration, brief: source.productionBrief || "", analysis, preferAnalysis: Boolean(analysis?.hasAudio) });
+    const analyzedProject = readProjects().map((item) => item.id === id ? { ...item, analysis, tempo: analysis?.bpm || item.tempo, key: analysis?.key || item.key } : item);
+    saveProjects(analyzedProject);
     if (!setProductionPhase(id, PRODUCTION_STATES.ARRANGING, "A criar arranjo local", 25, renderProjects)) return;
     await new Promise((resolve) => window.setTimeout(resolve, 0));
-    let next = applyProducerMix(normalizeProject(source), plan);
+    let next = applyProducerMix(normalizeProject(analyzedProject.find((item) => item.id === id) || source), plan);
     const clipDuration = Math.max(4, Math.min(16, Number(source.duration || 8)));
     const specs = producerPlanClipSpecs(plan, clipDuration);
     for (const [index, spec] of specs.entries()) {
@@ -451,10 +486,46 @@ function cancelProducerPlan(id) {
   cancelProduction(id, renderProjects, showToast);
 }
 
+function setProducerStage(id, done, active = false) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  node.classList.toggle("is-done", done);
+  node.classList.toggle("is-active", active);
+}
+
+function renderProducerStudio() {
+  const project = currentTimelineProject();
+  const state = deriveProducerStudioState(project);
+  if (producerStudioEmpty) producerStudioEmpty.hidden = state.hasProject;
+  if (producerStudioContent) producerStudioContent.hidden = !state.hasProject;
+  if (!state.hasProject) return;
+  const confidence = `${Math.round(state.confidence * 100)}%`;
+  if (producerAnalysisTitle) producerAnalysisTitle.textContent = state.hasAnalysis ? "Análise local disponível" : "Análise pendente — usa o Producer Plan";
+  if (producerBpm) producerBpm.textContent = String(state.bpm);
+  if (producerKey) producerKey.textContent = state.key;
+  if (producerConfidence) producerConfidence.textContent = state.hasAnalysis ? confidence : "não calculada";
+  if (producerBpmInput && document.activeElement !== producerBpmInput) producerBpmInput.value = state.bpm;
+  if (producerKeyInput && document.activeElement !== producerKeyInput) producerKeyInput.value = state.key;
+  if (producerGenre) producerGenre.textContent = state.genre;
+  if (producerBriefPreview) producerBriefPreview.textContent = state.brief;
+  if (producerRunPlan) producerRunPlan.disabled = state.processingState === PRODUCTION_STATES.PREPARING || state.processingState === PRODUCTION_STATES.ARRANGING || state.processingState === PRODUCTION_STATES.MIXING;
+  if (producerPlanStatus) producerPlanStatus.textContent = state.hasPlan ? (state.processingState === PRODUCTION_STATES.COMPLETED ? "Arranjo local concluído" : "Arranjo disponível na timeline") : "Ainda não aplicado";
+  if (producerVocalStatus) producerVocalStatus.textContent = state.hasVocal ? "Enhanced / Pitch Corrected disponíveis" : "Original preservado";
+  if (producerMixStatus) producerMixStatus.textContent = state.hasMix ? "Mixed WAV disponível" : "Aguardando Mixdown";
+  if (producerFinalStatus) producerFinalStatus.textContent = state.hasMix ? "Compara Original e Mixed antes de exportar." : "Cria um Mixed para comparar versões.";
+  if (producerAbMixed) producerAbMixed.disabled = !state.hasMix;
+  if (producerExport) producerExport.disabled = !state.hasMix;
+  setProducerStage("producer-stage-plan", state.hasPlan, state.processingState !== "IDLE" && !state.hasPlan);
+  setProducerStage("producer-stage-vocal", state.hasVocal);
+  setProducerStage("producer-stage-mix", state.hasMix);
+  setProducerStage("producer-stage-master", state.hasMaster);
+}
+
 function renderProjects() {
   const projects = readProjects();
   if (!projects.length) {
     list.innerHTML = '<div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div>';
+    renderProducerStudio();
     renderTimeline();
     return;
   }
@@ -504,6 +575,7 @@ function renderProjects() {
       : "";
     return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
+  renderProducerStudio();
   renderTimeline();
 }
 async function saveRecording({ blob, mimeType, seconds }) {
@@ -665,7 +737,34 @@ async function deleteProject(id) {
 
 const recorder = createRecorderController({ onStateChange: setRecordingUI, onComplete: saveRecording, showToast });
 
-list.addEventListener("click", (event) => {
+producerSaveAnalysis?.addEventListener("click", () => {
+  const project = currentTimelineProject();
+  if (!project) return showToast("Grava primeiro uma take para editar a análise.");
+  const bpm = Math.max(40, Math.min(240, Number(producerBpmInput?.value) || 100));
+  const key = producerKeyInput?.value || "C";
+  const updated = readProjects().map((item) => item.id === project.id ? {
+    ...item,
+    tempo: bpm,
+    key,
+    manualAnalysis: { ...(item.manualAnalysis || {}), bpm, key, source: "manual" },
+  } : item);
+  saveProjects(updated);
+  timelineHistory = createHistoryState(normalizeProject(updated.find((item) => item.id === project.id)));
+  renderProjects();
+  showToast(`Análise guardada: ${bpm} BPM · ${key}.`);
+});
+producerRunPlan?.addEventListener("click", () => {
+  const project = currentTimelineProject();
+  if (project) runProducerPlan(project.id);
+});
+producerAbOriginal?.addEventListener("click", () => playProducerPreview("original"));
+producerAbMixed?.addEventListener("click", () => playProducerPreview("mixed"));
+producerExport?.addEventListener("click", () => {
+  const project = currentTimelineProject();
+  if (project) exportMixedVersion(project.id);
+});
+
+list?.addEventListener("click", (event) => {
   const deleteButton = event.target.closest("[data-delete-id]");
   const processButton = event.target.closest("[data-process-id]");
   const cancelProcessButton = event.target.closest("[data-cancel-process-id]");

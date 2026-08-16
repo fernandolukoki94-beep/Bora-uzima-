@@ -84,6 +84,24 @@
           </div>
           <div class="workspace-panel"><div class="panel-heading"><div><h3>As tuas sessões</h3><p>Histórico local desta instalação.</p></div><button class="mini-button danger" id="clear-local-storage" type="button">Limpar dados locais</button></div><div class="storage-status" aria-live="polite"><span class="storage-dot" aria-hidden="true"></span><span id="storage-status">A verificar armazenamento local…</span></div><div class="project-list" id="project-list"><div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div></div></div>
         </div>
+        <section class="producer-studio" id="producer-studio" aria-label="Producer Studio V2">
+          <div class="producer-studio-head"><div><div class="section-kicker">Producer Studio V2</div><h3>Da gravação à música, num só fluxo.</h3><p>O produtor local organiza a análise, o arranjo, a voz, o mix e a exportação sem apagar a tua autoria.</p></div><span class="pill">Local-first</span></div>
+          <div id="producer-studio-empty" class="producer-empty">Grava uma take para activar o fluxo integrado.</div>
+          <div id="producer-studio-content" hidden>
+            <div class="producer-analysis-grid">
+              <div class="producer-analysis-card"><div class="section-kicker">01 · Análise local</div><strong id="producer-analysis-title">Aguardando análise</strong><div class="analysis-metrics"><span><b id="producer-bpm">—</b> BPM</span><span><b id="producer-key">—</b> tonalidade</span><span>confiança <b id="producer-confidence">—</b></span></div><p class="field-note">Estimativa heurística. Edita os valores quando conheceres melhor a música.</p><div class="analysis-edit"><label>BPM <input id="producer-bpm-input" type="number" min="40" max="240" step="1" /></label><label>Tom <select id="producer-key-input"><option>C</option><option>Am</option><option>Dm</option><option>G</option><option>F</option><option>Em</option></select></label><button class="mini-button" id="producer-save-analysis" type="button">Guardar análise</button></div></div>
+              <div class="producer-analysis-card"><div class="section-kicker">02 · Direcção</div><strong id="producer-genre">Demo vocal</strong><p id="producer-brief-preview">Escolhe um género e descreve a intenção na Nova sessão.</p><button class="mini-button" id="producer-run-plan" type="button">Aplicar Producer Plan</button></div>
+            </div>
+            <div class="producer-flow-grid" aria-label="Estados do Producer Studio">
+              <article class="producer-stage is-done" id="producer-stage-record"><span>03</span><strong>Gravação</strong><small id="producer-record-status">Original preservado</small></article>
+              <article class="producer-stage" id="producer-stage-plan"><span>04</span><strong>Producer Plan</strong><small id="producer-plan-status">Ainda não aplicado</small></article>
+              <article class="producer-stage" id="producer-stage-vocal"><span>05</span><strong>Vocal</strong><small id="producer-vocal-status">Original</small></article>
+              <article class="producer-stage" id="producer-stage-mix"><span>06</span><strong>Mix</strong><small id="producer-mix-status">Aguardando timeline</small></article>
+              <article class="producer-stage" id="producer-stage-master"><span>07</span><strong>Master</strong><small>Headroom local, sem prometer masterização externa</small></article>
+            </div>
+            <div class="producer-final-bar"><div><div class="section-kicker">08 · Ouvir e exportar</div><strong id="producer-final-status">Cria um Mixed para comparar versões.</strong></div><div class="producer-final-actions"><button class="mini-button" id="producer-ab-original" type="button">A/B Original</button><button class="mini-button" id="producer-ab-mixed" type="button" disabled>A/B Mixed</button><button class="mini-button primary" id="producer-export" type="button" disabled>Exportar música</button></div></div>
+          </div>
+        </section>
           <div class="studio-module-head"><span class="module-index">02</span><div><span class="section-kicker">Construir</span><strong>Instrumentos e groove</strong><span>Cria ideias locais e adiciona-as à timeline quando estiverem prontas.</span></div></div>
           <div class="instrument-panel" id="instrument-lab" aria-label="Instrument Lab local">
           <div class="panel-heading"><div><div class="section-kicker">Instrument Lab</div><h3>Ideias sem sair do navegador</h3><p>Pré-escuta local de notas, acordes e grooves — sem uploads e sem custos externos.</p></div><span class="pill">Web Audio local</span></div>
