@@ -3,9 +3,9 @@ import { bindPlayerEvents } from "./player.js";
 import { simulateProductionPipeline } from "./production.js";
 import { applyCompressor, applyFade, applyGain, applyNormalize } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
-import { addClip, addTrack, normalizeProject } from "./studio/project-model.js";
+import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
-import { deleteClip, duplicateClip } from "./studio/timeline.js";
+import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitClip, trimClip } from "./studio/timeline.js";
 import { playChord, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
@@ -43,6 +43,8 @@ const toast = document.getElementById("toast");
 const storageStatus = document.getElementById("storage-status");
 const clearStorageButton = document.getElementById("clear-local-storage");
 const timelineGrid = document.getElementById("timeline-grid");
+const mixerTracks = document.getElementById("mixer-tracks");
+const mixerHeadroom = document.getElementById("mixer-headroom");
 const addTrackButton = document.getElementById("add-track");
 const timelineUndoButton = document.getElementById("timeline-undo");
 const timelineRedoButton = document.getElementById("timeline-redo");
@@ -231,13 +233,28 @@ function renderTimeline() {
     const clips = track.clips.map((clip) => {
       const left = Math.min(92, Math.max(0, (clip.start / 40) * 100));
       const width = Math.max(8, Math.min(96 - left, (clip.duration / 40) * 100));
-      return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · <button class="mini-button" type="button" data-duplicate-clip="${escapeHtml(track.id)}:${escapeHtml(clip.id)}">Duplicar</button> <button class="mini-button danger" type="button" data-delete-clip="${escapeHtml(track.id)}:${escapeHtml(clip.id)}">Apagar</button></small></div>`;
+      const key = `${escapeHtml(track.id)}:${escapeHtml(clip.id)}`;
+      return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · ${clip.gain.toFixed(2)}x · offset ${clip.sourceOffset.toFixed(1)}s</small><div class="clip-actions"><button class="mini-button" type="button" data-clip-action="move-left" data-clip-key="${key}">←</button><button class="mini-button" type="button" data-clip-action="move-right" data-clip-key="${key}">→</button><button class="mini-button" type="button" data-clip-action="trim" data-clip-key="${key}">Trim</button><button class="mini-button" type="button" data-clip-action="split" data-clip-key="${key}">Split</button><button class="mini-button" type="button" data-clip-action="shorter" data-clip-key="${key}">−Len</button><button class="mini-button" type="button" data-clip-action="longer" data-clip-key="${key}">+Len</button><button class="mini-button" type="button" data-clip-action="fade" data-clip-key="${key}">Fade</button><button class="mini-button" type="button" data-clip-action="gain" data-clip-key="${key}">Gain</button><button class="mini-button" type="button" data-duplicate-clip="${key}">Duplicar</button><button class="mini-button danger" type="button" data-delete-clip="${key}">Apagar</button></div></div>`;
     }).join("");
     return `<div class="timeline-track"><div class="timeline-track-label">${escapeHtml(track.name)}<small>${escapeHtml(track.type)}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
   }).join("");
   if (timelineUndoButton) timelineUndoButton.disabled = !canUndo(timelineHistory);
   if (timelineRedoButton) timelineRedoButton.disabled = !canRedo(timelineHistory);
+  renderMixer(normalized);
   updateTransportUI();
+}
+function renderMixer(project) {
+  if (!mixerTracks) return;
+  if (!project?.tracks?.length) {
+    mixerTracks.innerHTML = '<div class="empty">Abre uma sessão para ver as tracks.</div>';
+    if (mixerHeadroom) mixerHeadroom.textContent = "Headroom 0 dB";
+    return;
+  }
+  mixerTracks.innerHTML = project.tracks.map((track) => `<div class="mixer-track" data-mixer-track="${escapeHtml(track.id)}"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label>Ganho <output>${Number(track.volume ?? 1).toFixed(2)}x</output><input type="range" min="0" max="2" step="0.01" value="${Number(track.volume ?? 1)}" data-mixer-field="volume" aria-label="Ganho de ${escapeHtml(track.name)}"></label><label>Pan <output>${Number(track.pan ?? 0).toFixed(2)}</output><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button></div></div>`).join("");
+  const active = project.tracks.filter((track) => !track.muted);
+  const estimatedPeak = active.reduce((sum, track) => sum + Number(track.volume ?? 1), 0);
+  const headroomDb = estimatedPeak > 0 ? 20 * Math.log10(Math.max(0.0001, 0.98 / estimatedPeak)) : 0;
+  if (mixerHeadroom) mixerHeadroom.textContent = `Headroom ${headroomDb.toFixed(1)} dB`;
 }
 async function commitTimelineProject(nextProject) {
   timelineHistory = commitHistory(timelineHistory, normalizeProject(nextProject));
@@ -472,13 +489,58 @@ list.addEventListener("click", (event) => {
   if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
 });
 
+mixerTracks?.addEventListener("input", (event) => {
+  const control = event.target.closest("[data-mixer-field]");
+  const trackNode = event.target.closest("[data-mixer-track]");
+  if (!control || !trackNode || !timelineHistory) return;
+  const field = control.dataset.mixerField;
+  if (field !== "volume" && field !== "pan") return;
+  const value = Number(control.value);
+  const trackId = trackNode.dataset.mixerTrack;
+  const track = timelineHistory.present.tracks.find((item) => item.id === trackId);
+  if (!track) return;
+  const next = updateTrack(timelineHistory.present, trackId, { [field]: field === "volume" ? Math.max(0, Math.min(2, value)) : Math.max(-1, Math.min(1, value)) });
+  commitTimelineProject(next);
+});
+mixerTracks?.addEventListener("click", (event) => {
+  const control = event.target.closest("[data-mixer-field]");
+  const trackNode = event.target.closest("[data-mixer-track]");
+  if (!control || !trackNode || !timelineHistory) return;
+  const field = control.dataset.mixerField;
+  if (field !== "muted" && field !== "solo") return;
+  const trackId = trackNode.dataset.mixerTrack;
+  const track = timelineHistory.present.tracks.find((item) => item.id === trackId);
+  if (track) commitTimelineProject(updateTrack(timelineHistory.present, trackId, { [field]: !track[field] }));
+});
+
 timelineGrid?.addEventListener("click", (event) => {
-  const duplicate = event.target.closest("[data-duplicate-clip]");
-  const remove = event.target.closest("[data-delete-clip]");
-  const action = duplicate || remove;
-  if (!action || !timelineHistory) return;
-  const [trackId, clipId] = action.dataset[duplicate ? "duplicateClip" : "deleteClip"].split(":");
-  const next = duplicate ? duplicateClip(timelineHistory.present, trackId, clipId) : deleteClip(timelineHistory.present, trackId, clipId);
+  const button = event.target.closest("button");
+  if (!button || !timelineHistory) return;
+  const [trackId, clipId] = (button.dataset.clipKey || button.dataset.duplicateClip || button.dataset.deleteClip || "").split(":");
+  if (!trackId || !clipId) return;
+  const actionName = button.dataset.clipAction;
+  let next = timelineHistory.present;
+  if (button.dataset.duplicateClip) next = duplicateClip(next, trackId, clipId);
+  else if (button.dataset.deleteClip) next = deleteClip(next, trackId, clipId);
+  else if (actionName === "move-left" || actionName === "move-right") {
+    const clip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+    next = moveClip(next, trackId, clipId, (clip?.start || 0) + (actionName === "move-right" ? 1 : -1));
+  } else if (actionName === "trim") {
+    const clip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+    next = trimClip(next, trackId, clipId, Math.min(0.5, Math.max(0, (clip?.duration || 1) - 0.1)), Math.max(0.1, (clip?.duration || 1) - 0.5));
+  } else if (actionName === "split") {
+    const clip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+    if (clip) next = splitClip(next, trackId, clipId, clip.start + clip.duration / 2);
+  } else if (actionName === "shorter" || actionName === "longer") {
+    const clip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+    if (clip) next = trimClip(next, trackId, clipId, 0, Math.max(0.1, clip.duration + (actionName === "longer" ? 0.5 : -0.5)));
+  } else if (actionName === "fade") {
+    const clip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+    if (clip) next = setClipFade(next, trackId, clipId, Math.min(clip.duration / 2, clip.fadeIn + 0.1), Math.min(clip.duration / 2, clip.fadeOut + 0.1));
+  } else if (actionName === "gain") {
+    const clip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+    if (clip) next = setClipGain(next, trackId, clipId, Math.min(2, clip.gain + 0.1));
+  } else return;
   commitTimelineProject(next);
 });
 addTrackButton?.addEventListener("click", () => {

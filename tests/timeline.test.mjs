@@ -31,12 +31,36 @@ test("divide um clip em duas partes com offsets correctos", () => {
   ]);
 });
 
+test("trim preserva a posição e avança apenas a origem", () => {
+  const { project, trackId } = fixture();
+  const trimmed = trimClip(project, trackId, "vocal-1", 3, 4);
+  assert.equal(trimmed.tracks[0].clips[0].start, 2);
+  assert.equal(trimmed.tracks[0].clips[0].duration, 4);
+  assert.equal(trimmed.tracks[0].clips[0].sourceOffset, 3);
+  assert.equal(project.tracks[0].clips[0].start, 2);
+  assert.equal(project.tracks[0].clips[0].sourceOffset, 0);
+});
+
+test("múltiplos splits preservam a continuidade da fonte", () => {
+  const { project, trackId } = fixture();
+  const first = splitClip(project, trackId, "vocal-1", 5);
+  const second = splitClip(first, trackId, "vocal-1-b", 9);
+  assert.deepEqual(second.tracks[0].clips.map(({ start, duration, sourceOffset }) => ({ start, duration, sourceOffset })), [
+    { start: 2, duration: 3, sourceOffset: 0 },
+    { start: 5, duration: 4, sourceOffset: 3 },
+    { start: 9, duration: 3, sourceOffset: 7 },
+  ]);
+  assert.equal(project.tracks[0].clips.length, 1);
+});
+
 test("duplica, corta e apaga clips sem afectar o original", () => {
   const { project, trackId } = fixture();
   const duplicated = duplicateClip(project, trackId, "vocal-1", 1);
   assert.equal(duplicated.tracks[0].clips.length, 2);
   const trimmed = trimClip(duplicated, trackId, "vocal-1", 2, 4);
-  assert.deepEqual(trimmed.tracks[0].clips[0], { ...trimmed.tracks[0].clips[0], start: 4, duration: 4, sourceOffset: 2 });
+  assert.equal(trimmed.tracks[0].clips[0].start, 2);
+  assert.equal(trimmed.tracks[0].clips[0].duration, 4);
+  assert.equal(trimmed.tracks[0].clips[0].sourceOffset, 2);
   const deleted = deleteClip(trimmed, trackId, "vocal-1");
   assert.equal(deleted.tracks[0].clips.length, 1);
   assert.equal(project.tracks[0].clips.length, 1);

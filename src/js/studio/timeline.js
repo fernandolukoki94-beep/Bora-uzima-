@@ -84,6 +84,6 @@ export function trimClip(project, trackId, clipId, startOffset, duration) {
     const offset = Math.max(0, Number(startOffset) || 0);
     const maxDuration = Math.max(0, clip.duration - offset);
     const nextDuration = Math.max(0, Math.min(maxDuration, Number(duration) || maxDuration));
-    return [{ ...clip, sourceOffset: clip.sourceOffset + offset, start: clip.start + offset, duration: nextDuration }];
+    return [{ ...clip, sourceOffset: clip.sourceOffset + offset, duration: nextDuration }];
   });
 }
