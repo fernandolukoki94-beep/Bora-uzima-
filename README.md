@@ -19,7 +19,8 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Reprodução e descarregamento | Pronto | Takes novas podem ser reproduzidas e descarregadas no próprio navegador. |
 | Eliminação local | Pronto | Cada sessão pode ser apagada com confirmação explícita. |
 | Presets de produção | Pronto como interface visual | Natural é referência; Auto-Tune, Vocal brilhante/íntimo e direcções de género ficam marcados como intenção/em desenvolvimento e não processam o áudio. |
-| Processamento musical real | Não feito | O fluxo PROCESSING → MIXING → MASTERING é apenas uma simulação visual local; nenhum DSP, IA ou masterização real foi executado. |
+| Efeito local de ganho | Pronto em V1 experimental | Aplica +3 dB com Web Audio API e exporta WAV PCM localmente; a take original é preservada até o utilizador aplicar o efeito. |
+| Processamento musical avançado | Não feito | O fluxo PROCESSING → MIXING → MASTERING continua a ser uma simulação visual; não existe ainda EQ, compressor, reverb, Auto-Tune, IA ou masterização. |
 | Upload e sincronização | Não feito | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
 
 ## Compatibilidade móvel web
@@ -54,7 +55,7 @@ Depois, abra `http://localhost:8000`, autorize o microfone e use a secção **O 
 
 ## Direcção de produto
 
-O projecto segue uma estratégia **web-first**. Primeiro estabiliza-se a experiência de gravação e gestão local em Chrome, Safari e navegadores móveis; depois entram reprodução das takes, presets visuais de produção, exportação e sincronização opcional. Só após essa validação será retomada a transformação numa aplicação nativa para Android e iOS.
+O projecto segue uma estratégia **web-first**. A V1 já inclui gravação, gestão local, reprodução e um primeiro ganho experimental local exportado como WAV. O próximo ciclo deve validar esse efeito com áudio real e depois evoluir para uma pipeline DSP testável, antes de considerar backend, contas, cloud, IA ou colaboração. Só após essa validação será retomada a transformação numa aplicação nativa para Android e iOS.
 
 A implementação mobile em `/home/ubuntu/bora-uzima-mobile` permanece separada e em espera. Ela não substitui a experiência web pública e conserva o histórico técnico da primeira exploração com Expo/React Native.
 
@@ -65,13 +66,13 @@ O produto é dirigido e desenvolvido por **Fernando Lucoco**. O nome técnico do
 ## Stack actual
 
 - **Frontend:** HTML5, CSS moderno e JavaScript sem dependências externas.
-- **Áudio:** MediaDevices API e MediaRecorder API do navegador.
+- **Áudio:** MediaDevices API, MediaRecorder API e Web Audio API para o ganho local experimental.
 - **Persistência:** localStorage, com dados mantidos localmente por instalação/navegador.
 - **Publicação:** GitHub Pages e Vercel, com alias público `fernando-lucoco-music.vercel.app`.
 
 ## Roadmap resumido
 
-A versão web continua como prioridade. O próximo marco técnico é um primeiro efeito áudio real, começando por operações locais simples e mensuráveis, antes de considerar backend, contas, cloud, IA ou colaboração. O roadmap completo e os critérios de entrada estão em [`docs/product-roadmap.md`](./docs/product-roadmap.md).
+A versão web continua como prioridade. O primeiro efeito áudio real local já existe como ganho de +3 dB para WAV; o próximo marco é validar a operação com takes reais e criar testes de qualidade antes de adicionar efeitos DSP adicionais. O roadmap completo e os critérios de entrada estão em [`docs/product-roadmap.md`](./docs/product-roadmap.md).
 
 ## Licença
 
@@ -80,3 +81,13 @@ Este projecto é disponibilizado sob a licença MIT.
 ---
 
 **Fernando Lucoco Music · 2026**
+
+## Actualização de arquitectura e IA segura
+
+Nesta iteração, o estúdio deixou de concentrar toda a lógica áudio num único ficheiro. O browser carrega agora módulos separados para `recorder`, `storage`, `player`, `production` e o orquestrador `app`, mantendo a interface e o fluxo local existentes.
+
+A gravação e a reprodução continuam reais no navegador. Os estados `PROCESSING`, `MIXING` e `MASTERING` continuam explicitamente visuais; ainda não existe DSP, Auto-Tune, mixagem, masterização ou IA aplicada ao áudio.
+
+Não foi adicionada nenhuma chave OpenAI, Expo Dev ou token ao site. Essa decisão é intencional: credenciais no HTML ou JavaScript público ficam expostas. Uma futura integração IA deverá ser server-side, com variáveis de ambiente seguras, e só será activada depois de existir uma pipeline áudio real e testável. A análise está em [`docs/ai-integration.md`](./docs/ai-integration.md).
+
+A execução passo a passo do ficheiro está consolidada em [`docs/requirements-matrix.md`](./docs/requirements-matrix.md). A matriz distingue funcionalidades concluídas, validações que ainda exigem hardware físico e fases futuras como DSP, contas, cloud e IA.
