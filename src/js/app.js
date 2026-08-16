@@ -1,8 +1,13 @@
 import { blobToDataUrl, escapeHtml, getFileExtension, makeProjectId, readProjects, saveProjects } from "./storage.js";
 import { bindPlayerEvents } from "./player.js";
 import { simulateProductionPipeline } from "./production.js";
-import { applyFade, applyGain } from "./effects.js";
+import { applyCompressor, applyFade, applyGain, applyNormalize } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
+import { addTrack, normalizeProject } from "./studio/project-model.js";
+import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
+import { deleteClip, duplicateClip } from "./studio/timeline.js";
+import { playChord, playNote, playPattern } from "./studio/audio-engine.js";
+import { getBeatPreset } from "./studio/instruments.js";
 import {
   clearLocalStudioData,
   deleteProjectData,
@@ -13,6 +18,7 @@ import {
   putEffect,
   putProject,
   putTake,
+  resetProjectEffects,
 } from "./indexeddb-storage.js";
 
 const heroRecord = document.getElementById("hero-record");
@@ -26,6 +32,36 @@ const genreInput = document.getElementById("genre");
 const toast = document.getElementById("toast");
 const storageStatus = document.getElementById("storage-status");
 const clearStorageButton = document.getElementById("clear-local-storage");
+const timelineGrid = document.getElementById("timeline-grid");
+const addTrackButton = document.getElementById("add-track");
+const timelineUndoButton = document.getElementById("timeline-undo");
+const timelineRedoButton = document.getElementById("timeline-redo");
+const projectTempo = document.getElementById("project-tempo");
+const projectKey = document.getElementById("project-key");
+const transportPlay = document.getElementById("transport-play");
+const transportStatus = document.getElementById("transport-status");
+const keyboardNotes = document.getElementById("keyboard-notes");
+const chordSelect = document.getElementById("chord-select");
+const playChordButton = document.getElementById("play-chord");
+const patternSelect = document.getElementById("pattern-select");
+const playPatternButton = document.getElementById("play-pattern");
+const guitarChords = document.getElementById("guitar-chords");
+const pianoRoll = document.getElementById("piano-roll");
+const beatGrid = document.getElementById("beat-grid");
+const beatPreset = document.getElementById("beat-preset");
+const applyBeatPreset = document.getElementById("apply-beat-preset");
+const playBeatSequence = document.getElementById("play-beat-sequence");
+const resetBeat = document.getElementById("reset-beat");
+let activeTimelineId = null;
+let timelineHistory = null;
+let transportTimer = null;
+if (pianoRoll) {
+  pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
+}
+if (beatGrid) {
+  const channels = ["kick", "snare", "clap", "hihat", "percussion", "bass"];
+  beatGrid.innerHTML = channels.map((channel) => `<div class="beat-row"><span class="beat-label">${channel}</span>${Array.from({ length: 16 }, (_, step) => `<button class="beat-step" type="button" data-beat-channel="${channel}" data-beat-step="${step}" aria-label="${channel} passo ${step + 1}"></button>`).join("")}</div>`).join("");
+}
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
@@ -64,10 +100,53 @@ function audioBlock(label, data, mimeType, projectName) {
   return `<div class="audio-version"><span>${escapeHtml(label)}</span><audio class="project-audio" controls preload="metadata" playsinline webkit-playsinline aria-label="Reproduzir ${safeLabel}" src="${escapeHtml(data)}"></audio><a class="mini-button" download="${escapeHtml(projectName)}-${extension === "wav" ? "processada" : "original"}.${extension}" href="${escapeHtml(data)}">Descarregar ${escapeHtml(label.toLowerCase())}</a></div>`;
 }
 
+function currentTimelineProject() {
+  const projects = readProjects();
+  return projects.find((project) => project.id === activeTimelineId) || projects[0] || null;
+}
+function syncTimelineHistory(project) {
+  if (!project) { activeTimelineId = null; timelineHistory = null; return; }
+  if (activeTimelineId !== project.id || !timelineHistory) {
+    activeTimelineId = project.id;
+    timelineHistory = createHistoryState(normalizeProject(project));
+  }
+}
+function renderTimeline() {
+  if (!timelineGrid) return;
+  const project = currentTimelineProject();
+  syncTimelineHistory(project);
+  if (!project) {
+    timelineGrid.innerHTML = '<div class="empty">Grava uma take para abrir a timeline da sessão.</div>';
+    if (timelineUndoButton) timelineUndoButton.disabled = true;
+    if (timelineRedoButton) timelineRedoButton.disabled = true;
+    return;
+  }
+  const normalized = timelineHistory.present;
+  if (projectTempo) projectTempo.value = normalized.tempo;
+  if (projectKey) projectKey.value = normalized.key;
+  timelineGrid.innerHTML = normalized.tracks.map((track) => {
+    const clips = track.clips.map((clip) => {
+      const left = Math.min(92, Math.max(0, (clip.start / 40) * 100));
+      const width = Math.max(8, Math.min(96 - left, (clip.duration / 40) * 100));
+      return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · <button class="mini-button" type="button" data-duplicate-clip="${escapeHtml(track.id)}:${escapeHtml(clip.id)}">Duplicar</button> <button class="mini-button danger" type="button" data-delete-clip="${escapeHtml(track.id)}:${escapeHtml(clip.id)}">Apagar</button></small></div>`;
+    }).join("");
+    return `<div class="timeline-track"><div class="timeline-track-label">${escapeHtml(track.name)}<small>${escapeHtml(track.type)}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
+  }).join("");
+  if (timelineUndoButton) timelineUndoButton.disabled = !canUndo(timelineHistory);
+  if (timelineRedoButton) timelineRedoButton.disabled = !canRedo(timelineHistory);
+}
+async function commitTimelineProject(nextProject) {
+  timelineHistory = commitHistory(timelineHistory, normalizeProject(nextProject));
+  const projects = readProjects().map((project) => project.id === activeTimelineId ? timelineHistory.present : project);
+  saveProjects(projects);
+  try { if (await indexedDbAvailable()) await putProject(timelineHistory.present); } catch { showToast("A edição ficou no fallback local; IndexedDB será tentado novamente."); }
+  renderProjects();
+}
 function renderProjects() {
   const projects = readProjects();
   if (!projects.length) {
     list.innerHTML = '<div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div>';
+    renderTimeline();
     return;
   }
   list.innerHTML = projects.map((project) => {
@@ -89,16 +168,28 @@ function renderProjects() {
     const fade = originalData && !project.fadeApplied
       ? `<button class="mini-button" type="button" data-fade-id="${escapeHtml(project.id)}">Fade in/out real</button>`
       : "";
-    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${legacyNotice}</div><div class="project-actions">${gain}${fade}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
-  }).join("");
+    const normalize = originalData && !project.normalizeApplied
+      ? `<button class="mini-button" type="button" data-normalize-id="${escapeHtml(project.id)}">Normalizar 0.95</button>`
+      : "";
+    const compressor = originalData && !project.compressorApplied
+      ? `<button class="mini-button" type="button" data-compressor-id="${escapeHtml(project.id)}">Compressor local</button>`
+      : "";
+    const resetEffects = processedData
+      ? `<button class="mini-button" type="button" data-reset-effects-id="${escapeHtml(project.id)}">Repor original</button>`
+      : "";
+    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${legacyNotice}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    }).join("");
+  renderTimeline();
 }
-
 async function saveRecording({ blob, mimeType, seconds }) {
   const name = nameInput.value.trim() || `Take ${String(readProjects().length + 1).padStart(2, "0")}`;
   const originalAudioData = await blobToDataUrl(blob);
-  const project = {
-    id: makeProjectId(),
+  const projectId = makeProjectId();
+  const project = normalizeProject({
+    id: projectId,
     name,
+    tempo: 100,
+    key: "C",
     preset: presetInput.value,
     genre: genreInput.value,
     duration: seconds,
@@ -111,7 +202,7 @@ async function saveRecording({ blob, mimeType, seconds }) {
     originalAudioData,
     processedAudioData: null,
     processedMimeType: null,
-  };
+  });
   try {
     const projects = readProjects();
     projects.unshift(project);
@@ -186,6 +277,37 @@ function applyLocalGain(id) {
 function applyLocalFade(id) {
   return applyLocalEffect(id, "fadeApplied", applyFade, "Fade in/out aplicado localmente. Original e processada estão separados.");
 }
+function applyLocalNormalize(id) {
+  return applyLocalEffect(id, "normalizeApplied", applyNormalize, "Normalização local aplicada com headroom. Original preservado.");
+}
+function applyLocalCompressor(id) {
+  return applyLocalEffect(id, "compressorApplied", applyCompressor, "Compressor local aplicado. Original e processada estão separados.");
+}
+
+async function resetEffects(id) {
+  const project = readProjects().find((item) => item.id === id);
+  if (!project?.processedAudioData) return;
+  const updated = readProjects().map((item) => item.id === id ? {
+    ...item,
+    processedAudioData: null,
+    processedMimeType: null,
+    processedBytes: 0,
+    effectApplied: null,
+    fadeApplied: null,
+    normalizeApplied: null,
+    compressorApplied: null,
+    status: "Original recuperado",
+  } : item);
+  saveProjects(updated);
+  try {
+    if (await indexedDbAvailable()) await resetProjectEffects(id);
+  } catch {
+    showToast("O original foi reposto localmente; a limpeza IndexedDB será tentada novamente.");
+  }
+  renderProjects();
+  await refreshStorageStatus();
+  showToast("Original recuperado; nenhum áudio guardado foi apagado.");
+}
 
 async function deleteProject(id) {
   const project = readProjects().find((item) => item.id === id);
@@ -208,12 +330,122 @@ list.addEventListener("click", (event) => {
   const processButton = event.target.closest("[data-process-id]");
   const gainButton = event.target.closest("[data-gain-id]");
   const fadeButton = event.target.closest("[data-fade-id]");
+  const normalizeButton = event.target.closest("[data-normalize-id]");
+  const compressorButton = event.target.closest("[data-compressor-id]");
+  const resetEffectsButton = event.target.closest("[data-reset-effects-id]");
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
   if (processButton) simulateProductionPipeline(processButton.dataset.processId, { renderProjects, showToast });
   if (gainButton) applyLocalGain(gainButton.dataset.gainId);
   if (fadeButton) applyLocalFade(fadeButton.dataset.fadeId);
+  if (normalizeButton) applyLocalNormalize(normalizeButton.dataset.normalizeId);
+  if (compressorButton) applyLocalCompressor(compressorButton.dataset.compressorId);
+  if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
 });
 
+timelineGrid?.addEventListener("click", (event) => {
+  const duplicate = event.target.closest("[data-duplicate-clip]");
+  const remove = event.target.closest("[data-delete-clip]");
+  const action = duplicate || remove;
+  if (!action || !timelineHistory) return;
+  const [trackId, clipId] = action.dataset[duplicate ? "duplicateClip" : "deleteClip"].split(":");
+  const next = duplicate ? duplicateClip(timelineHistory.present, trackId, clipId) : deleteClip(timelineHistory.present, trackId, clipId);
+  commitTimelineProject(next);
+});
+addTrackButton?.addEventListener("click", () => {
+  const project = currentTimelineProject();
+  if (!project || !timelineHistory) return showToast("Grava primeiro uma take para criar tracks.");
+  const name = window.prompt("Nome da nova track", `Track ${timelineHistory.present.tracks.length + 1}`)?.trim();
+  if (name) commitTimelineProject(addTrack(timelineHistory.present, { name, type: "audio" }));
+});
+timelineUndoButton?.addEventListener("click", () => {
+  if (!timelineHistory || !canUndo(timelineHistory)) return;
+  timelineHistory = undoHistory(timelineHistory);
+  saveProjects(readProjects().map((project) => project.id === activeTimelineId ? timelineHistory.present : project));
+  renderProjects();
+});
+timelineRedoButton?.addEventListener("click", () => {
+  if (!timelineHistory || !canRedo(timelineHistory)) return;
+  timelineHistory = redoHistory(timelineHistory);
+  saveProjects(readProjects().map((project) => project.id === activeTimelineId ? timelineHistory.present : project));
+  renderProjects();
+});
+projectTempo?.addEventListener("change", () => {
+  if (!timelineHistory) return;
+  const tempo = Math.max(40, Math.min(240, Number(projectTempo.value) || 100));
+  commitTimelineProject({ ...timelineHistory.present, tempo });
+});
+projectKey?.addEventListener("change", () => {
+  if (!timelineHistory) return;
+  commitTimelineProject({ ...timelineHistory.present, key: projectKey.value });
+});
+transportPlay?.addEventListener("click", () => {
+  const playing = transportPlay.dataset.playing === "true";
+  transportPlay.dataset.playing = String(!playing);
+  transportPlay.textContent = playing ? "▶ Reproduzir sessão" : "■ Parar sessão";
+  if (transportStatus) transportStatus.textContent = playing ? "Parado" : "Pré-escuta local";
+  if (transportTimer) window.clearTimeout(transportTimer);
+  if (!playing) transportTimer = window.setTimeout(() => { transportPlay.click(); }, 5000);
+});
+keyboardNotes?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-note]");
+  if (!button) return;
+  try { await playNote(button.dataset.note); } catch (error) { showToast(error.message); }
+});
+playChordButton?.addEventListener("click", async () => {
+  try { await playChord(chordSelect?.value || "C"); } catch (error) { showToast(error.message); }
+});
+guitarChords?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-guitar-chord]");
+  if (!button) return;
+  try { await playChord(button.dataset.guitarChord, { type: "sawtooth", duration: 0.65, volume: 0.1 }); } catch (error) { showToast(error.message); }
+});
+function resetBeatGrid() {
+  beatGrid?.querySelectorAll(".beat-step.is-active").forEach((button) => button.classList.remove("is-active"));
+}
+function applyBeatGridPreset(name = beatPreset?.value || "Afrobeat") {
+  const preset = getBeatPreset(name);
+  resetBeatGrid();
+  Object.entries(preset.channels).forEach(([channel, steps]) => steps.forEach((step) => {
+    beatGrid?.querySelector(`[data-beat-channel="${channel}"][data-beat-step="${step}"]`)?.classList.add("is-active");
+  }));
+  if (projectTempo) projectTempo.value = String(preset.bpm);
+  return preset;
+}
+applyBeatPreset?.addEventListener("click", () => {
+  const preset = applyBeatGridPreset();
+  showToast(`Preset ${preset.name} aplicado a ${preset.bpm} BPM.`);
+});
+resetBeat?.addEventListener("click", () => {
+  resetBeatGrid();
+  showToast("Beat Maker reposto sem alterar as gravações.");
+});
+playBeatSequence?.addEventListener("click", async () => {
+  const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
+  try {
+    const result = await playPattern(preset.pattern, { bpm: Number(projectTempo?.value) || preset.bpm });
+    showToast(`${preset.name}: ${result.steps} eventos locais agendados.`);
+  } catch (error) { showToast(error.message); }
+});
+beatGrid?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-beat-channel]");
+  if (!button) return;
+  button.classList.toggle("is-active");
+  const channel = button.dataset.beatChannel;
+  const frequencies = { kick: "C2", snare: "D3", clap: "E3", hihat: "C5", percussion: "G4", bass: "C2" };
+  try { await playNote(frequencies[channel] || "C3", { type: channel === "hihat" ? "square" : "sine", duration: channel === "kick" ? 0.18 : 0.08, volume: channel === "hihat" ? 0.04 : 0.1 }); } catch (error) { showToast(error.message); }
+});
+pianoRoll?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-piano-note]");
+  if (!button) return;
+  button.classList.toggle("is-active");
+  try { await playNote(button.dataset.pianoNote, { type: "sine", duration: 0.2, volume: 0.12 }); } catch (error) { showToast(error.message); }
+});
+playPatternButton?.addEventListener("click", async () => {
+  try {
+    const result = await playPattern(patternSelect?.value || "Afrobeat", { bpm: Number(projectTempo?.value) || 100 });
+    showToast(`${patternSelect?.value || "Groove"}: ${result.steps} eventos locais agendados.`);
+  } catch (error) { showToast(error.message); }
+});
 bindPlayerEvents(list, showToast);
 document.addEventListener("visibilitychange", recorder.stopIfHidden);
 heroRecord.addEventListener("click", recorder.toggle);

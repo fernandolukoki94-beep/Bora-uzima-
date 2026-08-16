@@ -73,3 +73,39 @@ A suite local `pnpm test` aprovou **10 testes, 10 passados e 0 falhas**. Os test
 A pré-visualização estática respondeu com `HTTP 200`, mostrou o novo indicador e o botão de limpeza, e não apresentou erros na consola durante o carregamento. Os testes usam dados sintéticos e `fake-indexeddb`; não substituem quota real, modo privado, reload/fechar-reabrir ou gravação física.
 
 A execução real em **Chrome Android** e **Safari iPhone** continua pendente. Esses resultados só devem ser marcados como PASS depois de testar microfone, gravação, reprodução, ganho, fade, download WAV, reload e recuperação da sessão em cada dispositivo.
+
+## Bloco de três melhorias — QA de presets e reset
+
+| Verificação | Resultado | Evidência |
+|---|---|---|
+| Presets Beat Maker: Afrobeat, Amapiano, Kuduro, Afro House e Rumba | PASS | Presets determinísticos com BPM, 16 passos e seis canais; teste `gera presets reproduzíveis com BPM e canais independentes` |
+| Reprodução local do padrão seleccionado | PASS local | `playPattern` agenda eventos locais; pré-visualização HTML serviu `beat-preset` e `reset-beat` |
+| Reset Beat Maker | PASS local | Limpa apenas passos visuais e não altera takes ou projectos |
+| Reset de efeitos | PASS estrutural | Remove apenas processado e histórico de efeitos; preserva original em localStorage e IndexedDB |
+| Suite automatizada | PASS | 29 testes aprovados, 0 falhas |
+| Safari iPhone físico | PENDENTE | Requer dispositivo real e permissão de microfone |
+| Chrome Android físico | PENDENTE | Requer dispositivo real e permissão de microfone |
+
+Os testes físicos devem confirmar gravação, reprodução inline, presets, reset, exportação WAV, reload e recuperação após fechar/reabrir o navegador. Nenhum resultado físico é marcado como aprovado sem evidência obtida num dispositivo real.
+
+## Novo ciclo — QA prioritário antes de fechar IndexedDB
+
+A execução automatizada confirmou o comando oficial actualmente configurado como `pnpm test`, que executa `node --test tests/*.test.mjs`. A suite terminou com **29 testes aprovados e 0 falhas**. A sintaxe de `app.js` e do núcleo de instrumentos também passou.
+
+A pré-visualização desktop local respondeu correctamente e continha a marca Fernando Lucoco Music, o selector `beat-preset` e o controlo `reset-beat`. Este resultado valida o ambiente local, mas não substitui os testes de microfone e recuperação em dispositivos físicos.
+
+| Ambiente | Estado | Observação |
+|---|---|---|
+| Desktop/local preview | PASS | HTML, presets e reset encontrados; 29 testes aprovados |
+| Chrome Android físico | PENDENTE | Necessita dispositivo real, microfone e reload |
+| Safari iPhone físico | PENDENTE | Necessita dispositivo real, microfone, bloqueio de ecrã e retorno |
+
+IndexedDB permanece em **beta interna** até existir evidência real de reload, fechar/reabrir, quota, modo privado e recuperação nos ambientes alvo.
+
+## Estado do novo ciclo — 16 Agosto 2026
+
+A suite oficial continua a ser `pnpm test` e terminou com **31 testes aprovados, 0 falhas**. Foram acrescentados testes para diagnóstico de armazenamento dual, quota disponível, localStorage bloqueado e política de promoção do IndexedDB.
+
+O adaptador expõe agora uma política explícita: `internal-beta`, leitura principal em `localStorage` e escrita dual activa. A promoção para leitura principal IndexedDB está bloqueada até haver reload/fechar-reabrir real, quota e modo privado reais, reset original/processado e gravação confirmada em Chrome Android e Safari iPhone.
+
+A validação desktop/local passou. A validação Android Chrome e iPhone Safari permanece **PENDENTE**, porque a execução correcta exige microfone e hardware físico; nenhuma simulação de viewport será apresentada como prova desses ambientes.

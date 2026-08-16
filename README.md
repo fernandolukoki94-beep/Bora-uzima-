@@ -19,8 +19,8 @@ A versão pública está disponível em [fernando-lucoco-music.vercel.app](https
 | Reprodução e descarregamento | Pronto | Takes novas podem ser reproduzidas e descarregadas no próprio navegador. |
 | Eliminação local | Pronto | Cada sessão pode ser apagada com confirmação explícita. |
 | Presets de produção | Pronto como interface visual | Natural é referência; Auto-Tune, Vocal brilhante/íntimo e direcções de género ficam marcados como intenção/em desenvolvimento e não processam o áudio. |
-| Efeitos locais de ganho e fade | Pronto em V1 experimental | Aplica +3 dB ou fade in/out com Web Audio API e exporta WAV PCM localmente; a take original é preservada até o utilizador aplicar o efeito. |
-| Processamento musical avançado | Não feito | O fluxo PROCESSING → MIXING → MASTERING continua a ser uma simulação visual; não existe ainda EQ, compressor, reverb, Auto-Tune, IA ou masterização. Ganho e fade são os únicos efeitos reais disponíveis. |
+| Efeitos locais DSP | Pronto em V1 experimental | Inclui ganho seguro, fade in/out, normalização e compressor local com original preservado; o núcleo noise gate é validado deterministicamente. Exporta WAV PCM quando aplicável. |
+| Processamento musical avançado | Parcial | O fluxo PROCESSING → MIXING → MASTERING continua a ser uma simulação visual; EQ, reverb, delay, limiter, Auto-Tune, mixing, mastering e IA ainda não estão implementados como pipeline completa. |
 | Upload e sincronização | Não feito | Não é activado nesta versão; evita custos e mantém o controlo local do áudio. |
 
 ## Compatibilidade móvel web
@@ -31,9 +31,9 @@ A verificação automatizada foi executada no preview local com Chromium e confi
 
 ## QA verificado
 
-A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. Também foram executados 10 testes determinísticos para WAV, ganho, fade, IndexedDB, migração não destrutiva e limpeza. O detalhe está em [`qa-web-findings.md`](./qa-web-findings.md).
+A versão publicada foi verificada com uma take sintética no navegador: reprodução, descarregamento, eliminação com confirmação e sequência visual `PROCESSING` → `MIXING` → `MASTERING` → `COMPLETED`. A suite oficial `pnpm test` executa actualmente **31 testes determinísticos aprovados**, cobrindo WAV/DSP, IndexedDB, migração, quota diagnosticada, modelo de projecto, histórico, timeline, notas, quantização, presets e padrões de bateria. O detalhe está em [`qa-web-findings.md`](./qa-web-findings.md).
 
-> Importante: estes estados são uma simulação honesta da experiência de produção. O projecto executa apenas ganho +3 dB e fade in/out locais, exportados como WAV. Ainda não executa EQ, compressor, auto-tune, remoção de ruído, mixing, mastering ou IA reais.
+> Importante: estes estados são uma simulação honesta da experiência de produção. O projecto executa processamento local experimental com ganho, fade, normalização e compressor, mantendo o original separado. Ainda não executa uma cadeia profissional completa de EQ, reverb, delay, limiter, auto-tune, mixing, mastering ou IA.
 
 ## Documentação do projecto
 
@@ -74,7 +74,7 @@ O contrato proposto para uma futura assistência IA está em [`docs/ai-backend-c
 
 ## Roadmap resumido
 
-A versão web continua como prioridade. Os primeiros efeitos áudio reais locais — ganho de +3 dB e fade in/out para WAV — já existem; o próximo marco é validar ambos com takes reais e criar testes de qualidade antes de adicionar efeitos DSP adicionais. O roadmap completo e os critérios de entrada estão em [`docs/product-roadmap.md`](./docs/product-roadmap.md).
+A versão web continua como prioridade. O próximo ciclo segue a ordem QA físico Android/iOS → fechamento da beta IndexedDB → Project Engine → tracks/clips/timeline/multitrack → instrumentos/Beat Maker → DSP adicional → contratos AI Producer. Cloud, social, Creator Economy e mobile permanecem posteriores. O roadmap completo está em [`docs/platform-roadmap.md`](./docs/platform-roadmap.md).
 
 ## Licença
 
@@ -111,8 +111,18 @@ O fluxo de take controlada foi verificado no preview local com áudio sintético
 
 ## QA automatizado e estado actual da V1
 
-O repositório inclui `package.json` com o comando `npm test`. A suite determinística executa **10 testes, 10 passados e 0 falhas**, cobrindo header e metadados WAV, pico, ganho seguro, silêncio, schema IndexedDB v2, persistência original/processado, migração não destrutiva, falha de dados legacy e remoção de projecto.
+O repositório inclui `package.json` com o comando oficial `pnpm test`, que executa `node --test tests/*.test.mjs`. A suite determinística executa **31 testes, 31 passados e 0 falhas**, cobrindo WAV/DSP, IndexedDB, migração, diagnóstico de quota/fallback, modelo de projecto, histórico, timeline, notas, quantização, presets e padrões de bateria.
 
 O adaptador IndexedDB v2 faz escrita dual e mantém `localStorage` compatível como caminho estável. A migração principal ainda requer validação real de quota, reload, fechar/reabrir, modo privado, armazenamento cheio, apagar e recuperar projecto. A checklist física para Chrome Android e Safari iPhone continua pendente de execução num dispositivo real.
 
-A ordem de evolução mantém-se deliberadamente conservadora: IndexedDB e testes DSP, depois testes móveis reais, V1.1, fade, EQ, compressor e limiter; só depois backend/cloud, contas e eventual IA. Login, PostgreSQL, pagamentos e integração OpenAI não fazem parte desta fase.
+A ordem de evolução mantém-se deliberadamente conservadora: QA físico real, depois IndexedDB como fonte principal apenas se os critérios passarem, Project Engine, tracks/clips/timeline, instrumentos, Beat Maker, DSP adicional, AI Producer server-side, cloud/social e só então mobile. Login, PostgreSQL, pagamentos e integração OpenAI não fazem parte desta fase.
+
+## Music Engine V1 — nova camada local
+
+A versão web-first agora inclui um modelo de sessão musical normalizado, tracks e clips, timeline visual, undo/redo, edição não destrutiva, Instrument Lab local, guitarra virtual por acordes, piano roll de 16 passos e Beat Maker com canais kick, snare, clap, hi-hat, percussão e bass. Os grooves suportados incluem Afrobeat, Amapiano, Kuduro, Afro House e Rumba.
+
+A camada DSP local mantém o original separado do processado e inclui ganho seguro, fade in/out, normalização e compressor Web Audio. As funções puras de normalização, compressão e noise gate são validadas deterministicamente; os efeitos cuja reprodução depende do Web Audio devem ainda ser verificados em dispositivos físicos.
+
+A suite local contém **31 testes aprovados**, abrangendo WAV/DSP, IndexedDB, diagnóstico de fallback, migração, modelo de projecto, histórico, timeline, notas, quantização, presets e padrões de bateria. A arquitectura e os contratos futuros de IA, colaboração, Creator Economy e mobile estão documentados em [`docs/platform-roadmap.md`](docs/platform-roadmap.md).
+
+> **Estado honesto:** a experiência continua local-first. EQ avançado, cloud, IA remota, contas, pagamentos e publicação mobile permanecem fora da V1 até a persistência e a gravação serem validadas em Safari iPhone e Chrome Android.

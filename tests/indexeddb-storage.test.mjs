@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import { indexedDB } from "fake-indexeddb";
 import {
   INDEXED_DB_SCHEMA,
+  STORAGE_POLICY,
   clearIndexedDb,
   deleteProjectData,
   getAudioBlob,
   getMetadata,
   getProject,
   getTake,
+  getStorageHealth,
   indexedDbAvailable,
   migrateLocalStorageProjects,
   putAudioBlob,
@@ -40,7 +42,19 @@ test.after(async () => {
   await clearIndexedDb().catch(() => {});
 });
 
+test("diagnostica armazenamento dual e quota disponível", async () => {
+  const health = await getStorageHealth();
+  assert.equal(health.mode, "dual-write");
+  assert.equal(health.localStorageWritable, true);
+  assert.equal(health.indexedDbAvailable, true);
+  assert.equal(health.quotaRemaining, 1024 * 1024 - 1024);
+  assert.equal(health.privateMode, "unknown");
+});
+
 test("cria o schema IndexedDB v2 e confirma disponibilidade", async () => {
+  assert.equal(STORAGE_POLICY.status, "internal-beta");
+  assert.equal(STORAGE_POLICY.primaryRead, "localStorage");
+  assert.equal(STORAGE_POLICY.dualWrite, true);
   assert.deepEqual(INDEXED_DB_SCHEMA.stores, ["projects", "takes", "blobs", "metadata", "effects"]);
   assert.equal(await indexedDbAvailable(), true);
 });
@@ -55,7 +69,14 @@ test("persiste projecto, take, blob original/processado e histórico de efeito",
   await putAudioBlob(project.id, "processed", processed);
   await putEffect({ id: "project-1:gain", projectId: project.id, type: "gain", parameters: { decibels: 3 } });
 
-  assert.deepEqual(await getProject(project.id), project);
+  const persistedProject = await getProject(project.id);
+  assert.equal(persistedProject.id, project.id);
+  assert.equal(persistedProject.name, project.name);
+  assert.equal(persistedProject.storageVersion, project.storageVersion);
+  assert.equal(persistedProject.schemaVersion, 3);
+  assert.equal(persistedProject.tempo, 100);
+  assert.equal(persistedProject.key, "C");
+  assert.equal(persistedProject.tracks.length, 1);
   assert.equal((await getTake(project.id)).processedAudioData, true);
   assert.equal(await (await getAudioBlob(project.id, "original")).text(), "original");
   assert.equal(await (await getAudioBlob(project.id, "processed")).text(), "processed");
@@ -90,7 +111,20 @@ test("migração inválida não apaga localStorage e relata falha controlada", a
   assert.equal(localStorage.getItem("fernando-lucoco-music-projects"), raw);
 });
 
-test("remover projecto elimina blobs, take e projecto IndexedDB", async () => {
+test("fallback é diagnosticado quando localStorage fica bloqueado", async () => {
+  const original = globalThis.localStorage;
+  globalThis.localStorage = {
+    getItem: () => null,
+    setItem: () => { throw new Error("QuotaExceededError"); },
+    removeItem: () => {},
+  };
+  const health = await getStorageHealth();
+  assert.equal(health.localStorageWritable, false);
+  assert.equal(health.mode, "unavailable");
+  globalThis.localStorage = original;
+});
+
+test("remove projecto elimina blobs, take e projecto IndexedDB", async () => {
   await putProject({ id: "delete-me", name: "Apagar" });
   await putTake({ id: "delete-me", projectId: "delete-me" });
   await putAudioBlob("delete-me", "original", new Blob(["audio"]));

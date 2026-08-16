@@ -52,6 +52,31 @@ export function calculateSafeGain(audioBuffer, requestedGain = 1.4125, headroom 
   return { peak, requestedGain, appliedGain: safeGain, limited: safeGain < requestedGain };
 }
 
+export function normalizeSamples(samples, targetPeak = 0.95) {
+  const peak = samples.reduce((max, sample) => Math.max(max, Math.abs(sample)), 0);
+  const gain = peak > 0 ? Math.min(1 / peak, targetPeak / peak) : 1;
+  return Float32Array.from(samples, (sample) => Math.max(-1, Math.min(1, sample * gain)));
+}
+
+export function compressSamples(samples, { threshold = 0.6, ratio = 4, makeup = 1 } = {}) {
+  const safeThreshold = Math.max(0.01, Math.min(1, threshold));
+  const safeRatio = Math.max(1, ratio);
+  return Float32Array.from(samples, (sample) => {
+    const sign = sample < 0 ? -1 : 1;
+    const magnitude = Math.abs(sample);
+    const compressed = magnitude <= safeThreshold
+      ? magnitude
+      : safeThreshold + (magnitude - safeThreshold) / safeRatio;
+    return Math.max(-1, Math.min(1, sign * compressed * Math.max(0, makeup)));
+  });
+}
+
+export function noiseGateSamples(samples, { threshold = 0.025, floor = 0 } = {}) {
+  const safeThreshold = Math.max(0, Math.min(1, threshold));
+  const safeFloor = Math.max(0, Math.min(1, floor));
+  return Float32Array.from(samples, (sample) => Math.abs(sample) < safeThreshold ? safeFloor : sample);
+}
+
 function withDecodedAudio(blob, renderGraph) {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   const OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -78,6 +103,26 @@ export function applyGain(blob, gain = 1.4125) {
     const { appliedGain } = calculateSafeGain(decoded, gain);
     gainNode.gain.value = appliedGain;
     source.connect(gainNode).connect(offline.destination);
+  });
+}
+
+export function applyNormalize(blob, targetPeak = 0.95) {
+  return withDecodedAudio(blob, ({ offline, source, decoded }) => {
+    const gainNode = offline.createGain();
+    const peak = getPeak(decoded);
+    gainNode.gain.value = peak > 0 ? Math.min(1, targetPeak / peak) : 1;
+    source.connect(gainNode).connect(offline.destination);
+  });
+}
+
+export function applyCompressor(blob, { threshold = -18, ratio = 4, attack = 0.003, release = 0.25 } = {}) {
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const compressor = offline.createDynamicsCompressor();
+    compressor.threshold.value = threshold;
+    compressor.ratio.value = ratio;
+    compressor.attack.value = attack;
+    compressor.release.value = release;
+    source.connect(compressor).connect(offline.destination);
   });
 }
 

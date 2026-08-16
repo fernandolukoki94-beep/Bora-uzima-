@@ -1,3 +1,5 @@
+import { normalizeProject } from "./studio/project-model.js";
+
 const DB_NAME = "fernando-lucoco-music";
 const DB_VERSION = 2;
 const DEFAULT_STORAGE_KEY = "fernando-lucoco-music-projects";
@@ -70,7 +72,8 @@ export async function indexedDbAvailable() {
 }
 
 export async function putProject(project) {
-  return withStore(STORES.projects, "readwrite", (store) => requestToPromise(store.put(project)));
+  const normalized = normalizeProject(project);
+  return withStore(STORES.projects, "readwrite", (store) => requestToPromise(store.put(normalized)));
 }
 
 export async function getProject(id) {
@@ -106,6 +109,36 @@ export async function putAudioBlob(projectId, kind, blob) {
 export async function getAudioBlob(projectId, kind) {
   const record = await withStore(STORES.blobs, "readonly", (store) => requestToPromise(store.get(`${projectId}:${kind}`)));
   return record?.blob || null;
+}
+
+export async function resetProjectEffects(projectId) {
+  const database = await openDatabase();
+  try {
+    const transaction = database.transaction([STORES.projects, STORES.blobs, STORES.effects], "readwrite");
+    transaction.objectStore(STORES.blobs).delete(`${projectId}:processed`);
+    const projectStore = transaction.objectStore(STORES.projects);
+    const projectRequest = projectStore.get(projectId);
+    projectRequest.onsuccess = () => {
+      const project = projectRequest.result;
+      if (!project) return;
+      projectStore.put({ ...project, processedAudioData: false, processedMimeType: null, processedBytes: 0, effects: [] });
+    };
+    const effects = transaction.objectStore(STORES.effects);
+    const effectRequest = effects.openCursor();
+    effectRequest.onsuccess = () => {
+      const cursor = effectRequest.result;
+      if (!cursor) return;
+      if (cursor.value.projectId === projectId) cursor.delete();
+      cursor.continue();
+    };
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Não foi possível repor os efeitos"));
+      transaction.onabort = () => reject(transaction.error || new Error("Reset de efeitos foi abortado"));
+    });
+  } finally {
+    database.close();
+  }
 }
 
 export async function deleteProjectData(projectId) {
@@ -200,6 +233,31 @@ export async function migrateLocalStorageProjects(storageKey = DEFAULT_STORAGE_K
   return { migrated: migrated > 0, reason: failed ? "partial" : "completed", count: migrated, failed };
 }
 
+export async function getStorageHealth(storageKey = DEFAULT_STORAGE_KEY) {
+  let localStorageWritable = false;
+  try {
+    const probeKey = `${storageKey}:probe`;
+    localStorage.setItem(probeKey, "1");
+    localStorage.removeItem(probeKey);
+    localStorageWritable = true;
+  } catch {
+    localStorageWritable = false;
+  }
+  const indexedDb = await indexedDbAvailable();
+  const usage = await estimateStorageUsage(storageKey);
+  const quotaRemaining = usage.quota == null || usage.usage == null
+    ? null
+    : Math.max(usage.quota - usage.usage, 0);
+  return {
+    ...usage,
+    localStorageWritable,
+    indexedDbAvailable: indexedDb,
+    quotaRemaining,
+    mode: indexedDb && localStorageWritable ? "dual-write" : localStorageWritable ? "localStorage-fallback" : "unavailable",
+    privateMode: "unknown",
+  };
+}
+
 export async function estimateStorageUsage(storageKey = DEFAULT_STORAGE_KEY) {
   let localBytes = 0;
   try {
@@ -220,6 +278,18 @@ export async function estimateStorageUsage(storageKey = DEFAULT_STORAGE_KEY) {
     indexedDbAvailable: await indexedDbAvailable(),
   };
 }
+
+export const STORAGE_POLICY = {
+  status: "internal-beta",
+  primaryRead: "localStorage",
+  dualWrite: true,
+  promotionCriteria: [
+    "reload-reopen-recovery-real-browser",
+    "quota-and-private-mode-real-browser",
+    "original-processed-reset-real-browser",
+    "android-chrome-and-ios-safari-recording",
+  ],
+};
 
 export const INDEXED_DB_SCHEMA = {
   database: DB_NAME,
