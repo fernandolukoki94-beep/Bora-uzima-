@@ -6,7 +6,7 @@
 
 ## Site online
 
-A versão pública está disponível em [fernandolukoki94-beep.github.io/Bora-uzima-](https://fernandolukoki94-beep.github.io/Bora-uzima-/). O repositório mantém o nome técnico `Bora-uzima-` para não quebrar o histórico e os links existentes, mas a identidade pública do produto passa a ser **Fernando Lucoco Music**.
+A versão pública está disponível em [fernando-lucoco-music.vercel.app](https://fernando-lucoco-music.vercel.app/) e também em [fernandolukoki94-beep.github.io/Bora-uzima-](https://fernandolukoki94-beep.github.io/Bora-uzima-/). O repositório mantém o nome técnico `Bora-uzima-` para não quebrar o histórico e os links existentes, mas a identidade pública do produto passa a ser **Fernando Lucoco Music**.
 
 ## O que está implementado
 
@@ -46,7 +46,7 @@ O produto é dirigido e desenvolvido por **Fernando Lucoco**. O nome técnico do
 - **Frontend:** HTML5, CSS moderno e JavaScript sem dependências externas.
 - **Áudio:** MediaDevices API e MediaRecorder API do navegador.
 - **Persistência:** localStorage, com dados mantidos localmente por instalação/navegador.
-- **Publicação:** GitHub Pages; preparação para alias Vercel na fase de estabilização.
+- **Publicação:** GitHub Pages e Vercel, com alias público `fernando-lucoco-music.vercel.app`.
 
 ## Roadmap
 
