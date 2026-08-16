@@ -65,3 +65,24 @@ test("limita ganho solicitado quando o pico excede o headroom", () => {
   assert.ok(result.appliedGain * result.peak <= 0.98 + Number.EPSILON);
   assert.equal(result.limited, true);
 });
+
+test("preserva silêncio e não muta o áudio de entrada ao exportar", async () => {
+  const samples = new Float32Array([0, 0, 0, 0]);
+  const original = samples.slice();
+  const source = fakeAudioBuffer(1, 44100, [samples]);
+  const wav = audioBufferToWav(source);
+  const bytes = new Uint8Array(await wav.arrayBuffer());
+
+  assert.deepEqual(Array.from(samples), Array.from(original));
+  assert.equal(getPeak(source), 0);
+  assert.equal(wav.type, "audio/wav");
+  assert.equal(bytes.slice(44).every((value) => value === 0), true);
+});
+
+test("mantém o ganho unitário quando não há clipping", () => {
+  const source = fakeAudioBuffer(1, 48000, [new Float32Array([0.1, -0.2])]);
+  const result = calculateSafeGain(source, 1.4125, 0.98);
+
+  assert.equal(result.limited, false);
+  assert.equal(result.appliedGain, result.requestedGain);
+});

@@ -107,3 +107,12 @@ Os achados completos estão em [`docs/evaluation-findings.md`](./docs/evaluation
 A interface inclui agora uma faixa de ajuda junto ao workspace: autorizar o microfone, gravar uma take curta, ouvir o original, descarregar versões e compreender que o áudio fica local neste navegador. Em dispositivos móveis, o teste deve ser feito em HTTPS ou localhost, começando por uma take curta antes de bloquear o ecrã ou mudar de aplicação.
 
 O fluxo de take controlada foi verificado no preview local com áudio sintético: o original é preservado, o processamento é separado e os downloads WAV mantêm extensões coerentes. O teste com voz real continua a exigir um iPhone com Safari e um Android com Chrome. A avaliação de IndexedDB está em [`docs/storage-evaluation.md`](./docs/storage-evaluation.md); nesta iteração foi criado um adaptador experimental assíncrono com fallback, mas não houve migração destrutiva nem activação como armazenamento principal. A aplicação precisa primeiro de testes de quota, reload, modo privado, recuperação e compatibilidade física.
+
+
+## QA automatizado e estado actual da V1
+
+O repositório inclui agora `package.json` com o comando `npm test` e o workflow `.github/workflows/qa.yml`. A suite determinística executa cinco testes sem dependências externas: header e metadados WAV, medição de pico, limite seguro de ganho, silêncio sem mutação da entrada e ganho unitário sem clipping. Resultado local desta iteração: **5 testes, 5 passados, 0 falhas**.
+
+O adaptador IndexedDB continua experimental e preparado para blobs, enquanto `localStorage` permanece compatível como caminho estável. A migração principal ainda requer validação de quota, reload, fechar/reabrir, modo privado, armazenamento cheio, apagar e recuperar projecto. A checklist física para Chrome Android e Safari iPhone também continua pendente de execução num dispositivo real.
+
+A ordem de evolução mantém-se deliberadamente conservadora: IndexedDB e testes DSP, depois testes móveis reais, V1.1, fade, EQ, compressor e limiter; só depois backend/cloud, contas e eventual IA. Login, PostgreSQL, pagamentos e integração OpenAI não fazem parte desta fase.

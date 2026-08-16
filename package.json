@@ -1,0 +1,10 @@
+{
+  "name": "fernando-lucoco-music-web",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Local-first vocal studio web experience by Fernando Lucoco.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}
