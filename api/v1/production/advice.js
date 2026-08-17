@@ -10,6 +10,19 @@ const ALLOWED_KEYS = new Set([
   "intent",
 ]);
 
+const ADVICE_SCHEMA = {
+  type: "object",
+  properties: {
+    summary: { type: "string" },
+    chain: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 6 },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+  },
+  required: ["summary", "chain", "confidence"],
+  additionalProperties: false,
+};
+
+const SYSTEM_PROMPT = "És um mini-produtor musical responsável. Analisa a intenção do artista, BPM, tonalidade e preset. Responde exclusivamente em JSON com summary, chain e confidence. A tua resposta será executada pelo Producer Studio: arranjo e instrumentalização entram na timeline, a cadeia vocal orienta DSP local reversível, e mix/master são executados localmente com headroom. Não afirmes que processaste áudio no servidor.";
+
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
 }
@@ -37,36 +50,72 @@ function validateAdvice(advice) {
   return null;
 }
 
-function providerPayload(input) {
+function userPayload(input) {
+  return JSON.stringify({ ...input, policy: "metadata-only; no audio uploaded" });
+}
+
+function openAiPayload(input) {
   return {
     messages: [
-      {
-        role: "system",
-        content: "És um mini-produtor musical responsável. Analisa a intenção do artista, BPM, tonalidade e preset. Responde em JSON com summary, chain e confidence. A tua resposta será executada pelo Producer Studio: arranjo e instrumentalização entram na timeline, a cadeia vocal orienta DSP local reversível, e mix/master são executados localmente com headroom. Não afirmes que processaste áudio no servidor.",
-      },
-      {
-        role: "user",
-        content: JSON.stringify({ ...input, policy: "metadata-only; no audio uploaded" }),
-      },
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userPayload(input) },
     ],
     response_format: {
       type: "json_schema",
-      json_schema: {
-        name: "production_advice",
-        strict: true,
-        schema: {
-          type: "object",
-          properties: {
-            summary: { type: "string" },
-            chain: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 6 },
-            confidence: { type: "string", enum: ["low", "medium", "high"] },
-          },
-          required: ["summary", "chain", "confidence"],
-          additionalProperties: false,
-        },
-      },
+      json_schema: { name: "production_advice", strict: true, schema: ADVICE_SCHEMA },
+    },
+    model: process.env.AI_MODEL || "gpt-4o-mini",
+  };
+}
+
+function geminiPayload(input) {
+  return {
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{ role: "user", parts: [{ text: userPayload(input) }] }],
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: ADVICE_SCHEMA,
+      temperature: 0.2,
     },
   };
+}
+
+function parseJsonContent(content) {
+  if (typeof content !== "string") return content;
+  const cleaned = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  return JSON.parse(cleaned);
+}
+
+function providerConfig() {
+  if (process.env.GEMINI_API_KEY) {
+    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    const base = process.env.GEMINI_API_URL || "https://generativelanguage.googleapis.com/v1beta/models";
+    return {
+      kind: "gemini",
+      key: process.env.GEMINI_API_KEY,
+      url: `${base.replace(/\/$/, "")}/${model}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`,
+      body: geminiPayload,
+    };
+  }
+  const key = process.env.AI_PROVIDER_KEY || process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  return {
+    kind: "openai",
+    key,
+    url: process.env.AI_PROVIDER_URL || "https://api.openai.com/v1/chat/completions",
+    body: openAiPayload,
+  };
+}
+
+function extractProviderContent(kind, result) {
+  if (kind === "gemini") return result?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("");
+  return result?.choices?.[0]?.message?.content;
+}
+
+function providerStatus(response) {
+  if (response.status === 429) return "provider_quota_exhausted";
+  if (response.status === 401 || response.status === 403) return "provider_auth_failed";
+  return "provider_unavailable";
 }
 
 export default async function handler(req, res) {
@@ -83,33 +132,27 @@ export default async function handler(req, res) {
   const validationError = validate(input);
   if (validationError) return json(res, 400, { status: "invalid_request", message: validationError });
 
-  const providerUrl = process.env.AI_PROVIDER_URL || "https://api.openai.com/v1/chat/completions";
-  const providerKey = process.env.AI_PROVIDER_KEY || process.env.OPENAI_API_KEY;
-  if (!providerKey) return json(res, 503, { status: "provider_unavailable", message: "Assistência IA server-side ainda não configurada; o fluxo local continua disponível." });
+  const provider = providerConfig();
+  if (!provider) return json(res, 503, { status: "provider_unavailable", message: "Assistência IA server-side ainda não configurada; o fluxo local continua disponível." });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
-    const response = await fetch(providerUrl, {
+    const response = await fetch(provider.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${providerKey}` },
-      body: JSON.stringify({ ...providerPayload(input), model: process.env.AI_MODEL || "gpt-4o-mini" }),
+      headers: { "Content-Type": "application/json", ...(provider.kind === "openai" ? { Authorization: `Bearer ${provider.key}` } : {}) },
+      body: JSON.stringify(provider.body(input)),
       signal: controller.signal,
     });
-    if (!response.ok) {
-      const status = response.status === 429
-        ? "provider_quota_exhausted"
-        : (response.status === 401 || response.status === 403 ? "provider_auth_failed" : "provider_unavailable");
-      return json(res, 503, { status });
-    }
+    if (!response.ok) return json(res, 503, { status: providerStatus(response) });
     const result = await response.json();
-    const content = result?.choices?.[0]?.message?.content;
-    const advice = typeof content === "string" ? JSON.parse(content) : content;
+    const advice = parseJsonContent(extractProviderContent(provider.kind, result));
     const adviceError = validateAdvice(advice);
     if (adviceError) return json(res, 502, { status: "invalid_provider_response" });
     return json(res, 200, {
       requestId: crypto.randomUUID(),
       status: "ready",
+      provider: provider.kind,
       advice,
       disclaimer: "A IA define o plano de produção; o Producer Studio materializa arranjo, vocal, mix e master localmente, preservando o Original.",
     });

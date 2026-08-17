@@ -284,3 +284,12 @@ O Studio passou a incluir uma **Sound Library local** com catálogo determiníst
 O mixer passou também a oferecer um **inspector contextual multi-track**. Ao seleccionar uma track, por toque, clique ou teclado, o painel mostra o tipo, a origem Manual/Producer Plan, o número de clips e efeitos e um resumo dos clips presentes. Os controlos de ganho, pan, mute e solo continuam não destrutivos e persistidos através do modelo de projecto existente.
 
 Foram adicionados testes determinísticos para garantir ids únicos no catálogo, posições de clip limitadas, metadados de evento e comportamento seguro para sons desconhecidos. A suite desta revisão terminou com **148 testes aprovados e 0 falhas**. A validação física dos gestos de arrasto e dos controlos no Samsung Galaxy A06, Chrome Android e Safari iPhone continua recomendada.
+
+
+## V2.2 — providers IA server-side
+
+O AI Producer suporta agora um adaptador Gemini server-side separado do adaptador OpenAI. A selecção é feita no backend: quando `GEMINI_API_KEY` existe, o pedido é enviado para Gemini; caso contrário, o endpoint mantém compatibilidade com OpenAI e com o fallback local determinístico. O browser nunca recebe chaves, não envia áudio para o provider e só recebe uma recomendação JSON validada.
+
+A configuração de produção usa `GEMINI_API_KEY` como variável confidencial no Vercel. `GEMINI_MODEL` é opcional e usa `gemini-2.0-flash` por defeito. A chave deve ser adicionada apenas em **Produção**, seguida de redeploy. Quota gratuita está sujeita aos limites da conta e pode produzir `provider_quota_exhausted`; nesse caso, o Studio continua funcional com o Producer Plan local. A recomendação IA descreve arranjo, instrumentalização e cadeia de produção, enquanto Auto-Tune, processamento vocal, mixagem e masterização continuam a ser executados localmente e de forma reversível.
+
+O adaptador aplica timeout, valida `summary`, `chain` e `confidence`, limita o tamanho dos campos e converte erros de autenticação, quota, indisponibilidade e resposta inválida em estados sanitizados. A suite inclui cobertura determinística sem chamadas externas.
