@@ -276,3 +276,11 @@ A Direcção de Produção transforma género, BPM, tonalidade, preset vocal e b
 A produção continua local-first: a IA server-side interpreta a intenção e recomenda a cadeia, enquanto o motor Web Audio local executa a instrumentalização, o processamento vocal, o mix e a masterização. A masterização local passou a incluir compressão determinística, limiter com ceiling seguro e métricas de pico, RMS e loudness aproximado. Isto melhora headroom e consistência sem apresentar o resultado como masterização externa de estúdio.
 
 A suite actual terminou com **143 testes aprovados, 0 falhas**. A quota do provider IA e a validação física em dispositivos reais continuam a ser limitações separadas.
+
+## V2.10 — Sound Library e inspector multi-track
+
+O Studio passou a incluir uma **Sound Library local** com catálogo determinístico de drums, bass, guitarra, piano, cordas e synth. Cada camada pode ser pré-escutada através do Web Audio existente, adicionada por botão à timeline ou arrastada para uma posição específica da faixa. Os clips da biblioteca são eventos instrumentais locais, preservam metadados de origem e não dependem de uploads, URLs externas ou chaves de API.
+
+O mixer passou também a oferecer um **inspector contextual multi-track**. Ao seleccionar uma track, por toque, clique ou teclado, o painel mostra o tipo, a origem Manual/Producer Plan, o número de clips e efeitos e um resumo dos clips presentes. Os controlos de ganho, pan, mute e solo continuam não destrutivos e persistidos através do modelo de projecto existente.
+
+Foram adicionados testes determinísticos para garantir ids únicos no catálogo, posições de clip limitadas, metadados de evento e comportamento seguro para sons desconhecidos. A suite desta revisão terminou com **148 testes aprovados e 0 falhas**. A validação física dos gestos de arrasto e dos controlos no Samsung Galaxy A06, Chrome Android e Safari iPhone continua recomendada.

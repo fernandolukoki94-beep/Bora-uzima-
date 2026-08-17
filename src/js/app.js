@@ -10,6 +10,7 @@ import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitCli
 import { playChord, playDrumHit, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
+import { SOUND_LIBRARY, getSoundLibraryItem, soundLibraryClip } from "./studio/sound-library.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav } from "./studio/mixdown.js";
 import { createProjectManifest, downloadBlob, mixedExportFilename, projectManifestFilename } from "./export-audio.js";
@@ -65,6 +66,7 @@ const storageStatus = document.getElementById("storage-status");
 const clearStorageButton = document.getElementById("clear-local-storage");
 const timelineGrid = document.getElementById("timeline-grid");
 const mixerTracks = document.getElementById("mixer-tracks");
+const mixerInspector = document.getElementById("mixer-inspector");
 const mixerHeadroom = document.getElementById("mixer-headroom");
 const addTrackButton = document.getElementById("add-track");
 const timelineMixdownButton = document.getElementById("timeline-mixdown");
@@ -88,6 +90,8 @@ const guitarChords = document.getElementById("guitar-chords");
 const extraInstruments = document.getElementById("extra-instruments");
 const pianoRoll = document.getElementById("piano-roll");
 const beatGrid = document.getElementById("beat-grid");
+const soundLibraryGrid = document.getElementById("sound-library-grid");
+const soundLibraryStatus = document.getElementById("sound-library-status");
 const beatPreset = document.getElementById("beat-preset");
 const applyBeatPreset = document.getElementById("apply-beat-preset");
 const playBeatSequence = document.getElementById("play-beat-sequence");
@@ -171,6 +175,7 @@ let pitchCurvePan = 0;
 let pitchCurveDrag = null;
 let activeTimelineId = null;
 let timelineHistory = null;
+let selectedMixerTrackId = null;
 let transportTimers = [];
 let transportFrame = null;
 let transportState = createTransportState(0);
@@ -861,9 +866,14 @@ function renderMixer(project) {
   if (!project?.tracks?.length) {
     mixerTracks.innerHTML = '<div class="empty">Abre uma sessão para ver as tracks.</div>';
     if (mixerHeadroom) mixerHeadroom.textContent = "Headroom 0 dB";
+    if (mixerInspector) mixerInspector.innerHTML = "<strong>Inspector de track</strong><span>Selecciona uma faixa para ver os seus clips e origem.</span>";
     return;
   }
-  mixerTracks.innerHTML = project.tracks.map((track) => { const volume = Number(track.volume ?? 1); return `<div class="mixer-track" data-mixer-track="${escapeHtml(track.id)}"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button></div></div>`; }).join("");
+  if (!project.tracks.some((track) => track.id === selectedMixerTrackId)) selectedMixerTrackId = project.tracks[0].id;
+  mixerTracks.innerHTML = project.tracks.map((track) => { const volume = Number(track.volume ?? 1); const selected = track.id === selectedMixerTrackId ? " is-selected" : ""; return `<div class="mixer-track${selected}" data-mixer-track="${escapeHtml(track.id)}" tabindex="0"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button></div></div>`; }).join("");
+  const selected = project.tracks.find((track) => track.id === selectedMixerTrackId) || project.tracks[0];
+  const origin = trackOrigin(selected);
+  if (mixerInspector) mixerInspector.innerHTML = `<strong>${escapeHtml(selected.name)}</strong><span>${escapeHtml(selected.type)} · ${origin === "producer-plan" ? "Producer Plan" : "Manual"}</span><small>${selected.clips.length} clip${selected.clips.length === 1 ? "" : "s"} · ${selected.effects.length} efeito${selected.effects.length === 1 ? "" : "s"}</small><div class="mixer-inspector-clips">${selected.clips.length ? selected.clips.map((clip) => `<span>${escapeHtml(clip.name)} · ${Number(clip.duration || 0).toFixed(1)}s</span>`).join("") : "<span>Sem clips nesta faixa.</span>"}</div>`;
   const active = project.tracks.filter((track) => !track.muted);
   const estimatedPeak = active.reduce((sum, track) => sum + Number(track.volume ?? 1), 0);
   const headroomDb = estimatedPeak > 0 ? 20 * Math.log10(Math.max(0.0001, 0.98 / estimatedPeak)) : 0;
@@ -927,7 +937,7 @@ async function mixdownActiveTimeline() {
   }
 }
 
-function insertInstrumentClip({ name, type, duration = 4, metadata = {} }) {
+function insertInstrumentClip({ name, type, duration = 4, metadata = {}, start = null }) {
   const project = currentTimelineProject();
   if (!project) {
     showToast("Grava primeiro uma take para abrir uma sessão na timeline.");
@@ -942,7 +952,7 @@ function insertInstrumentClip({ name, type, duration = 4, metadata = {} }) {
   const end = track.clips.reduce((latest, clip) => Math.max(latest, Number(clip.start || 0) + Number(clip.duration || 0)), 0);
   nextProject = addClip(nextProject, track.id, {
     name,
-    start: end,
+    start: Number.isFinite(Number(start)) ? Math.max(0, Number(start)) : end,
     duration,
     sourceOffset: 0,
     mimeType: "application/x-fernando-lucoco-event",
@@ -951,6 +961,35 @@ function insertInstrumentClip({ name, type, duration = 4, metadata = {} }) {
   commitTimelineProject(nextProject);
   showToast(`${name} adicionado à timeline local.`);
   return true;
+}
+
+function renderSoundLibrary() {
+  if (!soundLibraryGrid) return;
+  soundLibraryGrid.innerHTML = SOUND_LIBRARY.map((item) => `<article class="sound-library-card" draggable="true" data-sound-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.name)}">
+    <div class="sound-library-card-top"><span class="sound-library-swatch" style="background:${escapeHtml(item.color)}" aria-hidden="true"></span><span class="sound-library-type">${escapeHtml(item.type)}</span></div>
+    <strong>${escapeHtml(item.name)}</strong><small>${item.duration}s · local</small>
+    <div class="sound-library-actions"><button class="mini-button" type="button" data-sound-preview="${escapeHtml(item.id)}">▶ Ouvir</button><button class="mini-button primary" type="button" data-sound-add="${escapeHtml(item.id)}">＋ Timeline</button></div>
+  </article>`).join("");
+}
+
+async function previewSoundLibraryItem(item) {
+  if (!item) return;
+  try {
+    if (item.preview.kind === "pattern") await playPattern(item.preview.value, { bpm: Number(projectTempo?.value) || 100, bars: 1 });
+    else if (item.preview.kind === "note") await playNote(item.preview.value, { instrument: item.type === "bass" ? "piano" : item.type, duration: 0.45, volume: 0.18 });
+    else await playChord(item.preview.value, { instrument: item.type, duration: 0.55, volume: 0.12 });
+    if (soundLibraryStatus) soundLibraryStatus.textContent = `${item.name}: pré-escuta local a tocar.`;
+  } catch (error) {
+    if (soundLibraryStatus) soundLibraryStatus.textContent = error instanceof Error ? error.message : "Não foi possível pré-escutar este som.";
+  }
+}
+
+function addSoundLibraryItem(item, start = null) {
+  if (!item) return false;
+  const clip = soundLibraryClip(item, start);
+  const added = insertInstrumentClip({ name: clip.name, type: item.type, duration: clip.duration, start: clip.start, metadata: clip.event });
+  if (added && soundLibraryStatus) soundLibraryStatus.textContent = `${item.name} adicionado à timeline na posição ${clip.start.toFixed(1)}s.`;
+  return added;
 }
 
 async function runProducerPlan(id, { planOverride = null, sourceLabel = "local" } = {}) {
@@ -1045,6 +1084,7 @@ function renderProducerStudio() {
 }
 
 function renderProjects() {
+  renderSoundLibrary();
   const projects = readProjects();
   if (!projects.length) {
     list.innerHTML = '<div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div>';
@@ -1434,6 +1474,20 @@ list?.addEventListener("click", (event) => {
   if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
 });
 
+mixerTracks?.addEventListener("click", (event) => {
+  const trackNode = event.target.closest("[data-mixer-track]");
+  if (!trackNode || event.target.closest("[data-mixer-field]")) return;
+  selectedMixerTrackId = trackNode.dataset.mixerTrack;
+  renderMixer(timelineHistory?.present || currentTimelineProject());
+});
+mixerTracks?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const trackNode = event.target.closest("[data-mixer-track]");
+  if (!trackNode) return;
+  event.preventDefault();
+  selectedMixerTrackId = trackNode.dataset.mixerTrack;
+  renderMixer(timelineHistory?.present || currentTimelineProject());
+});
 mixerTracks?.addEventListener("input", (event) => {
   const control = event.target.closest("[data-mixer-field]");
   const trackNode = event.target.closest("[data-mixer-track]");
@@ -1635,6 +1689,47 @@ pianoRoll?.addEventListener("click", async (event) => {
   button.classList.toggle("is-active");
   flashControl(button);
   try { await playNote(button.dataset.pianoNote, { type: "triangle", duration: 0.28, volume: 0.11 }); } catch (error) { showToast(error.message); }
+});
+soundLibraryGrid?.addEventListener("click", async (event) => {
+  const preview = event.target.closest("[data-sound-preview]");
+  const add = event.target.closest("[data-sound-add]");
+  if (!preview && !add) return;
+  const item = getSoundLibraryItem((preview || add).dataset.soundPreview || (preview || add).dataset.soundAdd);
+  if (preview) await previewSoundLibraryItem(item);
+  else addSoundLibraryItem(item);
+});
+soundLibraryGrid?.addEventListener("keydown", async (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const card = event.target.closest("[data-sound-id]");
+  if (!card) return;
+  event.preventDefault();
+  await previewSoundLibraryItem(getSoundLibraryItem(card.dataset.soundId));
+});
+soundLibraryGrid?.addEventListener("dragstart", (event) => {
+  const card = event.target.closest("[data-sound-id]");
+  if (!card || !event.dataTransfer) return;
+  event.dataTransfer.effectAllowed = "copy";
+  event.dataTransfer.setData("text/fernando-lucoco-sound", card.dataset.soundId);
+  card.classList.add("is-dragging");
+});
+soundLibraryGrid?.addEventListener("dragend", (event) => event.target.closest("[data-sound-id]")?.classList.remove("is-dragging"));
+timelineGrid?.addEventListener("dragover", (event) => {
+  if (event.dataTransfer?.types.includes("text/fernando-lucoco-sound")) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    timelineGrid.classList.add("is-drop-target");
+  }
+});
+timelineGrid?.addEventListener("dragleave", () => timelineGrid.classList.remove("is-drop-target"));
+timelineGrid?.addEventListener("drop", (event) => {
+  event.preventDefault();
+  timelineGrid.classList.remove("is-drop-target");
+  const id = event.dataTransfer?.getData("text/fernando-lucoco-sound");
+  const item = getSoundLibraryItem(id);
+  if (!item || !timelineGrid) return;
+  const rect = timelineGrid.getBoundingClientRect();
+  const start = Math.max(0, Math.min(39, ((event.clientX - rect.left) / Math.max(1, rect.width)) * 40));
+  addSoundLibraryItem(item, start);
 });
 playPatternButton?.addEventListener("click", async () => {
   try {
