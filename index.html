@@ -101,6 +101,16 @@
               <article class="producer-stage" id="producer-stage-mix"><span>06</span><strong>Mix</strong><small id="producer-mix-status">Aguardando timeline</small></article>
               <article class="producer-stage" id="producer-stage-master"><span>07</span><strong>Master</strong><small>Headroom local, sem prometer masterização externa</small></article>
             </div>
+            <section class="ai-task-station" aria-labelledby="ai-task-station-title">
+              <div class="panel-heading compact"><div><div class="section-kicker">AI Producer · estação de trabalho</div><h4 id="ai-task-station-title">Escolhe uma tarefa e vê onde ela acontece</h4><p>A IA interpreta a direcção; cada tarefa encaminha para uma execução real e reversível no Studio.</p></div><span class="pill">Provider + motor local</span></div>
+              <div class="ai-task-grid" role="list" aria-label="Tarefas do AI Producer">
+                <button class="ai-task-card" type="button" data-studio-target="production-brief" role="listitem"><span class="ai-task-number">01</span><strong>Arranjo</strong><small>Direcção → secções e instrumentos</small><span class="ai-task-action">Abrir briefing →</span></button>
+                <button class="ai-task-card" type="button" data-studio-target="beat-maker" role="listitem"><span class="ai-task-number">02</span><strong>Instrumental</strong><small>Beat Maker e camadas locais</small><span class="ai-task-action">Abrir sons →</span></button>
+                <button class="ai-task-card" type="button" data-studio-target="producer-autotune-title" role="listitem"><span class="ai-task-number">03</span><strong>Vocal</strong><small>Pitch, Auto-Tune e efeitos</small><span class="ai-task-action">Abrir vocal →</span></button>
+                <button class="ai-task-card" type="button" data-studio-target="timeline" role="listitem"><span class="ai-task-number">04</span><strong>Mix + Master</strong><small>Timeline, headroom e exportação</small><span class="ai-task-action">Abrir Studio →</span></button>
+              </div>
+              <div class="ai-task-status" id="ai-task-status" role="status" aria-live="polite">Aguardando take ou beat para materializar o plano.</div>
+            </section>
             <section class="producer-beat-panel" aria-labelledby="producer-beat-title">
               <div class="panel-heading compact"><div><div class="section-kicker">Instrumental externo</div><h4 id="producer-beat-title">Juntar um beat teu</h4><p>O ficheiro fica local no dispositivo e o original vocal nunca é substituído.</p></div></div>
               <div class="producer-beat-controls">

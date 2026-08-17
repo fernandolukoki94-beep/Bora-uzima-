@@ -1659,3 +1659,20 @@ refreshStorageStatus();
 migrateLocalStorageProjects().then((result) => {
   if (result.migrated) refreshStorageStatus();
 }).catch(() => {});
+
+const aiTaskStation = document.querySelector(".ai-task-station");
+const aiTaskStatus = document.querySelector("#ai-task-status");
+aiTaskStation?.addEventListener("click", (event) => {
+  const task = event.target.closest("[data-studio-target]");
+  if (!task) return;
+  const target = document.getElementById(task.dataset.studioTarget);
+  if (!target) {
+    if (aiTaskStatus) aiTaskStatus.textContent = "Esta tarefa ainda não tem um módulo disponível.";
+    return;
+  }
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.classList.add("is-task-focused");
+  window.setTimeout(() => target.classList.remove("is-task-focused"), 1100);
+  const label = task.querySelector("strong")?.textContent || "Tarefa";
+  if (aiTaskStatus) aiTaskStatus.textContent = `${label}: módulo aberto. A execução depende de uma take ou beat disponível.`;
+});
