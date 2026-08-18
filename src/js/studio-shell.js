@@ -1,4 +1,5 @@
 const AREA_CONFIG = {
+  home: { target: "studio-home", label: "Home" },
   criar: { target: "recording-workspace", label: "Criar" },
   sons: { target: "instrument-lab", label: "Sons" },
   ai: { target: "producer-studio", label: "AI Producer" },
@@ -12,7 +13,7 @@ function focusArea(targetId, source) {
   if (!target) return;
   document.body.classList.add("studio-focus-mode");
   document.body.dataset.studioView = targetId;
-  const viewIds = ["recording-workspace", "instrument-lab", "producer-studio", "sound-library", "beat-panel", "timeline", "mixer-panel"];
+  const viewIds = ["studio-home", "recording-workspace", "instrument-lab", "producer-studio", "sound-library", "beat-panel", "timeline", "mixer-panel"];
   viewIds.forEach((id) => {
     const view = document.getElementById(id);
     if (!view) return;
@@ -36,10 +37,10 @@ function focusArea(targetId, source) {
 }
 
 function initStudioShell() {
-  document.querySelectorAll(".nav-links a, .studio-step, .studio-transport-bar a").forEach((link) => {
+  document.querySelectorAll(".nav-links a, .studio-step, .studio-transport-bar a, .studio-sidebar-export, [data-studio-area]").forEach((link) => {
     link.addEventListener("click", (event) => {
       const href = link.getAttribute("href") || "";
-      const targetId = href.startsWith("#") ? href.slice(1) : "";
+      const targetId = link.dataset.studioArea || (href.startsWith("#") ? href.slice(1) : "");
       if (!targetId || !document.getElementById(targetId)) return;
       event.preventDefault();
       focusArea(targetId, link);
@@ -54,7 +55,8 @@ function initStudioShell() {
     document.body.classList.add("studio-ready");
     document.body.classList.remove("public-landing");
     if (!window.location.hash || window.location.hash === "#top" || window.location.hash === "#estudio") {
-      window.history.replaceState(null, "", "#recording-workspace");
+      window.history.replaceState(null, "", "#studio-home");
+      focusArea("studio-home");
     }
   });
 

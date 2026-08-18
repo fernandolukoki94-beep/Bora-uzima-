@@ -106,7 +106,8 @@
           <div class="studio-sidebar-brand"><span class="brand-mark">FL</span><span>FLM<br><small>Studio</small></span></div>
           <div class="studio-sidebar-label">Sessão</div>
           <nav class="studio-app-nav">
-            <a href="#recording-workspace" class="studio-app-nav-item is-active"><span class="studio-nav-icon">＋</span><span><strong>Criar</strong><small>Vocal & take</small></span></a>
+            <a href="#studio-home" class="studio-app-nav-item is-active" data-studio-area="studio-home"><span class="studio-nav-icon">⌂</span><span><strong>Home</strong><small>Projectos recentes</small></span></a>
+            <a href="#recording-workspace" class="studio-app-nav-item" data-studio-area="recording-workspace"><span class="studio-nav-icon">＋</span><span><strong>Criar</strong><small>Vocal & take</small></span></a>
             <a href="#instrument-lab" class="studio-app-nav-item"><span class="studio-nav-icon">⌁</span><span><strong>Sons</strong><small>Instrumentos</small></span></a>
             <a href="#producer-studio" class="studio-app-nav-item"><span class="studio-nav-icon">✦</span><span><strong>AI Producer</strong><small>Arranjo</small></span></a>
             <a href="#timeline" class="studio-app-nav-item"><span class="studio-nav-icon">▤</span><span><strong>Studio</strong><small>Timeline</small></span></a>
@@ -117,6 +118,16 @@
           <div class="studio-sidebar-user"><span class="studio-user-avatar">FL</span><span><strong id="studio-sidebar-user-name">Artista</strong><small>Conta activa</small></span></div>
         </aside>
         <div class="studio-main-column">
+          <section id="studio-home" class="studio-home-view" aria-labelledby="studio-home-title">
+            <div class="studio-home-hero"><div><span class="section-kicker">Home · sessão protegida</span><h2 id="studio-home-title">O que vais criar hoje?</h2><p>Entra numa sessão, captura uma ideia e deixa o teu produtor acompanhar cada decisão.</p></div><button class="button button-primary" type="button" data-studio-area="recording-workspace">＋ Nova sessão</button></div>
+            <div class="studio-home-grid">
+              <article class="studio-home-card studio-home-card-feature"><div class="studio-home-card-top"><span class="studio-card-icon">◉</span><span class="studio-card-status">Pronto</span></div><h3>Começar uma gravação</h3><p>Abre um take vocal com monitorização, waveform e controlo local.</p><button class="mini-button" type="button" data-studio-area="recording-workspace">Abrir Criar →</button></article>
+              <article class="studio-home-card"><div class="studio-home-card-top"><span class="studio-card-icon">✦</span><span class="studio-card-status">IA Producer</span></div><h3>Construir um arranjo</h3><p>Descreve a música e transforma a intenção num plano de produção.</p><button class="mini-button" type="button" data-studio-area="producer-studio">Abrir AI Producer →</button></article>
+              <article class="studio-home-card"><div class="studio-home-card-top"><span class="studio-card-icon">♫</span><span class="studio-card-status">Biblioteca local</span></div><h3>Explorar sons</h3><p>Escolhe instrumentos, beats e texturas para dar corpo à sessão.</p><button class="mini-button" type="button" data-studio-area="instrument-lab">Abrir Sons →</button></article>
+            </div>
+            <div class="studio-home-section-head"><div><span class="section-kicker">Projectos recentes</span><h3>As tuas sessões</h3></div><button class="mini-button" type="button" data-studio-area="timeline">Ver todas →</button></div>
+            <div class="studio-recent-projects"><div class="studio-recent-empty"><span>♪</span><div><strong>Ainda não há sessões guardadas</strong><p>Cria o teu primeiro projecto e ele aparecerá aqui.</p></div><button class="mini-button" type="button" data-studio-area="recording-workspace">Criar projecto</button></div></div>
+          </section>
           <div class="studio-session-bar"><div><span class="studio-session-dot"></span><strong id="studio-session-name">Nova sessão</strong><span class="studio-session-state">Guardado localmente</span></div><div class="studio-session-actions"><button class="mini-button" type="button" data-studio-command="undo">↶</button><button class="mini-button" type="button" data-studio-command="redo">↷</button><button class="mini-button" type="button" data-studio-command="save">Guardar</button><button class="button button-primary" type="button" data-studio-command="publish">Publicar</button></div></div>
           <div class="shell">
         <div class="section-head"><div><div class="section-kicker">Workspace</div><h2 class="section-title">O teu estúdio,<br />aqui.</h2></div><p class="section-lead">Grava, pede uma direcção ao AI Producer e transforma essa direcção numa faixa local, reversível e pronta para mixar.</p></div>

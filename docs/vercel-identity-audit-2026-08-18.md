@@ -29,3 +29,9 @@ O domínio `fernando-lucoco-music.vercel.app` não está associado ao projecto `
 ## Consequência
 
 Não se deve publicar o checkpoint `a9c29f46` como se fosse Fernando Lucoco Music. É necessário criar/usar um checkpoint do projecto web correcto e publicar um commit web actualizado no projecto Vercel `prj_hrW8bT8iuvBGAjI3pT1ga3rh8Jr4`.
+
+## Verificação pública após o push
+
+Após o push do commit `4263b4a952c95123c6eccee1a76f666d1aa6ca3f`, o Vercel criou o deployment `dpl_3T7sPmGWYuhKvsDmETjb7aXMBQwz`, em estado `READY`, produção, no projecto `fernando-lucoco-music`. Ao recarregar `https://fernando-lucoco-music.vercel.app/`, o título é `Fernando Lucoco Music — O teu próximo take começa aqui`. A página pública mostra o onboarding `FLM`, o nome artístico, a escolha de direcção musical Afrobeat/R&B/Amapiano/Pop e a imagem de estúdio; a pesquisa por `MemoryOS` não encontrou ocorrências. Depois de avançar para o passo 2, o conteúdo continua musical e não mostra cofre digital.
+
+A pré-visualização do checkpoint `a9c29f46` continua a ser uma evidência separada e incorrecta, porque pertence ao projecto móvel `bora-uzima-mobile`; não deve ser usada como preview do projecto web.
