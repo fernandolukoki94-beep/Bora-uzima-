@@ -101,7 +101,24 @@
     </section>
 
     <section class="studio" id="estudio">
-      <div class="shell">
+      <div class="studio-app-frame">
+        <aside class="studio-sidebar" aria-label="Navegação do Studio">
+          <div class="studio-sidebar-brand"><span class="brand-mark">FL</span><span>FLM<br><small>Studio</small></span></div>
+          <div class="studio-sidebar-label">Sessão</div>
+          <nav class="studio-app-nav">
+            <a href="#recording-workspace" class="studio-app-nav-item is-active"><span class="studio-nav-icon">＋</span><span><strong>Criar</strong><small>Vocal & take</small></span></a>
+            <a href="#instrument-lab" class="studio-app-nav-item"><span class="studio-nav-icon">⌁</span><span><strong>Sons</strong><small>Instrumentos</small></span></a>
+            <a href="#producer-studio" class="studio-app-nav-item"><span class="studio-nav-icon">✦</span><span><strong>AI Producer</strong><small>Arranjo</small></span></a>
+            <a href="#timeline" class="studio-app-nav-item"><span class="studio-nav-icon">▤</span><span><strong>Studio</strong><small>Timeline</small></span></a>
+            <a href="#mixer-panel" class="studio-app-nav-item"><span class="studio-nav-icon">≋</span><span><strong>Mix</strong><small>FX & níveis</small></span></a>
+          </nav>
+          <div class="studio-sidebar-spacer"></div>
+          <a href="#timeline-mixdown" class="studio-sidebar-export"><span>↓</span><span><strong>Exportar</strong><small>WAV / projecto</small></span></a>
+          <div class="studio-sidebar-user"><span class="studio-user-avatar">FL</span><span><strong id="studio-sidebar-user-name">Artista</strong><small>Conta activa</small></span></div>
+        </aside>
+        <div class="studio-main-column">
+          <div class="studio-session-bar"><div><span class="studio-session-dot"></span><strong id="studio-session-name">Nova sessão</strong><span class="studio-session-state">Guardado localmente</span></div><div class="studio-session-actions"><button class="mini-button" type="button" data-studio-command="undo">↶</button><button class="mini-button" type="button" data-studio-command="redo">↷</button><button class="mini-button" type="button" data-studio-command="save">Guardar</button><button class="button button-primary" type="button" data-studio-command="publish">Publicar</button></div></div>
+          <div class="shell">
         <div class="section-head"><div><div class="section-kicker">Workspace</div><h2 class="section-title">O teu estúdio,<br />aqui.</h2></div><p class="section-lead">Grava, pede uma direcção ao AI Producer e transforma essa direcção numa faixa local, reversível e pronta para mixar.</p></div>
         <div class="studio-flow" aria-label="Fluxo do estúdio">
           <div class="studio-flow-intro"><span class="section-kicker">Studio · sessão activa</span><strong>Uma estação de produção, não uma página de módulos.</strong><span>Escolhe uma área, trabalha no centro da sessão e abre apenas o inspector de que precisas.</span></div>
@@ -208,7 +225,8 @@
           <div class="timeline-stage"><div class="timeline-playhead" id="timeline-playhead" aria-hidden="true"></div><div id="timeline-grid" class="timeline-grid"><div class="empty">Grava uma take para abrir a timeline da sessão.</div></div></div>
           <div class="mixer-panel" id="mixer-panel" aria-label="Mixer local"><div class="panel-heading"><div><div class="section-kicker">Mixer local</div><h3>Equilibra a sessão</h3><p>Controlos não destrutivos por track. O áudio permanece neste navegador.</p></div><span class="pill" id="mixer-headroom">Headroom 0 dB</span></div><aside id="mixer-inspector" class="mixer-inspector" aria-live="polite"><strong>Inspector de track</strong><span>Selecciona uma faixa para ver os seus clips e origem.</span></aside><div id="mixer-tracks" class="mixer-tracks"><div class="empty">Abre uma sessão para ver as tracks.</div></div></div>
         </div>
-      </div>
+          </div>
+        </div>
     </section>
 
     <section id="sobre">

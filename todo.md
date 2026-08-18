@@ -81,3 +81,11 @@
 - [ ] Implementar área de faixas com ícones, cores, mute/solo, FX e botão Add Track
 - [ ] Implementar vista de instrumento com teclado físico/touch, oitava, sustain, escala, smart keys e inspector lateral
 - [ ] Implementar navegação entre Arrangement, Instrument, FX, MIDI Editor, Lyrics/Notes e Sounds
+
+- [ ] Autorizar o domínio fernando-lucoco-music.vercel.app no Firebase Authentication
+- [ ] Validar Google OAuth no domínio Vercel e retorno ao fluxo onboarding/Studio
+
+- [ ] Auditar o ficheiro de requisitos linha a linha contra o site publicado
+- [ ] Produzir matriz de cobertura: implementado, parcial, ausente e bloqueado
+- [ ] Reconstruir a experiência DAW em vez de continuar com ajustes cosméticos
+- [ ] Validar cada requisito do ficheiro com evidência no preview antes de o considerar concluído
