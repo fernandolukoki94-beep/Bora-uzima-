@@ -49,7 +49,7 @@ if (shell) {
     const draft = JSON.parse(sessionStorage.getItem(`${STORAGE_KEY}-draft`) || "null");
     if (draft && typeof draft === "object") Object.assign(state, draft);
   } catch { /* session storage may be unavailable */ }
-  if (!(() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")?.completed; } catch { return false; } })()) open();
+  document.querySelectorAll("[data-open-fernando-onboarding]").forEach((button) => button.addEventListener("click", open));
 
   shell.addEventListener("click", (event) => {
     const next = event.target.closest("[data-onboarding-next]");

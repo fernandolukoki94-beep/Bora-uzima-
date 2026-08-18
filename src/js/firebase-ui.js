@@ -146,8 +146,9 @@ if (panel && form) {
       document.getElementById("onboarding-shell")?.setAttribute("hidden", "");
       document.body.classList.remove("onboarding-open");
       window.dispatchEvent(new CustomEvent("fernando-authenticated", { detail: { uid: user.uid } }));
-    } else if (!document.body.classList.contains("firebase-auth-open")) {
-      window.dispatchEvent(new CustomEvent("open-fernando-onboarding"));
+    } else {
+      document.body.classList.remove("studio-ready");
+      document.body.classList.add("public-landing");
     }
   });
 }
