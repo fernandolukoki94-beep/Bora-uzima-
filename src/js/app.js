@@ -18,6 +18,7 @@ import { deriveProducerStudioState } from "./producer-studio-flow.js";
 import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback } from "./action-feedback.js";
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
 import { requestProductionAdvice } from "./ai-producer-client.js";
+import { isFirebaseSignedIn, listCloudProjects, saveCloudProject, cloudProjectToLocal } from "./firebase-projects.js";
 import { adviceToProducerPlan } from "./ai-advice-to-plan.js";
 import { createImportedBeat, revokeImportedBeat } from "./beat-import.js";
 import { loadEffectPresets, saveEffectPreset, deleteEffectPreset, isBuiltInEffectPreset } from "./effect-presets.js";
@@ -64,6 +65,9 @@ const productionBriefInput = document.getElementById("production-brief");
 const toast = document.getElementById("toast");
 const storageStatus = document.getElementById("storage-status");
 const clearStorageButton = document.getElementById("clear-local-storage");
+const syncCloudProjectsButton = document.getElementById("sync-cloud-projects");
+const saveCloudProjectButton = document.getElementById("save-cloud-project");
+const cloudSyncStatus = document.getElementById("cloud-sync-status");
 const timelineGrid = document.getElementById("timeline-grid");
 const mixerTracks = document.getElementById("mixer-tracks");
 const mixerInspector = document.getElementById("mixer-inspector");
@@ -1445,6 +1449,63 @@ producerVocalBeatMix?.addEventListener("click", mixImportedBeatWithVocal);
 producerSavePreset?.addEventListener("click", () => { const name = producerPresetName?.value?.trim(); if (!name) { if (producerPresetStatus) producerPresetStatus.textContent = "Escreve um nome para guardar a predefinição."; producerPresetName?.focus(); return; } const preset = saveEffectPreset({ ...currentEffectPreset(), name }); activePresetId = preset.id; const project = currentTimelineProject(); if (project) persistActivePreset(project.id, preset.id); updateEffectPresetOptions(); if (producerPresetName) producerPresetName.value = ""; if (producerPresetStatus) producerPresetStatus.textContent = `Predefinição “${preset.name}” guardada.`; });
 producerPresetSelect?.addEventListener("change", () => { activePresetId = producerPresetSelect.value; const preset = loadEffectPresets().find((item) => item.id === activePresetId); applyEffectPreset(preset); const project = currentTimelineProject(); if (project) persistActivePreset(project.id, activePresetId); if (producerDeletePreset) producerDeletePreset.disabled = !preset || isBuiltInEffectPreset(activePresetId); if (producerPresetStatus) producerPresetStatus.textContent = preset ? `Predefinição “${preset.name}” aplicada.` : "Nenhuma predefinição seleccionada."; });
 producerDeletePreset?.addEventListener("click", () => { if (!activePresetId || isBuiltInEffectPreset(activePresetId)) return; const project = currentTimelineProject(); deleteEffectPreset(activePresetId); activePresetId = ""; if (project) persistActivePreset(project.id, ""); updateEffectPresetOptions(); if (producerPresetStatus) producerPresetStatus.textContent = "Predefinição apagada."; });
+async function syncCloudProjects() {
+  if (!isFirebaseSignedIn()) {
+    if (cloudSyncStatus) cloudSyncStatus.textContent = "Inicia sessão para sincronizar manifestos cloud.";
+    if (saveCloudProjectButton) saveCloudProjectButton.disabled = true;
+    return;
+  }
+  if (syncCloudProjectsButton) syncCloudProjectsButton.disabled = true;
+  if (cloudSyncStatus) cloudSyncStatus.textContent = "A sincronizar manifestos…";
+  try {
+    const cloudProjects = await listCloudProjects();
+    const localProjects = readProjects();
+    const localById = new Map(localProjects.map((item) => [item.id, item]));
+    cloudProjects.forEach((cloudProject) => {
+      const local = localById.get(cloudProject.id);
+      if (!local) localById.set(cloudProject.id, cloudProjectToLocal(cloudProject));
+      else localById.set(cloudProject.id, { ...local, cloudSynced: true, cloudUpdatedAt: cloudProject.updatedAt || null });
+    });
+    saveProjects([...localById.values()]);
+    renderProjects();
+    if (cloudSyncStatus) cloudSyncStatus.textContent = `${cloudProjects.length} manifesto(s) sincronizado(s). O áudio continua local.`;
+    if (saveCloudProjectButton) saveCloudProjectButton.disabled = !currentTimelineProject();
+  } catch (error) {
+    if (cloudSyncStatus) cloudSyncStatus.textContent = error.message || "Não foi possível sincronizar a cloud.";
+    showToast(error.message || "Não foi possível sincronizar os projectos cloud.");
+  } finally {
+    if (syncCloudProjectsButton) syncCloudProjectsButton.disabled = false;
+  }
+}
+
+async function saveCurrentProjectToCloud() {
+  const project = currentTimelineProject();
+  if (!project) return showToast("Cria ou selecciona uma sessão primeiro.");
+  if (!isFirebaseSignedIn()) return showToast("Inicia sessão para guardar a sessão na cloud.");
+  if (saveCloudProjectButton) saveCloudProjectButton.disabled = true;
+  if (cloudSyncStatus) cloudSyncStatus.textContent = "A guardar manifesto cloud…";
+  try {
+    await saveCloudProject(project);
+    saveProjects(readProjects().map((item) => item.id === project.id ? { ...item, cloudSynced: true, status: "Manifesto cloud guardado · áudio local" } : item));
+    renderProjects();
+    if (cloudSyncStatus) cloudSyncStatus.textContent = "Sessão sincronizada. O áudio permanece neste dispositivo.";
+    showToast(`“${project.name}” foi guardada na cloud sem enviar áudio bruto.`);
+  } catch (error) {
+    if (cloudSyncStatus) cloudSyncStatus.textContent = error.message || "Falha ao guardar manifesto cloud.";
+    showToast(error.message || "Não foi possível guardar a sessão na cloud.");
+  } finally {
+    if (saveCloudProjectButton) saveCloudProjectButton.disabled = !isFirebaseSignedIn();
+  }
+}
+
+syncCloudProjectsButton?.addEventListener("click", syncCloudProjects);
+saveCloudProjectButton?.addEventListener("click", saveCurrentProjectToCloud);
+window.addEventListener("fernando-authenticated", () => { syncCloudProjects(); });
+window.addEventListener("firebase-signed-out", () => {
+  if (saveCloudProjectButton) saveCloudProjectButton.disabled = true;
+  if (cloudSyncStatus) cloudSyncStatus.textContent = "Sessão terminada. Os projectos locais continuam disponíveis.";
+});
+
 updateIndividualBypassUI();
 updateEffectPresetOptions();
 updateABMeters();

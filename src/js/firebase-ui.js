@@ -1,6 +1,7 @@
 import {
   firebaseErrorMessage,
   loginWithEmail,
+  loginWithGoogle,
   logout,
   observeAuth,
   registerWithEmail,
@@ -17,6 +18,7 @@ const passwordInput = document.getElementById("firebase-auth-password");
 const submit = document.getElementById("firebase-auth-submit");
 const reset = document.getElementById("firebase-auth-reset");
 const toggle = document.getElementById("firebase-auth-toggle");
+const googleButton = document.getElementById("firebase-google-auth");
 const close = document.getElementById("firebase-auth-close");
 const status = document.getElementById("firebase-auth-status");
 const account = document.getElementById("firebase-account");
@@ -46,12 +48,14 @@ if (panel && form) {
 
   function openPanel(nextMode = "login") {
     setMode(nextMode);
+    document.body.classList.add("firebase-auth-open");
     panel.hidden = false;
     emailInput?.focus();
   }
 
   function closePanel() {
     panel.hidden = true;
+    document.body.classList.remove("firebase-auth-open");
     setStatus("");
   }
 
@@ -59,12 +63,29 @@ if (panel && form) {
     if (submit) submit.disabled = busy;
     if (reset) reset.disabled = busy;
     if (toggle) toggle.disabled = busy;
+    if (googleButton) googleButton.disabled = busy;
     if (submit) submit.setAttribute("aria-busy", String(busy));
+    if (googleButton) googleButton.setAttribute("aria-busy", String(busy));
   }
 
   openButtons.forEach((button) => button.addEventListener("click", () => openPanel(button.dataset.authMode || "login")));
+  window.addEventListener("open-fernando-auth", (event) => openPanel(event.detail?.mode || "login"));
   close?.addEventListener("click", closePanel);
   toggle?.addEventListener("click", () => setMode(currentMode === "login" ? "register" : "login"));
+
+  googleButton?.addEventListener("click", async () => {
+    setBusy(true);
+    setStatus("A abrir a entrada Google…", "loading");
+    try {
+      await loginWithGoogle();
+      setStatus("Sessão iniciada.", "success");
+      window.setTimeout(closePanel, 450);
+    } catch (error) {
+      setStatus(firebaseErrorMessage(error), "error");
+    } finally {
+      setBusy(false);
+    }
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -106,6 +127,7 @@ if (panel && form) {
   logoutButton?.addEventListener("click", async () => {
     try {
       await logout();
+      window.dispatchEvent(new CustomEvent("firebase-signed-out"));
       setStatus("Sessão terminada.", "success");
     } catch (error) {
       setStatus(firebaseErrorMessage(error), "error");
@@ -120,6 +142,12 @@ if (panel && form) {
       if (accountName) accountName.textContent = user.displayName || "Artista";
       if (accountEmail) accountEmail.textContent = user.email || "";
       if (panel) panel.hidden = true;
+      document.body.classList.remove("firebase-auth-open");
+      document.getElementById("onboarding-shell")?.setAttribute("hidden", "");
+      document.body.classList.remove("onboarding-open");
+      window.dispatchEvent(new CustomEvent("fernando-authenticated", { detail: { uid: user.uid } }));
+    } else if (!document.body.classList.contains("firebase-auth-open")) {
+      window.dispatchEvent(new CustomEvent("open-fernando-onboarding"));
     }
   });
 }

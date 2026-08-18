@@ -10,6 +10,8 @@ import {
   sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {
@@ -43,6 +45,13 @@ export async function loginWithEmail(email, password) {
   await configureAuthPersistence();
   const credentials = await signInWithEmailAndPassword(auth, email, password);
   await ensureUserProfile(credentials.user);
+  return credentials.user;
+}
+
+export async function loginWithGoogle() {
+  await configureAuthPersistence();
+  const credentials = await signInWithPopup(auth, new GoogleAuthProvider());
+  await ensureUserProfile(credentials.user, credentials.user.displayName || "");
   return credentials.user;
 }
 

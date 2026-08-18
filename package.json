@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "description": "Local-first vocal studio web experience by Fernando Lucoco.",
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test $(find tests -maxdepth 1 -name '*.test.mjs' ! -name '*.vitest.test.mjs' -print)"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.2.5",

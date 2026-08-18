@@ -303,3 +303,23 @@ A configuração Web está isolada em `src/js/firebase-config.js` e contém apen
 Nesta etapa, o áudio e os blobs grandes continuam no IndexedDB local para respeitar o objectivo de orçamento de 0 €. A sincronização dos manifestos de projecto, perfis e funcionalidades sociais será ligada depois de validarmos as regras e o fluxo de autenticação; Firebase Storage não é activado automaticamente porque o custo e os requisitos de billing devem ser confirmados antes de aceitar uploads de media em produção.
 
 A configuração Firebase Web é validada por `tests/firebase-config.test.mjs`. Os testes existentes mantêm alguns testes históricos de provider externo sujeitos ao ambiente local; falhas relacionadas com quota ou com o runner Vitest não são consideradas validação da configuração Firebase.
+
+## Full-stack foundation — Firebase
+
+A identidade do produto é **Fernando Lucoco Music**; não existe dependência do Manus para o utilizador final. O Firebase Authentication suporta contas por e-mail/password e Google, enquanto o onboarding sincroniza o nome artístico, género e instrumento em `users/{uid}`.
+
+A persistência inicial de projectos usa manifestos pequenos em `projects/{projectId}`. O botão **Guardar sessão actual** grava nome, género, BPM, tonalidade, briefing, estado do Producer Plan, recomendação IA e preset activo. **Sincronizar cloud** faz merge não destrutivo com os projectos locais e permite recuperar manifestos noutra instalação. Os dados de áudio bruto, beats e variantes WAV continuam no navegador através de IndexedDB; esta decisão evita uploads silenciosos, protege a privacidade e mantém o orçamento inicial em 0 €.
+
+As regras Firestore limitam a escrita ao proprietário autenticado. O cliente usa apenas a configuração pública da aplicação Web Firebase; não contém service-account JSON nem chaves administrativas. O Storage de media permanece deliberadamente fora desta primeira camada até haver uma decisão explícita sobre quotas e billing.
+
+O fluxo cloud actual é:
+
+```text
+Onboarding → Firebase Auth → perfil/preferences
+                         ↓
+              guardar manifesto do projecto
+                         ↓
+          Firestore sync ↔ IndexedDB + Web Audio local
+```
+
+A sincronização está coberta por validação de sintaxe e a suite determinística actual tem **154 testes aprovados e 0 falhas**. Ainda falta executar QA real de autorização, reload entre dispositivos e regras Firestore com contas de teste antes de declarar a migração cloud pronta para produção.

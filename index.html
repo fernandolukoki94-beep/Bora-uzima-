@@ -40,9 +40,33 @@
         <label class="field">E-mail<input id="firebase-auth-email" type="email" autocomplete="email" required /></label>
         <label class="field">Palavra-passe<input id="firebase-auth-password" type="password" autocomplete="current-password" minlength="6" required /></label>
         <div class="firebase-auth-actions"><button class="button button-primary" id="firebase-auth-submit" type="submit">Entrar</button><button class="mini-button" id="firebase-auth-reset" type="button">Recuperar palavra-passe</button></div>
+        <div class="auth-divider"><span>ou continuar com</span></div>
+        <button class="button button-google" id="firebase-google-auth" type="button"><span class="google-glyph" aria-hidden="true">G</span> Continuar com Google</button>
         <button class="firebase-auth-toggle" id="firebase-auth-toggle" type="button">Criar uma conta</button>
         <p class="firebase-auth-status" id="firebase-auth-status" role="status" aria-live="polite"></p>
       </form>
+    </div>
+  </section>
+
+  <section class="onboarding-shell" id="onboarding-shell" hidden aria-labelledby="onboarding-title">
+    <div class="onboarding-backdrop" aria-hidden="true"></div>
+    <div class="onboarding-card">
+      <div class="onboarding-progress"><span class="onboarding-brand">FLM</span><span id="onboarding-step-label">Passo 1 de 3</span><button class="onboarding-close" id="onboarding-close" type="button" aria-label="Fechar onboarding">×</button></div>
+      <div class="onboarding-step is-active" data-onboarding-step="1">
+        <div class="eyebrow">Bem-vindo ao teu estúdio</div><h2 id="onboarding-title">Começamos pela tua identidade musical.</h2><p>Antes de abrir a sessão, diz-nos como gostas de criar. Estas escolhas personalizam o teu ponto de partida e podem ser alteradas depois.</p>
+        <label class="onboarding-field">Nome artístico<input id="onboarding-artist" type="text" maxlength="80" placeholder="Ex.: Fernando Lucoco" autocomplete="name" /></label>
+        <div class="onboarding-actions"><button class="button button-primary" type="button" data-onboarding-next>Continuar</button></div>
+      </div>
+      <div class="onboarding-step" data-onboarding-step="2">
+        <div class="eyebrow">A tua direcção</div><h2>Que música queres construir?</h2><p>Escolhe o estilo que melhor representa a sessão que tens na cabeça.</p>
+        <div class="choice-grid" role="group" aria-label="Estilo musical"><button type="button" class="choice-card" data-choice-group="genre" data-choice-value="Afrobeat"><strong>Afrobeat</strong><small>Groove quente e vocal presente</small></button><button type="button" class="choice-card" data-choice-group="genre" data-choice-value="R&B"><strong>R&B</strong><small>Espaço, textura e emoção</small></button><button type="button" class="choice-card" data-choice-group="genre" data-choice-value="Amapiano"><strong>Amapiano</strong><small>Baixo, piano e movimento</small></button><button type="button" class="choice-card" data-choice-group="genre" data-choice-value="Pop"><strong>Pop</strong><small>Estrutura clara e refrão forte</small></button></div>
+        <div class="onboarding-actions"><button class="button button-quiet" type="button" data-onboarding-prev>Voltar</button><button class="button button-primary" type="button" data-onboarding-next>Continuar</button></div>
+      </div>
+      <div class="onboarding-step" data-onboarding-step="3">
+        <div class="eyebrow">O teu setup</div><h2>Como vais começar?</h2><p>Escolhe a ferramenta que queres encontrar primeiro no Studio.</p>
+        <div class="choice-grid choice-grid-compact" role="group" aria-label="Ferramenta inicial"><button type="button" class="choice-card" data-choice-group="instrument" data-choice-value="Vocal"><strong>Vocal</strong><small>Gravar, afinar e tratar a voz</small></button><button type="button" class="choice-card" data-choice-group="instrument" data-choice-value="Beat Maker"><strong>Beat Maker</strong><small>Criar groove e instrumental</small></button><button type="button" class="choice-card" data-choice-group="instrument" data-choice-value="Piano"><strong>Piano</strong><small>Harmonia e ideias melódicas</small></button><button type="button" class="choice-card" data-choice-group="instrument" data-choice-value="AI Producer"><strong>AI Producer</strong><small>Arranjo guiado pela tua intenção</small></button></div>
+        <div class="onboarding-summary" id="onboarding-summary"></div><div class="onboarding-actions"><button class="button button-quiet" type="button" data-onboarding-prev>Voltar</button><button class="button button-primary" id="onboarding-account" type="button">Criar conta e entrar</button></div>
+      </div>
     </div>
   </section>
 
@@ -105,7 +129,7 @@
             <div class="field"><label for="production-brief">O que queres que o produtor prepare?</label><textarea id="production-brief" rows="3" maxlength="320" placeholder="Ex.: Afrobeat dançante, voz clara, bass presente e master quente."></textarea><p class="field-note">A instrução é guardada com a take e enviada apenas como metadados validados ao endpoint server-side. Se o provider responder, a recomendação é convertida em arranjo e instrumentalização na timeline; o áudio e as chaves nunca saem do navegador.</p></div>
             <div class="actions"><button class="button button-primary" id="record-main">Começar a gravar</button></div>
           </div>
-          <div class="workspace-panel"><div class="panel-heading"><div><h3>As tuas sessões</h3><p>Histórico local desta instalação.</p></div><button class="mini-button danger" id="clear-local-storage" type="button">Limpar dados locais</button></div><div class="storage-status" aria-live="polite"><span class="storage-dot" aria-hidden="true"></span><span id="storage-status">A verificar armazenamento local…</span></div><div class="project-list" id="project-list"><div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div></div></div>
+          <div class="workspace-panel"><div class="panel-heading"><div><h3>As tuas sessões</h3><p>Áudio local neste dispositivo · manifestos sincronizáveis.</p></div><div class="project-cloud-actions"><button class="mini-button" id="sync-cloud-projects" type="button">Sincronizar cloud</button><button class="mini-button" id="save-cloud-project" type="button" disabled>Guardar sessão actual</button><button class="mini-button danger" id="clear-local-storage" type="button">Limpar dados locais</button></div></div><div class="cloud-sync-status" id="cloud-sync-status" role="status" aria-live="polite">Sessão cloud não sincronizada.</div><div class="storage-status" aria-live="polite"><span class="storage-dot" aria-hidden="true"></span><span id="storage-status">A verificar armazenamento local…</span></div><div class="project-list" id="project-list"><div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div></div></div>
         </div>
         <section class="producer-studio" id="producer-studio" aria-label="Producer Studio V2">
           <div class="producer-studio-head"><div><div class="section-kicker">Producer Studio · AI Producer</div><h3>Da gravação à música, num só fluxo.</h3><p>A IA propõe o arranjo e a instrumentalização; o motor local executa vocal, mix e master reversível sem apagar a tua autoria.</p></div><span class="pill">AI-assisted · local-first</span></div>
@@ -198,6 +222,8 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script type="module" src="src/js/firebase-ui.js"></script>
+  <script type="module" src="src/js/onboarding.js"></script>
   <script type="module" src="src/js/app.js"></script>
+  <script type="module" src="src/js/studio-shell.js"></script>
 </body>
 </html>

@@ -56,7 +56,7 @@ test("IA server-side não altera o fluxo quando o provedor não está configurad
 
 test("IA server-side rejeita resposta com confidence, chain ou tamanhos inválidos", async () => {
   const originalFetch = globalThis.fetch;
-  await withEnv({ AI_PROVIDER_URL: "https://provider.test", AI_PROVIDER_KEY: "test-key" }, async () => {
+  await withEnv({ AI_PROVIDER_URL: "https://provider.test", AI_PROVIDER_KEY: "test-key", GEMINI_API_KEY: undefined }, async () => {
     globalThis.fetch = async () => ({
       ok: true,
       async json() {
@@ -76,7 +76,7 @@ test("IA server-side rejeita resposta com confidence, chain ou tamanhos inválid
 
 test("IA server-side aceita resposta completa válida do provider", async () => {
   const originalFetch = globalThis.fetch;
-  await withEnv({ AI_PROVIDER_URL: "https://provider.test", AI_PROVIDER_KEY: "test-key" }, async () => {
+  await withEnv({ AI_PROVIDER_URL: "https://provider.test", AI_PROVIDER_KEY: "test-key", GEMINI_API_KEY: undefined }, async () => {
     globalThis.fetch = async () => ({
       ok: true,
       async json() {

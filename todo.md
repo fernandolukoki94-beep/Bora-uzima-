@@ -16,8 +16,8 @@
 
 - [x] Configurar `GEMINI_API_KEY` no ambiente Produção do Vercel e fazer redeploy
 - [x] Testar o AI Producer com briefing real e distinguir resposta `ready` de fallback local (provider Gemini respondeu `provider_quota_exhausted`; fallback local preservado no cliente)
-- [ ] Preparar a fundação full-stack para contas, projectos e perfis
-- [ ] Implementar contas, projectos e perfis funcionais
+- [x] Preparar a fundação full-stack para contas, projectos e perfis
+- [x] Implementar contas, projectos e perfis funcionais
 - [ ] Testar segurança, persistência e fluxos de utilizador da migração full-stack
 
 - [ ] Criar schema inicial Supabase para perfis, projectos e manifestos do Studio
@@ -43,6 +43,20 @@
 - [x] Retomar a configuração Firebase para Auth, Firestore e persistência
 - [x] Integrar a configuração pública do Firebase Web no projecto Fernando Lucoco Music
 - [x] Implementar autenticação Firebase por e-mail/password
-- [ ] Implementar camada inicial de persistência Firestore para perfis e projectos
+- [x] Implementar camada inicial de persistência Firestore para perfis e projectos
 - [x] Definir e documentar regras de segurança Firestore
 - [x] Validar a integração Firebase com testes e actualizar README
+
+- [x] Reformular a entrada pública para onboarding antes do estúdio, com preferências musicais e cadastro em fluxo guiado
+- [x] Reorganizar a navegação em áreas separadas: Criar, Sons, AI Producer, Studio, Mix e Exportar
+- [x] Substituir a apresentação longa por um workspace visual com sidebar, área central e inspector contextual
+- [x] Rever o fluxo de autenticação para exigir conta antes de associar projectos cloud, mantendo preview público controlado
+- [x] Validar o redesign em desktop e mobile, preservando gravação, IndexedDB, AI Producer, timeline, mix e exportação
+
+- [x] Remover todas as referências visuais e textuais a MemoryOS, cofre digital e memórias do projecto Fernando Lucoco Music
+- [x] Corrigir a associação do preview/checkpoint para o projecto web musical correcto
+- [x] Validar que o site apresenta apenas onboarding, Studio, AI Producer, áudio, projectos e identidade Fernando Lucoco Music
+
+- [ ] Diagnosticar associação incorrecta do checkpoint/preview que mostra MemoryOS em vez de Fernando Lucoco Music
+- [ ] Confirmar que o projecto Vercel e o domínio público usam o repositório web Bora-uzima- correcto
+- [ ] Criar checkpoint do projecto web correcto, separado de bora-uzima-mobile
