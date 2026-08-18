@@ -17,7 +17,10 @@ function focusArea(targetId, source) {
     const view = document.getElementById(id);
     if (!view) return;
     const shouldKeep = id === targetId || (targetId === "timeline" && id === "mixer-panel") || (targetId === "mixer-panel" && id === "timeline");
-    view.classList.toggle("studio-view-hidden", !shouldKeep);
+    const isHidden = !shouldKeep;
+    view.classList.toggle("studio-view-hidden", isHidden);
+    view.toggleAttribute("aria-hidden", isHidden);
+    if ("inert" in view) view.inert = isHidden;
   });
   document.querySelectorAll("[data-studio-area]").forEach((item) => {
     item.classList.toggle("is-active", item.dataset.studioArea === targetId);
@@ -26,7 +29,8 @@ function focusArea(targetId, source) {
     item.classList.toggle("is-active", item.getAttribute("href") === `#${targetId}`);
   });
   target.classList.add("studio-focus-target");
-  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  target.removeAttribute("aria-hidden");
+  if ("inert" in target) target.inert = false;
   window.setTimeout(() => target.classList.remove("studio-focus-target"), 700);
   if (source) source.setAttribute("aria-current", "page");
 }
@@ -57,7 +61,11 @@ function initStudioShell() {
   window.addEventListener("firebase-signed-out", () => {
     document.body.classList.remove("studio-ready", "studio-focus-mode");
     delete document.body.dataset.studioView;
-    document.querySelectorAll(".studio-view-hidden").forEach((item) => item.classList.remove("studio-view-hidden"));
+    document.querySelectorAll(".studio-view-hidden").forEach((item) => {
+      item.classList.remove("studio-view-hidden");
+      item.removeAttribute("aria-hidden");
+      if ("inert" in item) item.inert = false;
+    });
     document.body.classList.add("public-landing");
     window.history.replaceState(null, "", "#top");
     window.scrollTo({ top: 0, behavior: "smooth" });
