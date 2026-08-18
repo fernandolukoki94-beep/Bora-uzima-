@@ -40,6 +40,17 @@ function initStudioShell() {
 
   window.addEventListener("fernando-authenticated", () => {
     document.body.classList.add("studio-ready");
+    document.body.classList.remove("public-landing");
+    if (!window.location.hash || window.location.hash === "#top" || window.location.hash === "#estudio") {
+      window.history.replaceState(null, "", "#recording-workspace");
+    }
+  });
+
+  window.addEventListener("firebase-signed-out", () => {
+    document.body.classList.remove("studio-ready");
+    document.body.classList.add("public-landing");
+    window.history.replaceState(null, "", "#top");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 }
 

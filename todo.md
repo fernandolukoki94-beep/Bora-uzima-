@@ -57,6 +57,27 @@
 - [x] Corrigir a associação do preview/checkpoint para o projecto web musical correcto
 - [x] Validar que o site apresenta apenas onboarding, Studio, AI Producer, áudio, projectos e identidade Fernando Lucoco Music
 
-- [ ] Diagnosticar associação incorrecta do checkpoint/preview que mostra MemoryOS em vez de Fernando Lucoco Music
-- [ ] Confirmar que o projecto Vercel e o domínio público usam o repositório web Bora-uzima- correcto
+- [x] Diagnosticar associação incorrecta do checkpoint/preview que mostra MemoryOS em vez de Fernando Lucoco Music
+- [x] Confirmar que o projecto Vercel e o domínio público usam o repositório web Bora-uzima- correcto
 - [ ] Criar checkpoint do projecto web correcto, separado de bora-uzima-mobile
+
+- [ ] Definir direcção visual premium própria, inspirada na organização de DAWs modernas sem copiar identidade alheia
+- [ ] Transformar o Studio num fluxo DAW por ecrãs: Home, Criar, Sons, Producer, Timeline, Mix e Exportar
+- [ ] Melhorar waveform, teclado/piano roll, mixer, medidores, transições e feedback de interacção
+- [ ] Criar sistema visual de identidade Fernando Lucoco Music com tokens, tipografia, estados e componentes reutilizáveis
+- [ ] Preparar SEO técnico, sitemap, robots, Open Graph e ligação do domínio personalizado
+- [ ] Definir base de PWA e plano de empacotamento para aplicação móvel
+- [ ] Validar o novo design em desktop e mobile antes de avançar para funcionalidades sociais
+
+- [x] Bloquear gravações, instrumentais, biblioteca e Studio até autenticação/onboarding concluídos
+- [x] Criar entrada pública curta com proposta, demonstração visual limitada e CTA de cadastro/login
+- [ ] Separar rotas/estados Guest, Auth Onboarding, Home protegida e Studio protegido
+- [ ] Reformular o produto com navegação de aplicação, não com uma página longa editorial
+- [ ] Recriar o Studio inspirado na organização BandLab: transporte, timeline, tracks, instrumentos, mixer e inspector
+- [ ] Recolher e comparar capturas de referência fornecidas pelo utilizador antes da validação visual final
+
+- [x] Usar a captura fornecida como referência estrutural do Studio fullscreen, sem copiar marca, textos ou identidade visual
+- [ ] Implementar barra de transporte persistente com BPM, compasso, tonalidade, play, stop, record, undo/redo, guardar e publicar
+- [ ] Implementar área de faixas com ícones, cores, mute/solo, FX e botão Add Track
+- [ ] Implementar vista de instrumento com teclado físico/touch, oitava, sustain, escala, smart keys e inspector lateral
+- [ ] Implementar navegação entre Arrangement, Instrument, FX, MIDI Editor, Lyrics/Notes e Sounds

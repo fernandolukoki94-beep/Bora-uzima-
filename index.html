@@ -24,7 +24,7 @@
       <div class="account-actions">
         <button class="button button-quiet account-open" type="button" data-open-firebase-auth data-auth-mode="login">Entrar</button>
         <div class="firebase-account" id="firebase-account" hidden><span id="firebase-account-name">Artista</span><small id="firebase-account-email"></small><button class="mini-button" id="firebase-logout" type="button">Sair</button></div>
-        <a class="nav-cta" href="#estudio">Começar um take</a>
+        <button class="nav-cta" type="button" data-open-firebase-auth data-auth-mode="register">Começar</button>
       </div>
     </div>
   </header>
@@ -77,8 +77,8 @@
           <div class="eyebrow">Estúdio vocal web · AI Producer</div>
           <h1>A tua voz.<br /><em>A tua demo.</em></h1>
           <p class="hero-copy">Um espaço simples para capturar ideias, guardar takes e preparar o próximo passo da tua música — directamente no navegador.</p>
-          <div class="actions"><a class="button button-primary" href="#estudio">Abrir o estúdio <span aria-hidden="true">↗</span></a><a class="button button-quiet" href="#processo">Ver o processo</a></div>
-          <p class="hero-note">Criado por Fernando Lucoco · protótipo web local-first</p>
+          <div class="actions"><button class="button button-primary" type="button" data-open-firebase-auth data-auth-mode="register">Criar a tua conta <span aria-hidden="true">↗</span></button><button class="button button-quiet" type="button" data-open-firebase-auth data-auth-mode="login">Entrar no Studio</button></div>
+          <p class="hero-note">Fernando Lucoco Music · Studio, IA e criação musical num só espaço</p>
         </div>
         <div class="studio-card" aria-label="Pré-visualização do estúdio vocal">
           <div class="card-head"><span>Take 01 · sessão nova</span><span class="status">Pronto</span></div>
