@@ -17,7 +17,7 @@ function focusArea(targetId, source) {
   viewIds.forEach((id) => {
     const view = document.getElementById(id);
     if (!view) return;
-    const shouldKeep = id === targetId || (targetId === "timeline" && id === "mixer-panel") || (targetId === "mixer-panel" && id === "timeline");
+    const shouldKeep = id === targetId || (targetId === "timeline" && id === "mixer-panel") || (targetId === "mixer-panel" && id === "timeline") || (targetId === "instrument-lab" && id === "beat-panel") || (targetId === "beat-panel" && id === "instrument-lab");
     const isHidden = !shouldKeep;
     view.classList.toggle("studio-view-hidden", isHidden);
     view.toggleAttribute("aria-hidden", isHidden);
