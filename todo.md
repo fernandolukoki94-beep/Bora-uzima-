@@ -72,9 +72,9 @@
 - [x] Bloquear gravações, instrumentais, biblioteca e Studio até autenticação/onboarding concluídos
 - [x] Criar entrada pública curta com proposta, demonstração visual limitada e CTA de cadastro/login
 - [ ] Separar rotas/estados Guest, Auth Onboarding, Home protegida e Studio protegido
-- [ ] Reformular o produto com navegação de aplicação, não com uma página longa editorial
+- [x] Reformular o produto com navegação de aplicação, não com uma página longa editorial
 - [ ] Recriar o Studio inspirado na organização BandLab: transporte, timeline, tracks, instrumentos, mixer e inspector
-- [ ] Recolher e comparar capturas de referência fornecidas pelo utilizador antes da validação visual final
+- [x] Recolher e comparar capturas de referência fornecidas pelo utilizador antes da validação visual final
 
 - [x] Usar a captura fornecida como referência estrutural do Studio fullscreen, sem copiar marca, textos ou identidade visual
 - [ ] Implementar barra de transporte persistente com BPM, compasso, tonalidade, play, stop, record, undo/redo, guardar e publicar
