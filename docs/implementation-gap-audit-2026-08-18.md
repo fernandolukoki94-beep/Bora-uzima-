@@ -39,3 +39,10 @@ Esta auditoria compara o site web publicado e o repositório `bora-uzima-github`
 ## Conclusão
 
 O site não cumpre ainda 100% do ficheiro. A base de gravação, processamento local, autenticação e alguns manifestos cloud existe, mas a maior lacuna é estrutural: **o produto ainda não foi reconstruído como uma aplicação com Dashboard, Studio, Sounds, Instruments, AI, Mastering e Community em ecrãs próprios**. A próxima implementação deve começar pela arquitectura de rotas/estados e pelo Studio fullscreen funcional, não por mais alterações cosméticas.
+
+
+## Verificação pública após c637445
+
+Fonte: https://fernando-lucoco-music.vercel.app/?v=c637445 — verificada em 18-08-2026.
+
+A página pública apresenta o título “Fernando Lucoco Music — O teu próximo take começa aqui”, a identidade FLM, os CTA “Entrar” e “Começar a criar” e uma pré-visualização vocal. O controlo `#hero-record` está presente apenas como elemento visual desactivado (`disabled`, com aria-label de pré-visualização); gravação, instrumentais, biblioteca e Studio continuam ocultos até autenticação. A suite local desta alteração terminou com 154 testes aprovados e 0 falhas.
