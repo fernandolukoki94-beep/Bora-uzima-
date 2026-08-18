@@ -59,6 +59,8 @@ const timer = document.getElementById("timer");
 const recordLabel = document.getElementById("record-label");
 const list = document.getElementById("project-list");
 const recentProjects = document.getElementById("studio-recent-projects");
+const projectSearch = document.getElementById("project-search");
+const projectFilter = document.getElementById("project-filter");
 const nameInput = document.getElementById("project-name");
 const presetInput = document.getElementById("preset");
 const genreInput = document.getElementById("genre");
@@ -1109,13 +1111,26 @@ function renderProjects() {
   renderSoundLibrary();
   const projects = readProjects();
   renderRecentProjects(projects);
+  const query = projectSearch?.value.trim().toLocaleLowerCase("pt-PT") || "";
+  const filter = projectFilter?.value || "all";
+  const visibleProjects = projects.filter((project) => {
+    const matchesQuery = !query || [project.name, project.genre, project.status].some((value) => String(value || "").toLocaleLowerCase("pt-PT").includes(query));
+    const matchesFilter = filter === "all" || (filter === "archived" ? project.archived : !project.archived);
+    return matchesQuery && matchesFilter;
+  });
   if (!projects.length) {
     list.innerHTML = '<div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div>';
     renderProducerStudio();
     renderTimeline();
     return;
   }
-  list.innerHTML = projects.map((project) => {
+  if (!visibleProjects.length) {
+    list.innerHTML = '<div class="empty">Nenhuma sessão corresponde à pesquisa actual.</div>';
+    renderProducerStudio();
+    renderTimeline();
+    return;
+  }
+  list.innerHTML = visibleProjects.map((project) => {
     const originalData = getVariantData(project, "original");
     const processedData = getVariantData(project, "processed");
     const variantBlocks = ["enhanced", "pitchCorrected", "mixed"].map((variant) => {
@@ -1555,6 +1570,8 @@ async function saveCurrentProjectToCloud() {
 
 syncCloudProjectsButton?.addEventListener("click", syncCloudProjects);
 saveCloudProjectButton?.addEventListener("click", saveCurrentProjectToCloud);
+projectSearch?.addEventListener("input", renderProjects);
+projectFilter?.addEventListener("change", renderProjects);
 window.addEventListener("fernando-authenticated", () => { syncCloudProjects(); });
 window.addEventListener("firebase-signed-out", () => {
   if (saveCloudProjectButton) saveCloudProjectButton.disabled = true;

@@ -134,3 +134,8 @@
 - [x] Restaurar projecto arquivado
 - [x] Excluir arquivados da faixa de projectos recentes
 - [x] Validar arquivar/restaurar com 155 testes aprovados
+
+- [x] Pesquisar sessões por nome, género e estado
+- [x] Filtrar sessões activas e arquivadas
+- [x] Mostrar estado vazio quando não há correspondências
+- [x] Validar pesquisa/filtros com 155 testes aprovados

@@ -102,3 +102,8 @@ Continuam pendentes: arquivar/restaurar, capas, versões explícitas, pesquisa/f
 ### Projects — arquivar e restaurar
 
 As sessões podem agora ser arquivadas e restauradas sem apagar o manifesto ou os dados de áudio. Projectos arquivados deixam de aparecer na faixa de recentes da Home, mas permanecem na lista principal com a acção Restaurar. A suite mantém 155 testes aprovados e 0 falhas.
+
+
+### Projects — pesquisa e filtros
+
+A lista de sessões passou a ter pesquisa local por nome, género e estado, além de filtros para Todas, Activas e Arquivadas. A pesquisa não envia áudio nem dados para fora do navegador e o estado vazio para resultados sem correspondência é explícito. A suite mantém 155 testes aprovados e 0 falhas.
