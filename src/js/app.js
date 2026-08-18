@@ -1098,7 +1098,7 @@ function renderRecentProjects(projects) {
     recentProjects.innerHTML = '<div class="studio-recent-empty"><span>♪</span><div><strong>Ainda não há sessões guardadas</strong><p>Cria o teu primeiro projecto e ele aparecerá aqui.</p></div><button class="mini-button" type="button" data-studio-area="recording-workspace">Criar projecto</button></div>';
     return;
   }
-  recentProjects.innerHTML = projects.slice(0, 4).map((project) => {
+  recentProjects.innerHTML = projects.filter((project) => !project.archived).slice(0, 4).map((project) => {
     const duration = project.durationLabel || "duração não registada";
     const detail = `${project.genre || "Demo vocal"} · ${duration}`;
     return `<article class="studio-recent-project"><div class="studio-recent-project-art" aria-hidden="true">♫</div><div class="studio-recent-project-main"><strong>${escapeHtml(project.name || "Sessão sem título")}</strong><small>${escapeHtml(detail)}</small><span class="studio-recent-project-status">${escapeHtml(project.status || "Guardada localmente")}</span></div><button class="mini-button" type="button" data-open-project="${escapeHtml(project.id)}" data-studio-area="timeline">Abrir</button></article>`;
@@ -1153,13 +1153,16 @@ function renderProjects() {
     const pitchAssist = originalData && !project.pitchCorrectionApplied
       ? `<button class="mini-button" type="button" data-pitch-correct-id="${escapeHtml(project.id)}">Pitch assistido</button>`
       : "";
+    const archiveButton = project.archived
+      ? `<button class="mini-button" type="button" data-archive-id="${escapeHtml(project.id)}">Restaurar</button>`
+      : `<button class="mini-button" type="button" data-archive-id="${escapeHtml(project.id)}">Arquivar</button>`;
     const resetEffects = (processedData || variantBlocks.includes("audio-version"))
       ? `<button class="mini-button" type="button" data-reset-effects-id="${escapeHtml(project.id)}">Repor variantes</button>`
       : "";
     const mixedExport = getVariantData(project, "mixed")
       ? `<button class="mini-button primary" type="button" data-export-mixed-id="${escapeHtml(project.id)}">Exportar Mixed WAV</button>`
       : "";
-    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}<button class="mini-button" type="button" data-rename-id="${escapeHtml(project.id)}">Renomear</button><button class="mini-button" type="button" data-duplicate-id="${escapeHtml(project.id)}">Duplicar</button><button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    return `<div class="project${project.archived ? " is-archived" : ""}"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}${archiveButton}<button class="mini-button" type="button" data-rename-id="${escapeHtml(project.id)}">Renomear</button><button class="mini-button" type="button" data-duplicate-id="${escapeHtml(project.id)}">Duplicar</button><button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderProducerStudio();
   renderTimeline();
@@ -1305,6 +1308,17 @@ async function resetEffects(id) {
   renderProjects();
   await refreshStorageStatus();
   showToast("Original recuperado; nenhum áudio guardado foi apagado.");
+}
+
+async function archiveProject(id) {
+  const project = readProjects().find((item) => item.id === id);
+  if (!project) return;
+  const archived = !project.archived;
+  const updated = readProjects().map((item) => item.id === id ? { ...item, archived, status: archived ? "Arquivada localmente" : "Restaurada localmente", updatedAt: new Date().toISOString() } : item);
+  saveProjects(updated);
+  try { if (await indexedDbAvailable()) await putProject(updated.find((item) => item.id === id)); } catch { /* fallback já foi guardado */ }
+  renderProjects();
+  showToast(archived ? "Sessão arquivada; continua recuperável." : "Sessão restaurada.");
 }
 
 async function renameProject(id) {
@@ -1573,6 +1587,7 @@ list?.addEventListener("click", (event) => {
   const resetEffectsButton = event.target.closest("[data-reset-effects-id]");
   const renameButton = event.target.closest("[data-rename-id]");
   const duplicateButton = event.target.closest("[data-duplicate-id]");
+  const archiveButton = event.target.closest("[data-archive-id]");
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
   if (processButton) runProducerPlan(processButton.dataset.processId);
   if (cancelProcessButton) cancelProducerPlan(cancelProcessButton.dataset.cancelProcessId);
@@ -1586,6 +1601,7 @@ list?.addEventListener("click", (event) => {
   if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
   if (renameButton) renameProject(renameButton.dataset.renameId);
   if (duplicateButton) duplicateProject(duplicateButton.dataset.duplicateId);
+  if (archiveButton) archiveProject(archiveButton.dataset.archiveId);
 });
 
 mixerTracks?.addEventListener("click", (event) => {

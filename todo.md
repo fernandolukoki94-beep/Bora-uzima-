@@ -129,3 +129,8 @@
 - [x] Implementar renomear sessão com persistência local
 - [x] Implementar duplicar sessão com novo identificador e estado independente
 - [x] Revalidar suite e diff depois das operações de projecto
+
+- [x] Arquivar projecto sem apagar áudio ou manifesto
+- [x] Restaurar projecto arquivado
+- [x] Excluir arquivados da faixa de projectos recentes
+- [x] Validar arquivar/restaurar com 155 testes aprovados

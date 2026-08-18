@@ -97,3 +97,8 @@ A suite determinística após esta entrega mantém 155 testes aprovados e 0 falh
 Além da apresentação na Home, a lista principal de sessões permite agora **renomear** e **duplicar** um projecto. A renomeação actualiza o manifesto local e tenta actualizar IndexedDB; a duplicação cria um novo identificador, mantém as variantes de áudio do projecto original como dados independentes e não reutiliza a referência de beat importado. A validação mantém 155 testes aprovados e 0 falhas.
 
 Continuam pendentes: arquivar/restaurar, capas, versões explícitas, pesquisa/filtros, rota Projects independente e testes físicos nos navegadores móveis.
+
+
+### Projects — arquivar e restaurar
+
+As sessões podem agora ser arquivadas e restauradas sem apagar o manifesto ou os dados de áudio. Projectos arquivados deixam de aparecer na faixa de recentes da Home, mas permanecem na lista principal com a acção Restaurar. A suite mantém 155 testes aprovados e 0 falhas.
