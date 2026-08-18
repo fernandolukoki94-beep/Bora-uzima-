@@ -849,3 +849,13 @@ body.studio-focus-mode .studio-main-column .studio-view-hidden + .studio-module-
 .studio-home-view.studio-view-hidden { display: none; }
 @media (max-width: 820px) { .studio-home-hero { align-items: stretch; flex-direction: column; } .studio-home-grid { grid-template-columns: 1fr; } .studio-recent-empty { align-items: flex-start; flex-wrap: wrap; } .studio-recent-empty .mini-button { margin-left: 3.3rem; } }
 @media (max-width: 540px) { .studio-home-view { padding: 1rem; } .studio-home-hero h2 { font-size: 2.4rem; } }
+
+/* Authenticated workspace is an application, not an editorial long page. */
+body.studio-ready #sobre,
+body.studio-ready > .footer {
+  display: none !important;
+}
+
+body.studio-ready .studio-app-frame {
+  min-height: calc(100vh - 24px);
+}
