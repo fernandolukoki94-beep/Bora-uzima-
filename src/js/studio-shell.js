@@ -13,11 +13,11 @@ function focusArea(targetId, source) {
   if (!target) return;
   document.body.classList.add("studio-focus-mode");
   document.body.dataset.studioView = targetId;
-  const viewIds = ["studio-home", "recording-workspace", "instrument-lab", "producer-studio", "sound-library", "beat-panel", "timeline", "mixer-panel"];
+  const viewIds = ["studio-home", "recording-workspace", "instrument-lab", "producer-studio", "sound-library", "beat-maker", "timeline", "mixer-panel"];
   viewIds.forEach((id) => {
     const view = document.getElementById(id);
     if (!view) return;
-    const shouldKeep = id === targetId || (targetId === "timeline" && id === "mixer-panel") || (targetId === "mixer-panel" && id === "timeline") || (targetId === "instrument-lab" && id === "beat-panel") || (targetId === "beat-panel" && id === "instrument-lab");
+    const shouldKeep = id === targetId || (targetId === "timeline" && id === "mixer-panel") || (targetId === "mixer-panel" && id === "timeline") || (targetId === "instrument-lab" && id === "beat-maker") || (targetId === "beat-maker" && id === "instrument-lab");
     const isHidden = !shouldKeep;
     view.classList.toggle("studio-view-hidden", isHidden);
     view.toggleAttribute("aria-hidden", isHidden);
