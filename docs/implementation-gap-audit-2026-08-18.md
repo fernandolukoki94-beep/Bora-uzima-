@@ -107,3 +107,8 @@ As sessões podem agora ser arquivadas e restauradas sem apagar o manifesto ou o
 ### Projects — pesquisa e filtros
 
 A lista de sessões passou a ter pesquisa local por nome, género e estado, além de filtros para Todas, Activas e Arquivadas. A pesquisa não envia áudio nem dados para fora do navegador e o estado vazio para resultados sem correspondência é explícito. A suite mantém 155 testes aprovados e 0 falhas.
+
+
+### Projects — metadados obrigatórios
+
+Os cartões de projecto passam a expor título, capa visual, artista, data, duração, BPM, tonalidade, número de tracks, versão e estado. Os fallbacks são explícitos e não inventam áudio: quando não existe uma versão Mixed, o cartão identifica Original. A capa é actualmente um glyph/gradiente determinístico; upload, escolha de artwork e capas sincronizadas continuam pendentes. A suite funcional mantém 155 testes aprovados e 0 falhas.

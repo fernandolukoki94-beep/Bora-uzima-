@@ -1168,6 +1168,10 @@ function renderProjects() {
     const pitchAssist = originalData && !project.pitchCorrectionApplied
       ? `<button class="mini-button" type="button" data-pitch-correct-id="${escapeHtml(project.id)}">Pitch assistido</button>`
       : "";
+    const projectArtist = project.artist || "Fernando Lucoco";
+    const projectVersion = project.version || (getVariantData(project, "mixed") ? "Mixed" : "Original");
+    const trackCount = Array.isArray(project.tracks) ? project.tracks.length : (project.originalAudioData ? 1 : 0);
+    const coverGlyph = project.coverGlyph || "♫";
     const archiveButton = project.archived
       ? `<button class="mini-button" type="button" data-archive-id="${escapeHtml(project.id)}">Restaurar</button>`
       : `<button class="mini-button" type="button" data-archive-id="${escapeHtml(project.id)}">Arquivar</button>`;
@@ -1177,7 +1181,7 @@ function renderProjects() {
     const mixedExport = getVariantData(project, "mixed")
       ? `<button class="mini-button primary" type="button" data-export-mixed-id="${escapeHtml(project.id)}">Exportar Mixed WAV</button>`
       : "";
-    return `<div class="project${project.archived ? " is-archived" : ""}"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}${archiveButton}<button class="mini-button" type="button" data-rename-id="${escapeHtml(project.id)}">Renomear</button><button class="mini-button" type="button" data-duplicate-id="${escapeHtml(project.id)}">Duplicar</button><button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    return `<div class="project${project.archived ? " is-archived" : ""}"><div class="project-cover" aria-hidden="true">${escapeHtml(coverGlyph)}</div><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(projectArtist)} · ${escapeHtml(project.createdAt)} · ${escapeHtml(project.durationLabel || "duração não registada")}</small><small class="project-specs">${escapeHtml(String(project.tempo || 100))} BPM · ${escapeHtml(project.key || "C")} · ${trackCount} track${trackCount === 1 ? "" : "s"} · versão ${escapeHtml(projectVersion)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}${archiveButton}<button class="mini-button" type="button" data-rename-id="${escapeHtml(project.id)}">Renomear</button><button class="mini-button" type="button" data-duplicate-id="${escapeHtml(project.id)}">Duplicar</button><button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderProducerStudio();
   renderTimeline();

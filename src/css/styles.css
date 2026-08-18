@@ -857,6 +857,9 @@ body.studio-focus-mode .studio-main-column .studio-view-hidden + .studio-module-
 .studio-recent-project-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cream); }
 .studio-recent-project-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a9a39a; }
 .studio-recent-project-status { color: var(--mint); font-size: .72rem; }
+.project-cover { display: grid; place-items: center; width: 58px; height: 58px; margin: 14px 0 14px 14px; border-radius: 14px; color: var(--ink); background: linear-gradient(145deg, var(--gold), var(--coral)); font-size: 1.35rem; font-weight: 900; }
+.project-specs { color: rgba(255,255,255,.48); font-size: .76rem; }
+@media (max-width: 620px) { .project-cover { margin-left: 10px; } }
 @media (max-width: 520px) { .studio-recent-project { grid-template-columns: 38px minmax(0, 1fr); } .studio-recent-project-art { width: 38px; height: 38px; } .studio-recent-project .mini-button { grid-column: 2; justify-self: start; } }
 .studio-recent-empty { display: flex; align-items: center; gap: 1rem; padding: 1.15rem 1.25rem; border: 1px dashed rgba(255,255,255,.16); border-radius: .85rem; color: rgba(255,255,255,.68); }
 .studio-recent-empty > span { color: #ff7358; font-size: 1.8rem; }

@@ -139,3 +139,8 @@
 - [x] Filtrar sessões activas e arquivadas
 - [x] Mostrar estado vazio quando não há correspondências
 - [x] Validar pesquisa/filtros com 155 testes aprovados
+
+- [x] Expor título, artista, data, duração, BPM, tonalidade, tracks, versão e estado
+- [x] Expor capa visual determinística sem inventar ficheiros de áudio
+- [ ] Permitir upload/escolha de capa de projecto
+- [ ] Sincronizar artwork e versões entre dispositivos
