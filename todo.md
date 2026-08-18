@@ -102,3 +102,30 @@
 - [ ] Ficheiro 08 — implementar perfis, feed, mensagens, stories e colaboração
 - [ ] Ficheiro 09 — preparar SEO, domínio, PWA, mobile e Play Store
 - [ ] Ficheiro 10 — executar QA requisito a requisito e só então marcar o lançamento
+
+# Novo ciclo — execução requisito a requisito
+
+- [x] Reauditar o ficheiro completo de requisitos e numerar os blocos funcionais
+- [x] Confirmar no código quais requisitos já estão implementados e quais são apenas parciais
+- [x] Executar o próximo requisito pendente definido pela matriz, sem saltar etapas
+- [x] Validar o requisito com testes determinísticos e verificação de integração
+- [x] Actualizar a matriz de requisitos e o implementation gap audit
+- [x] Registar cada requisito concluído e manter histórico das lacunas restantes
+- [ ] Repetir o ciclo até cobrir todos os blocos funcionais possíveis no escopo actual
+- [ ] Fazer verificação final do fluxo público, autenticação e Studio
+- [ ] Guardar checkpoint depois de os itens desta fase estarem validados
+
+## Ciclo seguinte — Dashboard/Projects
+
+- [x] Renderizar até quatro projectos recentes reais na Home protegida
+- [x] Mostrar nome, género, duração e estado do projecto
+- [x] Abrir um projecto recente na timeline existente
+- [x] Preservar o estado vazio para contas sem projectos
+- [x] Validar a entrega com 155 testes aprovados
+- [ ] Criar rota/superfície Projects independente
+- [ ] Implementar renomear, duplicar, arquivar, restaurar e capas
+- [ ] Implementar versões e estados de sincronização por projecto
+
+- [x] Implementar renomear sessão com persistência local
+- [x] Implementar duplicar sessão com novo identificador e estado independente
+- [x] Revalidar suite e diff depois das operações de projecto

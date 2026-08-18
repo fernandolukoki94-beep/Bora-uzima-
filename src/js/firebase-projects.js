@@ -66,6 +66,13 @@ export async function syncProfilePreferences(preferences = {}) {
   await ensureUserProfile(user, preferences.artist || user.displayName || "");
   await setDoc(doc(db, "users", user.uid), {
     displayName: text(preferences.artist, 80) || user.displayName || "Artista",
+    profile: {
+      name: text(preferences.name, 80),
+      username: text(preferences.username, 32).replace(/^@/, ""),
+      artistName: text(preferences.artist, 80) || user.displayName || "Artista",
+      location: text(preferences.location, 80),
+      objectives: Array.isArray(preferences.objectives) ? preferences.objectives.map((item) => text(item, 48)).filter(Boolean).slice(0, 8) : [],
+    },
     preferences: {
       genre: text(preferences.genre, 80) || "Afrobeat",
       instrument: text(preferences.instrument, 80) || "Vocal",

@@ -46,3 +46,54 @@ O site não cumpre ainda 100% do ficheiro. A base de gravação, processamento l
 Fonte: https://fernando-lucoco-music.vercel.app/?v=c637445 — verificada em 18-08-2026.
 
 A página pública apresenta o título “Fernando Lucoco Music — O teu próximo take começa aqui”, a identidade FLM, os CTA “Entrar” e “Começar a criar” e uma pré-visualização vocal. O controlo `#hero-record` está presente apenas como elemento visual desactivado (`disabled`, com aria-label de pré-visualização); gravação, instrumentais, biblioteca e Studio continuam ocultos até autenticação. A suite local desta alteração terminou com 154 testes aprovados e 0 falhas.
+
+## Verificação pública — commit 959c8ea
+
+URL: https://fernando-lucoco-music.vercel.app/?v=959c8ea
+
+A página pública servida pelo Vercel apresenta a landing “A tua voz. A tua demo.”, os CTAs “Começar a criar” e “Entrar no Studio” e uma pré-visualização de gravação explicitamente identificada como “Pré-visualização · entra para gravar”. Não foram expostos instrumentais, biblioteca, timeline ou workspace antes da autenticação. A suite determinística local permanece com 154 testes aprovados.
+
+## Verificação pública — commit a155ce4
+
+URL: https://fernando-lucoco-music.vercel.app/?v=a155ce4
+
+A página pública carregou com o título “Fernando Lucoco Music — O teu próximo take começa aqui” e identidade musical FLM. Foram encontrados apenas os CTAs “Entrar”, “Começar”, “Começar a criar” e “Entrar no Studio”. O bloco de gravação aparece como “Pré-visualização · entra para gravar” e o controlo `hero-record` permanece bloqueado para visitantes. Não foram expostos Studio, instrumentais, biblioteca ou gravações reais antes da autenticação.
+
+## Actualização da execução — Studio e Piano Roll
+
+A selecção de tracks no canvas da timeline passou a sincronizar-se com o inspector do Mixer por clique e teclado, com estado visual de foco e selecção. Isto reduz a sensação de página editorial e mantém o painel contextual ligado ao mesmo estado normalizado de `timelineHistory`.
+
+O Piano Roll deixou de ser apenas pré-escuta. Os 16 passos activos agora podem ser ouvidos como sequência temporizada e materializados numa track instrumental como clip de eventos melódicos. O renderer local passou a sintetizar eventos melódicos temporizados durante o Mixdown, preservando o carácter local, reversível e persistente do projecto. A suite determinística mantém 154 testes aprovados.
+
+| Área | Estado após esta execução | Lacuna restante |
+|---|---|---|
+| Studio DAW | Parcial avançado | Ainda falta separar completamente as superfícies por rotas/estados independentes e aprofundar automação/mixer profissional |
+| Teclado/instrumentos | Implementado local/parcial | Piano Roll materializa eventos e exporta localmente; faltam velocity/sustain/MIDI externo e edição de duração/altura por nota |
+| Music AI/AI Producer | Parcial | O plano já materializa arranjo determinístico; falta provider real disponível e geração contextual mais rica de melodias, acordes, baixo e bateria |
+
+Registo técnico: alterações em `src/js/app.js`, `src/js/studio/instrument-renderer.js`, `src/css/styles.css` e `index.html`; validação local executada em 18-08-2026.
+
+
+## 2026-08-18 — execução sequencial: cadastro e onboarding
+
+O primeiro bloco incompleto encontrado após a auditoria do ficheiro foi a profundidade do cadastro/onboarding. O fluxo agora recolhe nome, username, nome artístico, localização opcional, género, objectivos múltiplos e ferramenta inicial. O resumo final é actualizado antes do cadastro, os campos mínimos de identidade são validados e os dados são sincronizados no perfil Firestore através de merge seguro, com limites de tamanho e normalização do username.
+
+O que já está concluído neste bloco: autenticação por e-mail/password, Google OAuth, onboarding obrigatório, escolhas de género, objectivos múltiplos, ferramenta inicial e persistência de perfil. O que permanece parcial ou ausente: autenticação Apple, foto/avatar real com storage, validação de username único, recuperação de conta visualmente integrada ao onboarding e configuração completa de localização/perfil público.
+
+A suite determinística do projecto foi executada após a alteração: 155 testes aprovados e 0 falhas.
+
+
+## 2026-08-18 — execução sequencial: Dashboard/Projects, primeira entrega
+
+A Home protegida passou a consumir os manifestos locais reais e a apresentar até quatro sessões recentes, com nome, género, duração, estado e acção Abrir. A acção selecciona o projecto no mesmo estado da timeline e abre o Studio existente, sem criar uma segunda fonte de verdade. O estado vazio continua disponível para utilizadores sem sessões.
+
+Este requisito está classificado como **parcial avançado**: a entrada Home e projectos recentes estão funcionais, mas ainda faltam duplicar, renomear, arquivar, restaurar, capas, versões completas e uma rota Projects independente.
+
+A suite determinística após esta entrega mantém 155 testes aprovados e 0 falhas.
+
+
+### Continuação do ciclo Projects
+
+Além da apresentação na Home, a lista principal de sessões permite agora **renomear** e **duplicar** um projecto. A renomeação actualiza o manifesto local e tenta actualizar IndexedDB; a duplicação cria um novo identificador, mantém as variantes de áudio do projecto original como dados independentes e não reutiliza a referência de beat importado. A validação mantém 155 testes aprovados e 0 falhas.
+
+Continuam pendentes: arquivar/restaurar, capas, versões explícitas, pesquisa/filtros, rota Projects independente e testes físicos nos navegadores móveis.

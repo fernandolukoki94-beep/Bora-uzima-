@@ -8,7 +8,7 @@ A plataforma pretendida combina rede social musical, estúdio de gravação, DAW
 
 ## Entrada, conta e onboarding
 
-A landing deve ser cinematográfica e mostrar waveform, piano roll, microfone, mixer, instrumentos, efeitos, IA e projectos, com CTAs para começar, entrar e explorar o Studio. O cadastro deve suportar email/password e Google, com perfil de nome, username, nome artístico, foto, género, localização opcional e objectivos. O onboarding deve perguntar género musical e intenção inicial: gravar voz, criar beat, usar instrumental, criar música com IA, usar instrumento ou abrir projecto.
+A landing deve ser cinematográfica e mostrar waveform, piano roll, microfone, mixer, instrumentos, efeitos, IA e projectos, com CTAs para começar, entrar e explorar o Studio. O cadastro suporta email/password e Google, e o onboarding recolhe nome, username, nome artístico, localização opcional, género, objectivos múltiplos e ferramenta inicial. Permanecem parciais a foto/avatar com storage, Apple e a validação de username único. O onboarding deve continuar a evoluir para cobrir explicitamente todos os caminhos: gravar voz, criar beat, usar instrumental, criar música com IA, usar instrumento ou abrir projecto.
 
 O acesso público deve ser limitado à landing e demonstração controlada. Gravações, instrumentais, biblioteca, projectos e Studio devem permanecer protegidos até autenticação e onboarding concluídos.
 
@@ -61,6 +61,10 @@ Projectos devem ser Private, Unlisted ou Public, com link partilhável, likes, c
 ## Comunidade e plataforma artística
 
 Feed com songs, projects, videos, beats e short clips; likes, comentários, repost, share e follow; descoberta por Trending, New, Recommended e Following. Perfil com foto, nome artístico, username, bio, géneros, músicas, projectos, seguidores, seguindo, banner, fotos e Artist Highlights. Fases futuras: distribuição de singles/EP/álbuns, oportunidades, fan reach, promoção, analytics, monetização e marketplace.
+
+## Estado da execução sequencial
+
+O primeiro bloco pendente da sequência foi cadastro/onboarding. Após a execução de 18-08-2026, os campos de identidade e objectivos múltiplos estão ligados ao perfil Firebase e cobertos pela suite determinística com 155 testes aprovados e 0 falhas. O próximo bloco ainda incompleto é o Dashboard/Projects, seguido pela separação integral das superfícies do Studio.
 
 ## Critério de execução
 

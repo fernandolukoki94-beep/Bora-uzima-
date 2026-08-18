@@ -58,6 +58,7 @@ const mainRecord = document.getElementById("record-main");
 const timer = document.getElementById("timer");
 const recordLabel = document.getElementById("record-label");
 const list = document.getElementById("project-list");
+const recentProjects = document.getElementById("studio-recent-projects");
 const nameInput = document.getElementById("project-name");
 const presetInput = document.getElementById("preset");
 const genreInput = document.getElementById("genre");
@@ -93,6 +94,9 @@ const playPatternButton = document.getElementById("play-pattern");
 const guitarChords = document.getElementById("guitar-chords");
 const extraInstruments = document.getElementById("extra-instruments");
 const pianoRoll = document.getElementById("piano-roll");
+const playPianoSequence = document.getElementById("play-piano-sequence");
+const addPianoTimeline = document.getElementById("add-piano-timeline");
+const pianoRollStatus = document.getElementById("piano-roll-status");
 const beatGrid = document.getElementById("beat-grid");
 const soundLibraryGrid = document.getElementById("sound-library-grid");
 const soundLibraryStatus = document.getElementById("sound-library-status");
@@ -218,7 +222,7 @@ function blobKindForVariant(variant) {
   return VOCAL_VARIANTS[key]?.kind || (key === "processed" ? "processed" : "original");
 }
 if (pianoRoll) {
-  pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
+  pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" data-piano-step="${index}" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
 }
 if (beatGrid) {
   const channels = ["kick", "snare", "clap", "hihat", "percussion", "bass"];
@@ -858,7 +862,8 @@ function renderTimeline() {
       const key = `${escapeHtml(track.id)}:${escapeHtml(clip.id)}`;
       return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · ${clip.gain.toFixed(2)}x · offset ${clip.sourceOffset.toFixed(1)}s</small><div class="clip-actions"><button class="mini-button" type="button" data-clip-action="move-left" data-clip-key="${key}">←</button><button class="mini-button" type="button" data-clip-action="move-right" data-clip-key="${key}">→</button><button class="mini-button" type="button" data-clip-action="trim" data-clip-key="${key}">Trim</button><button class="mini-button" type="button" data-clip-action="split" data-clip-key="${key}">Split</button><button class="mini-button" type="button" data-clip-action="shorter" data-clip-key="${key}">−Len</button><button class="mini-button" type="button" data-clip-action="longer" data-clip-key="${key}">+Len</button><button class="mini-button" type="button" data-clip-action="fade" data-clip-key="${key}">Fade</button><button class="mini-button" type="button" data-clip-action="gain" data-clip-key="${key}">Gain</button><button class="mini-button" type="button" data-duplicate-clip="${key}">Duplicar</button><button class="mini-button danger" type="button" data-delete-clip="${key}">Apagar</button></div></div>`;
     }).join("");
-    return `<div class="timeline-track timeline-track--${origin}" data-track-origin="${origin}" aria-label="${escapeHtml(track.name)} · ${originDescription}"><div class="timeline-track-label"><div class="timeline-track-name"><span>${escapeHtml(track.name)}</span><span class="timeline-origin-badge timeline-origin-badge--${origin}" title="${originDescription}">${originLabel}</span></div><small>${escapeHtml(track.type)} · ${originDescription}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
+    const selected = track.id === selectedMixerTrackId ? " is-selected" : "";
+    return `<div class="timeline-track timeline-track--${origin}${selected}" data-track-origin="${origin}" data-timeline-track="${escapeHtml(track.id)}" tabindex="0" aria-label="${escapeHtml(track.name)} · ${originDescription}"><div class="timeline-track-label"><div class="timeline-track-name"><span>${escapeHtml(track.name)}</span><span class="timeline-origin-badge timeline-origin-badge--${origin}" title="${originDescription}">${originLabel}</span></div><small>${escapeHtml(track.type)} · ${originDescription}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
   }).join("");
   if (timelineUndoButton) timelineUndoButton.disabled = !canUndo(timelineHistory);
   if (timelineRedoButton) timelineRedoButton.disabled = !canRedo(timelineHistory);
@@ -1087,9 +1092,23 @@ function renderProducerStudio() {
   updateEffectPresetOptions();
 }
 
+function renderRecentProjects(projects) {
+  if (!recentProjects) return;
+  if (!projects.length) {
+    recentProjects.innerHTML = '<div class="studio-recent-empty"><span>♪</span><div><strong>Ainda não há sessões guardadas</strong><p>Cria o teu primeiro projecto e ele aparecerá aqui.</p></div><button class="mini-button" type="button" data-studio-area="recording-workspace">Criar projecto</button></div>';
+    return;
+  }
+  recentProjects.innerHTML = projects.slice(0, 4).map((project) => {
+    const duration = project.durationLabel || "duração não registada";
+    const detail = `${project.genre || "Demo vocal"} · ${duration}`;
+    return `<article class="studio-recent-project"><div class="studio-recent-project-art" aria-hidden="true">♫</div><div class="studio-recent-project-main"><strong>${escapeHtml(project.name || "Sessão sem título")}</strong><small>${escapeHtml(detail)}</small><span class="studio-recent-project-status">${escapeHtml(project.status || "Guardada localmente")}</span></div><button class="mini-button" type="button" data-open-project="${escapeHtml(project.id)}" data-studio-area="timeline">Abrir</button></article>`;
+  }).join("");
+}
+
 function renderProjects() {
   renderSoundLibrary();
   const projects = readProjects();
+  renderRecentProjects(projects);
   if (!projects.length) {
     list.innerHTML = '<div class="empty">Ainda não há takes guardadas. A tua próxima ideia pode começar aqui.</div>';
     renderProducerStudio();
@@ -1140,7 +1159,7 @@ function renderProjects() {
     const mixedExport = getVariantData(project, "mixed")
       ? `<button class="mini-button primary" type="button" data-export-mixed-id="${escapeHtml(project.id)}">Exportar Mixed WAV</button>`
       : "";
-    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}<button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    return `<div class="project"><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.preset)} · ${escapeHtml(project.genre || "Demo vocal")} · ${escapeHtml(project.durationLabel || "duração não registada")} · ${escapeHtml(project.createdAt)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}<button class="mini-button" type="button" data-rename-id="${escapeHtml(project.id)}">Renomear</button><button class="mini-button" type="button" data-duplicate-id="${escapeHtml(project.id)}">Duplicar</button><button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderProducerStudio();
   renderTimeline();
@@ -1286,6 +1305,28 @@ async function resetEffects(id) {
   renderProjects();
   await refreshStorageStatus();
   showToast("Original recuperado; nenhum áudio guardado foi apagado.");
+}
+
+async function renameProject(id) {
+  const project = readProjects().find((item) => item.id === id);
+  if (!project) return;
+  const nextName = window.prompt("Novo nome da sessão", project.name || "Sessão sem título")?.trim();
+  if (!nextName || nextName === project.name) return;
+  const updated = readProjects().map((item) => item.id === id ? { ...item, name: nextName, updatedAt: new Date().toISOString() } : item);
+  saveProjects(updated);
+  try { if (await indexedDbAvailable()) await putProject(updated.find((item) => item.id === id)); } catch { /* fallback já foi guardado */ }
+  renderProjects();
+  showToast(`Sessão renomeada para “${nextName}”.`);
+}
+
+async function duplicateProject(id) {
+  const project = readProjects().find((item) => item.id === id);
+  if (!project) return;
+  const copy = { ...project, id: makeProjectId(), name: `${project.name || "Sessão"} — cópia`, createdAt: new Date().toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" }), updatedAt: new Date().toISOString(), importedBeat: null, status: "Cópia local" };
+  saveProjects([copy, ...readProjects()]);
+  try { if (await indexedDbAvailable()) await putProject(copy); } catch { /* fallback já foi guardado */ }
+  renderProjects();
+  showToast(`Foi criada uma cópia de “${project.name}”.`);
 }
 
 async function deleteProject(id) {
@@ -1510,6 +1551,14 @@ updateIndividualBypassUI();
 updateEffectPresetOptions();
 updateABMeters();
 
+recentProjects?.addEventListener("click", (event) => {
+  const openButton = event.target.closest("[data-open-project]");
+  if (!openButton) return;
+  activeTimelineId = openButton.dataset.openProject || null;
+  renderTimeline();
+  renderProducerStudio();
+});
+
 list?.addEventListener("click", (event) => {
   const deleteButton = event.target.closest("[data-delete-id]");
   const processButton = event.target.closest("[data-process-id]");
@@ -1522,6 +1571,8 @@ list?.addEventListener("click", (event) => {
   const pitchCorrectionButton = event.target.closest("[data-pitch-correct-id]");
   const exportMixedButton = event.target.closest("[data-export-mixed-id]");
   const resetEffectsButton = event.target.closest("[data-reset-effects-id]");
+  const renameButton = event.target.closest("[data-rename-id]");
+  const duplicateButton = event.target.closest("[data-duplicate-id]");
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
   if (processButton) runProducerPlan(processButton.dataset.processId);
   if (cancelProcessButton) cancelProducerPlan(cancelProcessButton.dataset.cancelProcessId);
@@ -1533,6 +1584,8 @@ list?.addEventListener("click", (event) => {
   if (pitchCorrectionButton) applyLocalPitchAssist(pitchCorrectionButton.dataset.pitchCorrectId);
   if (exportMixedButton) exportMixedVersion(exportMixedButton.dataset.exportMixedId);
   if (resetEffectsButton) resetEffects(resetEffectsButton.dataset.resetEffectsId);
+  if (renameButton) renameProject(renameButton.dataset.renameId);
+  if (duplicateButton) duplicateProject(duplicateButton.dataset.duplicateId);
 });
 
 mixerTracks?.addEventListener("click", (event) => {
@@ -1576,7 +1629,23 @@ mixerTracks?.addEventListener("click", (event) => {
   if (track) commitTimelineProject(updateTrack(timelineHistory.present, trackId, { [field]: !track[field] }));
 });
 
+timelineGrid?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const trackNode = event.target.closest("[data-timeline-track]");
+  if (!trackNode) return;
+  event.preventDefault();
+  selectedMixerTrackId = trackNode.dataset.timelineTrack;
+  renderTimeline();
+  mixerInspector?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
 timelineGrid?.addEventListener("click", (event) => {
+  const trackNode = event.target.closest("[data-timeline-track]");
+  if (trackNode && !event.target.closest("button")) {
+    selectedMixerTrackId = trackNode.dataset.timelineTrack;
+    renderTimeline();
+    mixerInspector?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return;
+  }
   const button = event.target.closest("button");
   if (!button || !timelineHistory) return;
   const [trackId, clipId] = (button.dataset.clipKey || button.dataset.duplicateClip || button.dataset.deleteClip || "").split(":");
@@ -1700,6 +1769,36 @@ extraInstruments?.addEventListener("click", async (event) => {
 addGuitarTimeline?.addEventListener("click", () => {
   insertInstrumentClip({ name: `Guitarra · ${chordSelect?.value || "C"}`, type: "guitar", metadata: { instrument: "guitar", chord: chordSelect?.value || "C" } });
 });
+function pianoRollEvents() {
+  const bpm = Math.max(40, Math.min(240, Number(projectTempo?.value) || 100));
+  const stepDuration = 60 / bpm / 2;
+  return [...(pianoRoll?.querySelectorAll("[data-piano-note].is-active") || [])].map((button) => ({
+    note: button.dataset.pianoNote,
+    time: Number(button.dataset.pianoStep || 0) * stepDuration,
+    duration: stepDuration * 0.9,
+    velocity: 0.82,
+    instrument: "piano",
+  }));
+}
+async function previewPianoRollSequence() {
+  const events = pianoRollEvents();
+  if (!events.length) return showToast("Activa pelo menos um passo no Piano Roll.");
+  try {
+    for (const event of events) {
+      await playNote(event.note, { type: "triangle", duration: Math.min(0.35, event.duration), volume: event.velocity * 0.14 });
+      await new Promise((resolve) => window.setTimeout(resolve, Math.max(0, event.duration * 1000 - 70)));
+    }
+    if (pianoRollStatus) pianoRollStatus.textContent = `${events.length} notas reproduzidas · ${Math.round((events.at(-1).time + events.at(-1).duration) * 1000) / 1000}s`;
+  } catch (error) { showToast(error instanceof Error ? error.message : "Pré-escuta do Piano Roll falhou."); }
+}
+function addPianoRollToTimeline() {
+  const events = pianoRollEvents();
+  if (!events.length) return showToast("Activa pelo menos um passo no Piano Roll.");
+  const duration = Math.max(0.25, events.reduce((latest, event) => Math.max(latest, event.time + event.duration), 0));
+  const added = insertInstrumentClip({ name: "Piano Roll · sequência", type: "instrument", duration, metadata: { instrument: "piano", events, sequence: "piano-roll", bpm: Number(projectTempo?.value) || 100 } });
+  if (added && pianoRollStatus) pianoRollStatus.textContent = `${events.length} notas materializadas na timeline · clip reversível.`;
+}
+
 function resetBeatGrid() {
   beatGrid?.querySelectorAll(".beat-step.is-active").forEach((button) => button.classList.remove("is-active"));
 }
@@ -1749,8 +1848,11 @@ pianoRoll?.addEventListener("click", async (event) => {
   if (!button) return;
   button.classList.toggle("is-active");
   flashControl(button);
+  if (pianoRollStatus) pianoRollStatus.textContent = `${pianoRollEvents().length} passos activos · pronto para ouvir ou inserir.`;
   try { await playNote(button.dataset.pianoNote, { type: "triangle", duration: 0.28, volume: 0.11 }); } catch (error) { showToast(error.message); }
 });
+playPianoSequence?.addEventListener("click", previewPianoRollSequence);
+addPianoTimeline?.addEventListener("click", addPianoRollToTimeline);
 soundLibraryGrid?.addEventListener("click", async (event) => {
   const preview = event.target.closest("[data-sound-preview]");
   const add = event.target.closest("[data-sound-add]");

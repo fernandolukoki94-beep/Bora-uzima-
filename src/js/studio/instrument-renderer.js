@@ -135,6 +135,13 @@ export function renderInstrumentClip(clip = {}, { sampleRate = 44100, tempo = 10
     sequence.events.forEach((item) => renderDrum(buffer, item, sampleRate));
     return buffer;
   }
+  if (event.events && Array.isArray(event.events)) {
+    event.events.forEach((item) => {
+      if (!item?.note && !item?.pitch) return;
+      renderNote(buffer, item.note || item.pitch, item.time ?? item.start ?? 0, eventDuration(item, Math.min(0.35, duration)), sampleRate, item.instrument || instrument, item.velocity);
+    });
+    return buffer;
+  }
   if (event.kind === "note" || event.note) {
     renderNote(buffer, event.note || event.pitch, event.start || 0, eventDuration(event, Math.min(0.35, duration)), sampleRate, instrument, event.velocity);
     return buffer;

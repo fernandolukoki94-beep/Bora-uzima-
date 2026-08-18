@@ -97,3 +97,23 @@ test("novos timbres locais de cordas e synth pad produzem clips audíveis", () =
     assert.deepEqual(Array.from(first), Array.from(second));
   }
 });
+
+test("renderer de Piano Roll sintetiza eventos melódicos temporizados", () => {
+  const clip = {
+    type: "instrument",
+    duration: 0.8,
+    event: {
+      instrument: "piano",
+      sequence: "piano-roll",
+      events: [
+        { note: "C4", time: 0, duration: 0.18, velocity: 0.82 },
+        { note: "E4", time: 0.3, duration: 0.18, velocity: 0.72 },
+      ],
+    },
+  };
+  const first = renderInstrumentClip(clip, { sampleRate: 8000 });
+  const second = renderInstrumentClip(clip, { sampleRate: 8000 });
+  assert.equal(first.length, 6400);
+  assert.ok(peak(first) > 0);
+  assert.deepEqual(Array.from(first), Array.from(second));
+});
