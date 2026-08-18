@@ -21,9 +21,30 @@
       <nav class="nav-links" aria-label="Navegação principal">
         <a href="#recording-workspace">Criar</a><a href="#instrument-lab">Sons</a><a href="#producer-studio">AI Producer</a><a href="#timeline">Studio</a><a href="#mixer-panel">Mix</a>
       </nav>
-      <a class="nav-cta" href="#estudio">Começar um take</a>
+      <div class="account-actions">
+        <button class="button button-quiet account-open" type="button" data-open-firebase-auth data-auth-mode="login">Entrar</button>
+        <div class="firebase-account" id="firebase-account" hidden><span id="firebase-account-name">Artista</span><small id="firebase-account-email"></small><button class="mini-button" id="firebase-logout" type="button">Sair</button></div>
+        <a class="nav-cta" href="#estudio">Começar um take</a>
+      </div>
     </div>
   </header>
+
+  <section class="firebase-auth-panel" id="firebase-auth-panel" hidden aria-labelledby="firebase-auth-title">
+    <div class="firebase-auth-card">
+      <button class="firebase-auth-close" id="firebase-auth-close" type="button" aria-label="Fechar autenticação">×</button>
+      <div class="section-kicker">Conta Fernando Lucoco Music</div>
+      <h2 id="firebase-auth-title"><span id="firebase-auth-mode">Entrar</span> no estúdio.</h2>
+      <p>As tuas contas e projectos ficam associados ao Firebase. O áudio continua local no dispositivo.</p>
+      <form id="firebase-auth-form" novalidate>
+        <label class="field" id="firebase-auth-name-field" hidden>Nome<input id="firebase-auth-name" type="text" autocomplete="name" maxlength="80" /></label>
+        <label class="field">E-mail<input id="firebase-auth-email" type="email" autocomplete="email" required /></label>
+        <label class="field">Palavra-passe<input id="firebase-auth-password" type="password" autocomplete="current-password" minlength="6" required /></label>
+        <div class="firebase-auth-actions"><button class="button button-primary" id="firebase-auth-submit" type="submit">Entrar</button><button class="mini-button" id="firebase-auth-reset" type="button">Recuperar palavra-passe</button></div>
+        <button class="firebase-auth-toggle" id="firebase-auth-toggle" type="button">Criar uma conta</button>
+        <p class="firebase-auth-status" id="firebase-auth-status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
 
   <main id="top">
     <section class="hero">
@@ -176,6 +197,7 @@
   <footer class="footer"><div class="shell footer-row"><span>© 2026 Fernando Lucoco Music</span><span>AI Producer · Execução local reversível · Fernando Lucoco Music</span></div></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script type="module" src="src/js/firebase-ui.js"></script>
   <script type="module" src="src/js/app.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 
-- [ ] Auditar a integração server-side do provider IA e identificar quota, autenticação, timeout, fallback e execução real no Producer Studio
+- [x] Auditar a integração server-side do provider IA e identificar quota, autenticação, timeout, fallback e execução real no Producer Studio
 - [ ] Redesenhar a navegação para um workspace funcional de estúdio, substituindo a experiência longa e textual por áreas/sessões accionáveis
 - [ ] Definir e documentar a arquitectura de contas, perfil, feed, partilha de música/vídeo, stories e mensagens entre utilizadores
 - [ ] Definir limites de segurança e privacidade para uploads, conteúdo publicado, moderação e credenciais de IA
@@ -11,5 +11,38 @@
 - [ ] Integrar storage seguro para áudio, vídeo, imagens e exportações com limites de upload
 - [ ] Criar API tipada para contas, projectos, publicação, feed, comentários, follows e mensagens
 - [ ] Migrar o Studio existente para o novo shell full-stack mantendo os fluxos locais e IndexedDB
-- [ ] Integrar AI Producer server-side com logs seguros, quota, timeout, validação e execução local
+- [x] Integrar AI Producer server-side com logs seguros, quota, timeout, validação e execução local (OpenAI opcional + adaptador Gemini + fallback local)
 - [ ] Executar testes de segurança, autorização, uploads, regressão de áudio e QA de produção para 1000+ utilizadores
+
+- [x] Configurar `GEMINI_API_KEY` no ambiente Produção do Vercel e fazer redeploy
+- [x] Testar o AI Producer com briefing real e distinguir resposta `ready` de fallback local (provider Gemini respondeu `provider_quota_exhausted`; fallback local preservado no cliente)
+- [ ] Preparar a fundação full-stack para contas, projectos e perfis
+- [ ] Implementar contas, projectos e perfis funcionais
+- [ ] Testar segurança, persistência e fluxos de utilizador da migração full-stack
+
+- [ ] Criar schema inicial Supabase para perfis, projectos e manifestos do Studio
+- [ ] Definir políticas RLS para isolamento por utilizador e leitura pública controlada
+- [ ] Criar contrato server-side para criar, listar, guardar e reabrir projectos
+- [ ] Validar o fluxo conta → projecto → manifesto → reload sem afectar o Studio local
+
+- [ ] Congelar a tentativa Supabase sem aplicar migrações remotas
+- [ ] Criar projecto Firebase para Fernando Lucoco Music
+- [ ] Activar Firebase Authentication, Cloud Firestore e Firebase Storage
+- [ ] Definir regras Firestore e Storage para isolamento por utilizador
+- [ ] Integrar Firebase no site web sem expor credenciais administrativas
+- [ ] Migrar a persistência de projectos e perfis para Firebase
+
+- [ ] Cancelar a alternativa Firebase neste projecto e manter Supabase como único backend
+- [ ] Executar a migração SQL Supabase no projecto fernando-lucoco-music
+
+- [ ] Pausar a aplicação da migração SQL Supabase devido ao bloqueio do editor móvel
+- [ ] Retomar a configuração Firebase como backend escolhido para este projecto
+
+- [ ] Registar que a execução Supabase foi bloqueada por erro de extensão do navegador
+- [ ] Abandonar a execução da migração SQL Supabase neste projecto
+- [x] Retomar a configuração Firebase para Auth, Firestore e persistência
+- [x] Integrar a configuração pública do Firebase Web no projecto Fernando Lucoco Music
+- [x] Implementar autenticação Firebase por e-mail/password
+- [ ] Implementar camada inicial de persistência Firestore para perfis e projectos
+- [x] Definir e documentar regras de segurança Firestore
+- [x] Validar a integração Firebase com testes e actualizar README

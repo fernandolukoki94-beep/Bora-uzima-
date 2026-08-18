@@ -293,3 +293,13 @@ O AI Producer suporta agora um adaptador Gemini server-side separado do adaptado
 A configuração de produção usa `GEMINI_API_KEY` como variável confidencial no Vercel. `GEMINI_MODEL` é opcional e usa `gemini-2.0-flash` por defeito. A chave deve ser adicionada apenas em **Produção**, seguida de redeploy. Quota gratuita está sujeita aos limites da conta e pode produzir `provider_quota_exhausted`; nesse caso, o Studio continua funcional com o Producer Plan local. A recomendação IA descreve arranjo, instrumentalização e cadeia de produção, enquanto Auto-Tune, processamento vocal, mixagem e masterização continuam a ser executados localmente e de forma reversível.
 
 O adaptador aplica timeout, valida `summary`, `chain` e `confidence`, limita o tamanho dos campos e converte erros de autenticação, quota, indisponibilidade e resposta inválida em estados sanitizados. A suite inclui cobertura determinística sem chamadas externas.
+
+## Firebase — fundação full-stack
+
+O projecto Firebase `fernando-lucoco-music` foi criado com Cloud Firestore Standard e Authentication por **E-mail/Password** activada. O site inclui agora um painel de conta com registo, login, recuperação de palavra-passe e logout através do Firebase Web SDK. A sessão usa persistência local do Firebase no navegador.
+
+A configuração Web está isolada em `src/js/firebase-config.js` e contém apenas identificadores públicos da aplicação. Não existem chaves de Admin SDK, `privateKey` ou `clientEmail` no cliente. A camada `src/js/firebase-client.js` cria o perfil inicial em `users/{uid}` depois do registo. As regras versionadas em `firestore.rules` impedem acesso anónimo e limitam cada perfil ao respectivo proprietário.
+
+Nesta etapa, o áudio e os blobs grandes continuam no IndexedDB local para respeitar o objectivo de orçamento de 0 €. A sincronização dos manifestos de projecto, perfis e funcionalidades sociais será ligada depois de validarmos as regras e o fluxo de autenticação; Firebase Storage não é activado automaticamente porque o custo e os requisitos de billing devem ser confirmados antes de aceitar uploads de media em produção.
+
+A configuração Firebase Web é validada por `tests/firebase-config.test.mjs`. Os testes existentes mantêm alguns testes históricos de provider externo sujeitos ao ambiente local; falhas relacionadas com quota ou com o runner Vitest não são consideradas validação da configuração Firebase.

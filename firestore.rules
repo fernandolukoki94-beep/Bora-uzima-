@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUser(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow create: if ownsUser(userId);
+      allow read, update, delete: if ownsUser(userId);
+    }
+
+    // Project manifests will be enabled when the project-sync layer is connected.
+    match /projects/{projectId} {
+      allow read, write: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

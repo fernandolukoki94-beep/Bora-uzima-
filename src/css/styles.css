@@ -421,3 +421,24 @@
 .mixer-track { cursor: pointer; }
 .mixer-track.is-selected { border-color: #8b5cf6; box-shadow: 0 0 0 2px rgba(139,92,246,.13); }
 .mixer-track:focus-visible { outline: 3px solid rgba(255,103,77,.35); outline-offset: 2px; }
+
+/* Firebase account surface */
+.account-actions { display: flex; align-items: center; gap: .65rem; }
+.account-open { white-space: nowrap; }
+.firebase-account { display: flex; align-items: center; gap: .55rem; padding: .35rem .5rem .35rem .75rem; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; background: rgba(255,255,255,.04); }
+.firebase-account span { font-size: .78rem; font-weight: 700; }
+.firebase-account small { color: var(--muted); font-size: .68rem; }
+.firebase-auth-panel { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1.25rem; background: rgba(8,8,7,.74); backdrop-filter: blur(12px); }
+.firebase-auth-panel[hidden], .firebase-account[hidden] { display: none; }
+.firebase-auth-card { position: relative; width: min(100%, 30rem); padding: clamp(1.4rem, 4vw, 2.4rem); border: 1px solid rgba(255,255,255,.14); border-radius: 1.4rem; background: #171715; box-shadow: 0 2rem 5rem rgba(0,0,0,.35); }
+.firebase-auth-card h2 { margin: .45rem 0 .65rem; }
+.firebase-auth-card > p { color: var(--muted); line-height: 1.55; }
+.firebase-auth-close { position: absolute; top: .75rem; right: .85rem; width: 2.2rem; height: 2.2rem; border: 0; border-radius: 50%; color: inherit; background: transparent; font-size: 1.6rem; cursor: pointer; }
+.firebase-auth-close:hover, .firebase-auth-close:focus-visible { background: rgba(255,255,255,.08); }
+.firebase-auth-actions { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; margin-top: .9rem; }
+.firebase-auth-toggle { margin-top: 1rem; border: 0; padding: 0; color: var(--coral); background: transparent; font: inherit; cursor: pointer; }
+.firebase-auth-status { min-height: 1.35rem; margin: .8rem 0 0; color: var(--muted); font-size: .83rem; }
+.firebase-auth-status[data-state="error"] { color: #ff9a9a; }
+.firebase-auth-status[data-state="success"] { color: var(--mint); }
+.firebase-auth-status[data-state="loading"] { color: var(--gold); }
+@media (max-width: 720px) { .account-actions { gap: .35rem; } .firebase-account small { display: none; } .account-actions .nav-cta { display: none; } }
