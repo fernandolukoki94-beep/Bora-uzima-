@@ -71,7 +71,7 @@
 
 - [x] Bloquear gravações, instrumentais, biblioteca e Studio até autenticação/onboarding concluídos
 - [x] Criar entrada pública curta com proposta, demonstração visual limitada e CTA de cadastro/login
-- [ ] Separar rotas/estados Guest, Auth Onboarding, Home protegida e Studio protegido
+- [x] Separar rotas/estados Guest, Auth Onboarding, Home protegida e Studio protegido
 - [x] Reformular o produto com navegação de aplicação, não com uma página longa editorial
 - [ ] Recriar o Studio inspirado na organização BandLab: transporte, timeline, tracks, instrumentos, mixer e inspector
 - [x] Recolher e comparar capturas de referência fornecidas pelo utilizador antes da validação visual final
@@ -94,7 +94,7 @@
 
 - [x] Ficheiro 01 — confirmar a entrada pública, identidade, proposta e CTA sem expor o workspace
 - [ ] Ficheiro 02 — concluir cadastro, login Google/e-mail e onboarding obrigatório
-- [ ] Ficheiro 03 — concluir Home protegida, projectos recentes e navegação por áreas
+- [x] Ficheiro 03 — concluir Home protegida, projectos recentes e navegação por áreas
 - [ ] Ficheiro 04 — reconstruir Studio DAW fullscreen com transporte, tracks, timeline e inspector
 - [ ] Ficheiro 05 — implementar gravação, importação de beat, instrumentos, beatmaker e piano roll funcionais
 - [ ] Ficheiro 06 — ligar AI Producer real a arranjo, instrumentalização, Auto-Tune, mixagem e masterização

@@ -859,3 +859,54 @@ body.studio-ready > .footer {
 body.studio-ready .studio-app-frame {
   min-height: calc(100vh - 24px);
 }
+
+/* Studio DAW vNext — active arrangement workspace */
+body.studio-ready[data-studio-view="timeline"] .studio-main-column { min-width: 0; }
+body.studio-ready[data-studio-view="timeline"] #timeline {
+  display: grid;
+  grid-template-rows: auto auto minmax(280px, 1fr) auto;
+  gap: 0;
+  min-height: min(720px, calc(100vh - 118px));
+  padding: 0;
+  overflow: hidden;
+  background: #0b0d12;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+}
+body.studio-ready[data-studio-view="timeline"] #timeline .panel-heading,
+body.studio-ready[data-studio-view="timeline"] #timeline .transport,
+body.studio-ready[data-studio-view="timeline"] #timeline .studio-transport-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: rgba(11,13,18,.96);
+  backdrop-filter: blur(14px);
+}
+body.studio-ready[data-studio-view="timeline"] #timeline .timeline-grid {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-color: #4b5563 transparent;
+  background: linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), #10131a;
+  background-size: 64px 48px;
+}
+body.studio-ready[data-studio-view="timeline"] #timeline .timeline-ruler {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 32px;
+  background: #151922;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+body.studio-ready[data-studio-view="timeline"] #mixer-panel {
+  max-height: 240px;
+  overflow: auto;
+  border-top: 1px solid rgba(255,255,255,.1);
+  background: #0f1218;
+}
+body.studio-ready[data-studio-view="timeline"] .timeline-clip {
+  box-shadow: 0 8px 18px rgba(0,0,0,.2);
+}
+@media (max-width: 760px) {
+  body.studio-ready[data-studio-view="timeline"] #timeline { min-height: calc(100vh - 96px); border-radius: 12px; }
+  body.studio-ready[data-studio-view="timeline"] #timeline .timeline-grid { min-width: 680px; }
+}
