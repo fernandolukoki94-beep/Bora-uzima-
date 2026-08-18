@@ -144,3 +144,11 @@
 - [x] Expor capa visual determinística sem inventar ficheiros de áudio
 - [ ] Permitir upload/escolha de capa de projecto
 - [ ] Sincronizar artwork e versões entre dispositivos
+
+- [x] Autosave cloud com debounce após edições da timeline
+- [x] Persistir revisão e histórico leve do manifesto no Firestore
+- [x] Expor estados Sincronizando, Salvo agora e Sincronizado
+- [x] Garantir que o áudio continua apenas no IndexedDB local
+- [ ] Recuperar e restaurar uma versão completa anterior
+- [ ] Resolver conflitos de edição entre dispositivos
+- [ ] Validar sincronização end-to-end em dois dispositivos autenticados

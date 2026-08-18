@@ -183,6 +183,7 @@ let activePitchNotes = [];
 let pitchCurveZoom = 1;
 let pitchCurvePan = 0;
 let pitchCurveDrag = null;
+let cloudAutosaveTimer = null;
 let activeTimelineId = null;
 let timelineHistory = null;
 let selectedMixerTrackId = null;
@@ -890,12 +891,31 @@ function renderMixer(project) {
   const headroomDb = estimatedPeak > 0 ? 20 * Math.log10(Math.max(0.0001, 0.98 / estimatedPeak)) : 0;
   if (mixerHeadroom) mixerHeadroom.textContent = `Headroom ${headroomDb.toFixed(1)} dB`;
 }
+function scheduleCloudAutosave(project) {
+  if (!project || !isFirebaseSignedIn()) return;
+  clearTimeout(cloudAutosaveTimer);
+  if (cloudSyncStatus) cloudSyncStatus.textContent = "Sincronizando…";
+  cloudAutosaveTimer = setTimeout(async () => {
+    try {
+      await saveCloudProject(project);
+      saveProjects(readProjects().map((item) => item.id === project.id ? { ...item, cloudSynced: true, cloudSyncState: "synced", cloudSavedAt: new Date().toISOString() } : item));
+      if (cloudSyncStatus) cloudSyncStatus.textContent = "Salvo agora · Sincronizado";
+    } catch (error) {
+      if (cloudSyncStatus) cloudSyncStatus.textContent = error.message || "Sincronização pendente";
+    }
+  }, 1200);
+}
+
 async function commitTimelineProject(nextProject) {
-  timelineHistory = commitHistory(timelineHistory, normalizeProject(nextProject));
+  const currentRevision = Number(timelineHistory?.present?.revision || 0);
+  const nextRevision = currentRevision + 1;
+  const normalized = normalizeProject({ ...nextProject, revision: nextRevision, versionHistory: [...(timelineHistory?.present?.versionHistory || []), { revision: nextRevision, savedAt: new Date().toISOString(), label: `Revisão ${nextRevision}` }].slice(-20), cloudSyncState: "pending" });
+  timelineHistory = commitHistory(timelineHistory, normalized);
   const projects = readProjects().map((project) => project.id === activeTimelineId ? timelineHistory.present : project);
   saveProjects(projects);
   try { if (await indexedDbAvailable()) await putProject(timelineHistory.present); } catch { showToast("A edição ficou no fallback local; IndexedDB será tentado novamente."); }
   renderProjects();
+  scheduleCloudAutosave(timelineHistory.present);
 }
 async function mixdownActiveTimeline() {
   const project = currentTimelineProject();
@@ -1557,12 +1577,12 @@ async function saveCurrentProjectToCloud() {
   if (!project) return showToast("Cria ou selecciona uma sessão primeiro.");
   if (!isFirebaseSignedIn()) return showToast("Inicia sessão para guardar a sessão na cloud.");
   if (saveCloudProjectButton) saveCloudProjectButton.disabled = true;
-  if (cloudSyncStatus) cloudSyncStatus.textContent = "A guardar manifesto cloud…";
+  if (cloudSyncStatus) cloudSyncStatus.textContent = "Sincronizando…";
   try {
     await saveCloudProject(project);
     saveProjects(readProjects().map((item) => item.id === project.id ? { ...item, cloudSynced: true, status: "Manifesto cloud guardado · áudio local" } : item));
     renderProjects();
-    if (cloudSyncStatus) cloudSyncStatus.textContent = "Sessão sincronizada. O áudio permanece neste dispositivo.";
+    if (cloudSyncStatus) cloudSyncStatus.textContent = "Salvo agora · Sincronizado. O áudio permanece neste dispositivo.";
     showToast(`“${project.name}” foi guardada na cloud sem enviar áudio bruto.`);
   } catch (error) {
     if (cloudSyncStatus) cloudSyncStatus.textContent = error.message || "Falha ao guardar manifesto cloud.";

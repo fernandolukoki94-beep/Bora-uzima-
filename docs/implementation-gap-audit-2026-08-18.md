@@ -112,3 +112,8 @@ A lista de sessões passou a ter pesquisa local por nome, género e estado, alé
 ### Projects — metadados obrigatórios
 
 Os cartões de projecto passam a expor título, capa visual, artista, data, duração, BPM, tonalidade, número de tracks, versão e estado. Os fallbacks são explícitos e não inventam áudio: quando não existe uma versão Mixed, o cartão identifica Original. A capa é actualmente um glyph/gradiente determinístico; upload, escolha de artwork e capas sincronizadas continuam pendentes. A suite funcional mantém 155 testes aprovados e 0 falhas.
+
+
+### Cloud Projects — autosave e histórico de manifesto
+
+A edição da timeline agora agenda autosave cloud com debounce de 1,2 segundos quando existe sessão Firebase. A interface expõe os estados “Sincronizando…”, “Salvo agora” e “Sincronizado”; o Firestore recebe apenas o manifesto e um histórico leve das últimas 20 revisões, enquanto o áudio permanece no IndexedDB local. A suite determinística mantém 155 testes aprovados e 0 falhas. A validação end-to-end em dois dispositivos e a recuperação de versões completas continuam pendentes.
