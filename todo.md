@@ -82,10 +82,23 @@
 - [ ] Implementar vista de instrumento com teclado físico/touch, oitava, sustain, escala, smart keys e inspector lateral
 - [ ] Implementar navegação entre Arrangement, Instrument, FX, MIDI Editor, Lyrics/Notes e Sounds
 
-- [ ] Autorizar o domínio fernando-lucoco-music.vercel.app no Firebase Authentication
-- [ ] Validar Google OAuth no domínio Vercel e retorno ao fluxo onboarding/Studio
+- [x] Autorizar o domínio fernando-lucoco-music.vercel.app no Firebase Authentication
+- [x] Validar Google OAuth no domínio Vercel e retorno ao fluxo onboarding/Studio
 
 - [ ] Auditar o ficheiro de requisitos linha a linha contra o site publicado
 - [ ] Produzir matriz de cobertura: implementado, parcial, ausente e bloqueado
 - [ ] Reconstruir a experiência DAW em vez de continuar com ajustes cosméticos
 - [ ] Validar cada requisito do ficheiro com evidência no preview antes de o considerar concluído
+
+# Execução sequencial do ficheiro enviado
+
+- [x] Ficheiro 01 — confirmar a entrada pública, identidade, proposta e CTA sem expor o workspace
+- [ ] Ficheiro 02 — concluir cadastro, login Google/e-mail e onboarding obrigatório
+- [ ] Ficheiro 03 — concluir Home protegida, projectos recentes e navegação por áreas
+- [ ] Ficheiro 04 — reconstruir Studio DAW fullscreen com transporte, tracks, timeline e inspector
+- [ ] Ficheiro 05 — implementar gravação, importação de beat, instrumentos, beatmaker e piano roll funcionais
+- [ ] Ficheiro 06 — ligar AI Producer real a arranjo, instrumentalização, Auto-Tune, mixagem e masterização
+- [ ] Ficheiro 07 — concluir exportação, partilha, cloud projects e reload entre sessões
+- [ ] Ficheiro 08 — implementar perfis, feed, mensagens, stories e colaboração
+- [ ] Ficheiro 09 — preparar SEO, domínio, PWA, mobile e Play Store
+- [ ] Ficheiro 10 — executar QA requisito a requisito e só então marcar o lançamento
