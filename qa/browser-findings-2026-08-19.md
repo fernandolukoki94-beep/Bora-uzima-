@@ -15,3 +15,7 @@ A leitura directa do DOM confirmou que a validação está funcional: `#onboardi
 ## Teclado e foco
 
 Depois de pressionar `Tab` no onboarding, a leitura do DOM mostrou `document.activeElement` como `BODY`, sem id nem tabindex. A validação de conteúdo funciona, mas a sequência de foco não é previsível neste estado. Isto deve entrar como correcção de acessibilidade/interacção antes de considerar o onboarding finalizado.
+
+## Pós-deployment `722390b`
+
+O Vercel criou o deployment `dpl_HmWwtb3fedb5Coo3QCBZVXeuLKdn` a partir do commit `722390b`, estado `READY`, com os aliases de produção activos. No domínio principal, ao abrir o onboarding, `document.activeElement` é `#onboarding-name`, confirmando que o foco inicial foi corrigido. Os oito ids do painel Voice Character estão presentes no DOM publicado.
