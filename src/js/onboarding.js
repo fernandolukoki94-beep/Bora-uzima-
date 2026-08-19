@@ -13,6 +13,15 @@ if (shell) {
   const summary = shell.querySelector("#onboarding-summary");
   const state = { name: "", username: "", artist: "", location: "", genre: "Afrobeat", objectives: [], instrument: "Vocal" };
   let currentStep = 1;
+  let previousFocus = null;
+
+  const focusStep = () => {
+    window.requestAnimationFrame(() => {
+      const activeStep = steps.find((step) => Number(step.dataset.onboardingStep) === currentStep);
+      const target = activeStep?.querySelector("input, button, [tabindex]:not([tabindex=\"-1\"])");
+      target?.focus({ preventScroll: true });
+    });
+  };
 
   const readState = () => {
     try {
@@ -49,8 +58,21 @@ if (shell) {
     });
   };
 
-  const open = () => { shell.hidden = false; document.body.classList.add("onboarding-open"); render(); };
-  const close = () => { shell.hidden = true; document.body.classList.remove("onboarding-open"); };
+  const open = () => {
+    previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    shell.hidden = false;
+    document.body.classList.add("onboarding-open");
+    render();
+    focusStep();
+  };
+  const close = () => {
+    shell.hidden = true;
+    document.body.classList.remove("onboarding-open");
+    window.requestAnimationFrame(() => {
+      if (previousFocus?.isConnected && !previousFocus.hidden) previousFocus.focus({ preventScroll: true });
+      previousFocus = null;
+    });
+  };
 
   readState();
   try {
@@ -83,10 +105,10 @@ if (shell) {
         showInlineError("Preenche nome, username e nome artístico para continuar.");
         return;
       }
-      if (currentStep < steps.length) { currentStep += 1; render(); }
+      if (currentStep < steps.length) { currentStep += 1; render(); focusStep(); }
       return;
     }
-    if (previous && currentStep > 1) { currentStep -= 1; render(); return; }
+    if (previous && currentStep > 1) { currentStep -= 1; render(); focusStep(); return; }
     if (event.target.closest("#onboarding-close")) {
       window.dispatchEvent(new CustomEvent("open-fernando-auth", { detail: { mode: "login" } }));
       return;
@@ -105,8 +127,18 @@ if (shell) {
   function showInlineError(message) {
     if (!summary) return;
     summary.dataset.state = "error";
+    summary.setAttribute("role", "alert");
     summary.innerHTML = `<strong>Falta um detalhe</strong><span>${message}</span>`;
+    const firstInvalid = [nameInput, usernameInput, artistInput].find((input) => !input?.value.trim());
+    firstInvalid?.focus({ preventScroll: true });
   }
+
+  shell.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      close();
+    }
+  });
 
   window.addEventListener("open-fernando-onboarding", open);
   window.addEventListener("fernando-authenticated", async () => {

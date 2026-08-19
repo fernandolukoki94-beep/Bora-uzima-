@@ -471,3 +471,11 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Expor os controlos Voice Character no painel AI Voice e validar ids da interface
 - [x] Documentar explicitamente os limites do DSP local face a Voice Character generativo
 - [ ] Voice Character avançado com formant-preserving dedicado e modelos/transformações adicionais
+
+- [x] Verificar deployment Vercel actual e confirmar controlos Voice Character no HTML de produção
+
+- [x] Criar plano de evolução impressionante com critérios de sucesso e ordem por impacto
+- [x] Testar controlos de erro, interacções menores, foco, teclado e estados de feedback no site publicado
+- [x] Verificar logs de erro e eventos recentes do deployment Vercel actual
+- [x] Auditar novamente as 65 secções do pasted_content.txt contra código, README, TODO e produção
+- [x] Implementar a próxima melhoria de maior impacto após a auditoria: foco e estados de erro acessíveis no onboarding
