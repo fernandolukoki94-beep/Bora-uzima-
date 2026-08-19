@@ -253,6 +253,23 @@
           <div id="sound-library-grid" class="sound-library-grid" aria-live="polite"></div>
           <div id="sound-library-status" class="action-feedback" role="status" aria-live="polite">Escolhe um som para ouvir ou arrasta-o para o Studio.</div>
         </section>
+        <section class="sound-library my-sounds" id="my-sounds" aria-labelledby="my-sounds-title">
+          <div class="panel-heading"><div><div class="section-kicker">My Sounds</div><h3 id="my-sounds-title">A tua biblioteca privada</h3><p>Guarda samples, loops, beats, vocals e instrumentais neste dispositivo. Os ficheiros ficam privados e locais.</p></div><span class="pill">IndexedDB · privado</span></div>
+          <form id="my-sounds-form" class="my-sounds-upload" novalidate>
+            <label class="field"><span>Ficheiro de áudio</span><input id="my-sounds-file" type="file" accept="audio/*" required /></label>
+            <label class="field"><span>Nome</span><input id="my-sounds-name" type="text" maxlength="120" placeholder="Nome do sample ou beat" /></label>
+            <label class="field"><span>Pasta</span><input id="my-sounds-folder" type="text" maxlength="60" value="Raiz" placeholder="Raiz, Vocals, Beats…" /></label>
+            <label class="field"><span>Tags</span><input id="my-sounds-tags" type="text" maxlength="180" placeholder="afrobeat, chorus, warm" /></label>
+            <button class="button button-primary" type="submit">＋ Guardar em My Sounds</button>
+          </form>
+          <div class="sound-library-toolbar" role="search" aria-label="Pesquisar My Sounds">
+            <input id="my-sounds-query" class="text-input" type="search" placeholder="Pesquisar nome, pasta ou tag…" autocomplete="off" />
+            <select id="my-sounds-folder-filter" class="select-input" aria-label="Filtrar pasta"><option value="">Todas as pastas</option></select>
+            <button id="my-sounds-favorites-only" class="mini-button" type="button" aria-pressed="false">★ Favoritos</button>
+          </div>
+          <div id="my-sounds-grid" class="sound-library-grid" aria-live="polite"></div>
+          <div id="my-sounds-status" class="action-feedback" role="status" aria-live="polite">Ainda não guardaste sons privados.</div>
+        </section>
         <div class="studio-module-head"><span class="module-index">03</span><div><span class="section-kicker">Ritmo</span><strong>Beat Maker</strong><span>Escolhe um preset ou constrói o teu padrão passo a passo.</span></div></div>
         <div class="beat-panel" id="beat-maker" aria-label="Beat Maker local">
           <div class="panel-heading"><div><div class="section-kicker">Beat Maker</div><h3>Constrói o groove passo a passo</h3><p>Kick, snare, clap, hi-hat, percussão e bass em 16 passos locais.</p></div><span class="pill">Sem upload</span></div>

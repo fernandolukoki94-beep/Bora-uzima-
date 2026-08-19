@@ -12,6 +12,7 @@ import { createSamplerState, playSamplerVoice, updateSamplerState } from "./stud
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
 import { SOUND_LIBRARY, filterSoundLibrary, getSoundLibraryItem, soundLibraryClip } from "./studio/sound-library.js";
+import { filterMySounds, listMySounds, putMySound, updateMySound, deleteMySound, getMySoundBlob } from "./studio/my-sounds.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav, calculateLoudnessMetrics } from "./studio/mixdown.js";
 import { createProjectManifest, downloadBlob, exportVariantFilename, preferredExportVariant, projectManifestFilename } from "./export-audio.js";
@@ -156,6 +157,16 @@ const soundLibraryCategory = document.getElementById("sound-library-category");
 const soundLibraryGenre = document.getElementById("sound-library-genre");
 const soundLibraryMood = document.getElementById("sound-library-mood");
 const soundLibraryFavoritesOnly = document.getElementById("sound-library-favorites-only");
+const mySoundsForm = document.getElementById("my-sounds-form");
+const mySoundsFile = document.getElementById("my-sounds-file");
+const mySoundsName = document.getElementById("my-sounds-name");
+const mySoundsFolder = document.getElementById("my-sounds-folder");
+const mySoundsTags = document.getElementById("my-sounds-tags");
+const mySoundsQuery = document.getElementById("my-sounds-query");
+const mySoundsFolderFilter = document.getElementById("my-sounds-folder-filter");
+const mySoundsFavoritesOnly = document.getElementById("my-sounds-favorites-only");
+const mySoundsGrid = document.getElementById("my-sounds-grid");
+const mySoundsStatus = document.getElementById("my-sounds-status");
 const beatPreset = document.getElementById("beat-preset");
 const applyBeatPreset = document.getElementById("apply-beat-preset");
 const playBeatSequence = document.getElementById("play-beat-sequence");
@@ -1368,6 +1379,68 @@ function addSoundLibraryItem(item, start = null) {
   if (added && soundLibraryStatus) soundLibraryStatus.textContent = `${item.name} adicionado à timeline na posição ${clip.start.toFixed(1)}s.`;
   return added;
 }
+
+let mySoundsItems = [];
+let mySoundsFilters = { query: "", folder: "", favoritesOnly: false };
+function mySoundCard(item) {
+  const favorite = Boolean(item.favorite);
+  return `<article class="sound-library-card" data-my-sound-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.name)}"><div class="sound-library-card-top"><span class="sound-library-swatch" style="background:#ff765c" aria-hidden="true"></span><span class="sound-library-type">${escapeHtml(item.folder)} · ${escapeHtml(item.mimeType.replace("audio/", ""))}</span><button class="sound-library-favorite${favorite ? " is-active" : ""}" type="button" data-my-sound-favorite="${escapeHtml(item.id)}" aria-label="${favorite ? "Remover" : "Adicionar"} ${escapeHtml(item.name)} ${favorite ? "dos" : "aos"} favoritos" aria-pressed="${favorite}">${favorite ? "★" : "☆"}</button></div><strong>${escapeHtml(item.name)}</strong><small>${(item.size / 1048576).toFixed(2)} MB · ${escapeHtml((item.tags || []).join(" · ") || "sem tags")}</small><div class="sound-library-actions"><button class="mini-button" type="button" data-my-sound-preview="${escapeHtml(item.id)}">▶ Ouvir</button><button class="mini-button primary" type="button" data-my-sound-add="${escapeHtml(item.id)}">＋ Timeline</button><button class="mini-button danger" type="button" data-my-sound-delete="${escapeHtml(item.id)}">Apagar</button></div></article>`;
+}
+function renderMySounds() {
+  if (!mySoundsGrid) return;
+  const folders = [...new Set(mySoundsItems.map((item) => item.folder).filter(Boolean))].sort();
+  if (mySoundsFolderFilter) {
+    const current = mySoundsFolderFilter.value;
+    mySoundsFolderFilter.innerHTML = `<option value="">Todas as pastas</option>${folders.map((folder) => `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`).join("")}`;
+    mySoundsFolderFilter.value = folders.includes(current) ? current : "";
+  }
+  const items = filterMySounds(mySoundsItems, mySoundsFilters);
+  mySoundsGrid.innerHTML = items.length ? items.map(mySoundCard).join("") : `<div class="sound-library-empty">Ainda não há sons privados com estes filtros. Escolhe um áudio acima para criar a tua biblioteca.</div>`;
+  if (mySoundsStatus) mySoundsStatus.textContent = `${items.length} de ${mySoundsItems.length} ${mySoundsItems.length === 1 ? "som privado" : "sons privados"} · IndexedDB neste dispositivo.`;
+}
+async function refreshMySounds() {
+  try { mySoundsItems = await listMySounds(); renderMySounds(); }
+  catch (error) { if (mySoundsStatus) mySoundsStatus.textContent = error instanceof Error ? error.message : "My Sounds indisponível neste navegador."; }
+}
+async function previewMySound(id) {
+  const blob = await getMySoundBlob(id);
+  if (!blob) return;
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  audio.onended = () => URL.revokeObjectURL(url);
+  await audio.play();
+  if (mySoundsStatus) mySoundsStatus.textContent = "Pré-escuta local a tocar.";
+}
+function addMySoundToTimeline(id) {
+  const item = mySoundsItems.find((candidate) => candidate.id === id);
+  if (!item) return;
+  insertInstrumentClip({ name: item.name, type: "sample", duration: item.duration || 4, metadata: { origin: "my-sounds", mySoundId: item.id, folder: item.folder, tags: item.tags } });
+  if (mySoundsStatus) mySoundsStatus.textContent = `${item.name} adicionado à timeline; o ficheiro original permanece privado no IndexedDB.`;
+}
+mySoundsForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const file = mySoundsFile?.files?.[0];
+  try {
+    await putMySound(file, { name: mySoundsName?.value, folder: mySoundsFolder?.value, tags: mySoundsTags?.value });
+    mySoundsForm.reset();
+    if (mySoundsFolder) mySoundsFolder.value = "Raiz";
+    await refreshMySounds();
+  } catch (error) { if (mySoundsStatus) mySoundsStatus.textContent = error instanceof Error ? error.message : "Não foi possível guardar o áudio."; }
+});
+mySoundsQuery?.addEventListener("input", () => { mySoundsFilters.query = mySoundsQuery.value; renderMySounds(); });
+mySoundsFolderFilter?.addEventListener("change", () => { mySoundsFilters.folder = mySoundsFolderFilter.value; renderMySounds(); });
+mySoundsFavoritesOnly?.addEventListener("click", () => { mySoundsFilters.favoritesOnly = !mySoundsFilters.favoritesOnly; mySoundsFavoritesOnly.setAttribute("aria-pressed", String(mySoundsFilters.favoritesOnly)); mySoundsFavoritesOnly.classList.toggle("is-active", mySoundsFilters.favoritesOnly); renderMySounds(); });
+mySoundsGrid?.addEventListener("click", async (event) => {
+  const id = event.target.closest("[data-my-sound-id]")?.dataset.mySoundId;
+  if (!id) return;
+  try {
+    if (event.target.closest("[data-my-sound-favorite]")) { const next = await updateMySound(id, { favorite: !mySoundsItems.find((item) => item.id === id)?.favorite }); await refreshMySounds(); return next; }
+    if (event.target.closest("[data-my-sound-delete]")) { await deleteMySound(id); await refreshMySounds(); return; }
+    if (event.target.closest("[data-my-sound-preview]")) { await previewMySound(id); return; }
+    if (event.target.closest("[data-my-sound-add]")) addMySoundToTimeline(id);
+  } catch (error) { if (mySoundsStatus) mySoundsStatus.textContent = error instanceof Error ? error.message : "Não foi possível concluir a acção."; }
+});
+refreshMySounds();
 
 const AUTOMIX_GENRE_MAP = { "Hip-Hop": "Hip-Hop", "R&B": "R&B", Afrobeats: "Afrobeat", House: "Afro House", "Lo-fi": "R&B", Pop: "Afrobeat", Amapiano: "Amapiano" };
 let automixSnapshot = null;

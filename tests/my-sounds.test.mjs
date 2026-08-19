@@ -1,0 +1,26 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { filterMySounds, normalizeMySoundMetadata, validateMySoundFile } from "../src/js/studio/my-sounds.js";
+
+test("My Sounds valida ficheiro áudio e limite de tamanho", () => {
+  assert.equal(validateMySoundFile({ type: "audio/wav", size: 1024 }).ok, true);
+  assert.equal(validateMySoundFile({ type: "image/png", size: 1024 }).ok, false);
+  assert.equal(validateMySoundFile({ type: "audio/wav", size: 81 * 1024 * 1024 }).ok, false);
+});
+
+test("My Sounds normaliza pastas e tags sem duplicados", () => {
+  const item = normalizeMySoundMetadata({ name: "  Beat  ", folder: " Beats ", tags: "Afrobeat, warm, afrobeat" });
+  assert.equal(item.name, "Beat");
+  assert.equal(item.folder, "Beats");
+  assert.deepEqual(item.tags, ["afrobeat", "warm"]);
+});
+
+test("My Sounds filtra por pesquisa, pasta e favoritos", () => {
+  const items = [
+    { id: "a", name: "Afro vocal", folder: "Vocals", tags: ["warm"], favorite: true },
+    { id: "b", name: "Amapiano loop", folder: "Loops", tags: ["dance"], favorite: false },
+  ];
+  assert.deepEqual(filterMySounds(items, { query: "warm" }).map((item) => item.id), ["a"]);
+  assert.deepEqual(filterMySounds(items, { folder: "Loops" }).map((item) => item.id), ["b"]);
+  assert.deepEqual(filterMySounds(items, { favoritesOnly: true }).map((item) => item.id), ["a"]);
+});

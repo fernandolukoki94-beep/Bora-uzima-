@@ -356,3 +356,22 @@
 ## Estado de validação deste marco
 
 A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de secrets; os testes Vitest de Gemini e Supabase também passaram. A execução indiscriminada de `node --test tests/*.mjs` continua incompatível com esses dois módulos Vitest e não representa uma falha funcional do Sound Library.
+
+## Verificação solicitada — deploy e continuação do ficheiro
+
+- [x] Confirmar que o deploy público está ligado ao commit `cb1e6b4` do repositório Fernando Lucoco Music
+- [x] Verificar visualmente no preview a homepage, onboarding, identidade e bloqueio público; Sounds autenticado permanece pendente
+- [ ] Corrigir qualquer divergência entre o código publicado e o site visível
+- [ ] Seleccionar e implementar o próximo requisito ausente do pasted_content.txt depois da verificação
+
+## Marco My Sounds — biblioteca privada local
+
+- [x] Criar biblioteca privada para samples, loops, beats, vocals e instrumentais
+- [x] Upload de áudio com validação MIME e limite de 80 MB
+- [x] Persistir blobs e metadados numa store IndexedDB dedicada
+- [x] Organizar por pastas e tags, com pesquisa combinável
+- [x] Favoritar, pré-escutar localmente, apagar e adicionar referência à timeline
+- [x] Adicionar layout responsivo do painel My Sounds
+- [x] Cobrir contrato com 3 testes dedicados; sintaxe e diff limpos
+- [ ] Sincronizar My Sounds com Firebase Storage/Firestore com regras por utilizador
+- [ ] Materializar reprodução dos blobs My Sounds directamente no mixdown/export final

@@ -944,3 +944,10 @@ body.studio-ready[data-studio-view="timeline"] .timeline-clip {
 
 /* Multi-take comping */
 .take-label{display:inline-flex;margin-left:6px;padding:3px 7px;border-radius:999px;background:rgba(255,103,77,.12);color:var(--coral-dark);font-size:.68rem;font-weight:800;vertical-align:middle}.comped-control{display:grid;gap:10px;margin-top:12px;padding:12px;border:1px solid rgba(255,103,77,.25);border-radius:12px;background:rgba(255,103,77,.05)}.comped-control legend{padding:0 5px;color:#746f66;font-size:.72rem;font-weight:850;text-transform:uppercase;letter-spacing:.06em}.comped-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.comped-grid label{display:grid;gap:4px;color:#79736a;font-size:.7rem;font-weight:750}.comped-grid select{min-height:38px;border:1px solid rgba(16,16,15,.14);border-radius:8px;background:#fffdf8;color:var(--ink);padding:6px;font-size:.78rem}@media (max-width:680px){.comped-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.my-sounds-upload { display:grid; grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(130px, 1fr)) auto; gap:12px; align-items:end; margin:16px 0; }
+.my-sounds-upload .field { margin:0; }
+.my-sounds-upload input[type="file"] { max-width:220px; }
+.my-sounds .sound-library-card { min-width:0; }
+@media (max-width: 900px) { .my-sounds-upload { grid-template-columns: repeat(2, minmax(0, 1fr)); } .my-sounds-upload button { grid-column: span 2; } }
+@media (max-width: 560px) { .my-sounds-upload { grid-template-columns: 1fr; } .my-sounds-upload button { grid-column:auto; width:100%; } .my-sounds-upload input[type="file"] { max-width:100%; width:100%; } }
