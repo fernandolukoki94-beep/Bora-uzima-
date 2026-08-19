@@ -2173,14 +2173,16 @@ producerRequestAi?.addEventListener("click", async () => {
       : item);
     saveProjects(nextProjects);
     if (producerAiStatus) {
+      const providerLabel = result.provider || result.providerName || "provider server-side";
       producerAiStatus.dataset.state = "success";
-      producerAiStatus.textContent = `${advice.summary} Cadeia: ${advice.chain.join(" → ")} · confiança ${advice.confidence}. A IA vai agora materializar o arranjo na faixa do produtor.`;
+      producerAiStatus.textContent = `${advice.summary} · ${providerLabel} respondeu. Cadeia: ${advice.chain.join(" → ")} · confiança ${advice.confidence}. O motor local vai materializar o arranjo de forma reversível.`;
     }
     await runProducerPlan(project.id, { planOverride: recommendationPlan, sourceLabel: "ai" });
   } catch (error) {
     if (producerAiStatus) {
-      producerAiStatus.dataset.state = "error";
-      producerAiStatus.textContent = error.message || "Recomendação IA indisponível; o fluxo local continua disponível.";
+      const status = error.status || "provider_unavailable";
+      producerAiStatus.dataset.state = status === "provider_quota_exhausted" ? "fallback" : "error";
+      producerAiStatus.textContent = `${error.message || "Recomendação IA indisponível."} O Producer Plan local continua disponível, mas não é uma resposta generativa do provider.`;
     }
   } finally {
     producerRequestAi.disabled = false;

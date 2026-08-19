@@ -1,9 +1,9 @@
 
 - [x] Auditar a integração server-side do provider IA e identificar quota, autenticação, timeout, fallback e execução real no Producer Studio
-- [ ] Redesenhar a navegação para um workspace funcional de estúdio, substituindo a experiência longa e textual por áreas/sessões accionáveis
+- [x] Redesenhar a navegação para um workspace funcional de estúdio, substituindo a experiência longa e textual por áreas/sessões accionáveis
 - [ ] Definir e documentar a arquitectura de contas, perfil, feed, partilha de música/vídeo, stories e mensagens entre utilizadores
 - [ ] Definir limites de segurança e privacidade para uploads, conteúdo publicado, moderação e credenciais de IA
-- [ ] Implementar o primeiro corte funcional do novo workspace depois da auditoria e validação do fluxo IA
+- [x] Implementar o primeiro corte funcional do novo workspace depois da auditoria e validação do fluxo IA
 
 - [ ] Migrar a aplicação web estática para uma fundação full-stack sem perder o motor Web Audio local
 - [ ] Definir autenticação real, sessões, autorização e recuperação de conta
@@ -309,7 +309,7 @@
 - [x] Calcular métricas peak/RMS por faixa no motor de Mixdown (pré-FX)
 - [x] Criar estado Master persistente com ganho, pan, limiter e bypass no motor de mistura
 - [x] Ligar controlos visuais do Master ao projecto e ao motor de mistura
-- [ ] Implementar automação editável de volume, pan e parâmetros FX
+- [x] Implementar automação editável de volume, pan e parâmetros FX
 - [x] Implementar núcleo Drum Machine com kits, swing, velocity, pattern e loop no sequenciador
 - [x] Ligar controlos visuais de kit, swing, velocity e loop ao painel Beat Maker
 - [ ] Implementar Looper com camadas e undo de camadas
@@ -491,3 +491,10 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Definir contrato de automação para volume, pan e parâmetros FX no Mix Session
 - [x] Implementar automação persistente e funcional com lanes/pontos editáveis
 - [x] Testar automação, plugins, exportação e presença no deployment de produção
+
+- [x] Auditar o design actual contra o pasted_content.txt e identificar o que deve ser reconstruído sem apagar funcionalidades
+- [x] Definir novo shell visual de estúdio musical, com layout equilibrado e navegação por sessões
+- [ ] Reconstruir visualmente onboarding, Studio, timeline, tracks, instrumentos, mixer e inspector
+- [x] Melhorar a qualidade e a organização dos instrumentais e do fluxo de gravação: kick/bass alinhados no preview e no renderer offline
+- [x] Diagnosticar o AI Producer desde a UI até ao provider e mostrar estado real sem fallback enganador
+- [ ] Executar QA visual desktop/mobile, interacções, áudio e regressões antes do deployment

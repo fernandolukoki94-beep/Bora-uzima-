@@ -26,8 +26,8 @@ test("preview de bateria não depende do mapa de notas do piano", () => {
 
 test("bass do preview reforça presença móvel com corpo e harmónico superior", () => {
   assert.match(audioEngine, /O fundamental abaixo de 60 Hz/);
-  assert.match(audioEngine, /frequency: 130/);
-  assert.match(audioEngine, /frequency: 195/);
+  assert.match(audioEngine, /frequency: 116/);
+  assert.match(audioEngine, /frequency: 174/);
   assert.match(audioEngine, /type: "triangle"/);
   assert.match(audioEngine, /type: "sine"/);
 });

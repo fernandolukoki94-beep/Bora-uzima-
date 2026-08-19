@@ -51,18 +51,18 @@ test("ganho solicitado passa por limiter em vez de ser silenciosamente reduzido"
 });
 
 test("kick e bass têm níveis dedicados acima da percussão genérica", () => {
-  assert.match(audio, /safeInstrument === "kick" \? 0\.56/);
-  assert.match(audio, /safeInstrument === "bass" \? 0\.3/);
+  assert.match(audio, /safeInstrument === "kick" \? 0\.72/);
+  assert.match(audio, /safeInstrument === "bass" \? 0\.42/);
 });
 
 test("kick usa síntese dedicada com ataque e queda de frequência no preview e no Mixdown", () => {
   const renderer = fs.readFileSync(new URL("../src/js/studio/instrument-renderer.js", import.meta.url), "utf8");
-  assert.match(audio, /isKick \? 155 : 65/);
-  assert.match(audio, /isKick \? 48 : 52/);
+  assert.match(audio, /isKick \? 185 : 58/);
+  assert.match(audio, /isKick \? 44 : 48/);
   assert.match(audio, /isBass/);
   assert.match(audio, /harmonic\.frequency/);
   assert.match(renderer, /function addKick/);
-  assert.match(renderer, /Math\.pow\(48 \/ 155/);
+  assert.match(renderer, /Math\.pow\(44 \/ 185/);
   assert.match(renderer, /const attack/);
 });
 

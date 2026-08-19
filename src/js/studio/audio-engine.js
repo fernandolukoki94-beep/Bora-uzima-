@@ -63,7 +63,7 @@ export function planSequenceEvents(sequence, startTime = 0) {
 function scheduleDrumHit(context, instrument, at, velocity = 0.8) {
   const safeInstrument = ["kick", "snare", "clap", "hihat", "percussion", "bass"].includes(instrument) ? instrument : "kick";
   const duration = safeInstrument === "kick" || safeInstrument === "bass" ? 0.22 : safeInstrument === "hihat" ? 0.045 : 0.1;
-  const level = Math.max(0.001, Math.min(1, Number(velocity) || 0) * (safeInstrument === "hihat" ? 0.075 : safeInstrument === "kick" ? 0.56 : safeInstrument === "bass" ? 0.3 : 0.2));
+  const level = Math.max(0.001, Math.min(1, Number(velocity) || 0) * (safeInstrument === "hihat" ? 0.075 : safeInstrument === "kick" ? 0.72 : safeInstrument === "bass" ? 0.42 : 0.2));
   const gain = context.createGain();
   gain.gain.setValueAtTime(0.0001, at);
   gain.gain.exponentialRampToValueAtTime(level, at + 0.004);
@@ -89,18 +89,36 @@ function scheduleDrumHit(context, instrument, at, velocity = 0.8) {
   const oscillator = context.createOscillator();
   const isKick = safeInstrument === "kick";
   const isBass = safeInstrument === "bass";
-  oscillator.type = isBass ? "triangle" : "sine";
-  oscillator.frequency.setValueAtTime(isKick ? 155 : 65, at);
-  oscillator.frequency.exponentialRampToValueAtTime(isKick ? 48 : 52, at + duration * (isKick ? 0.72 : 1));
-  oscillator.connect(gain).connect(context.destination);
+  oscillator.type = isBass ? "sawtooth" : "sine";
+  oscillator.frequency.setValueAtTime(isKick ? 185 : 58, at);
+  oscillator.frequency.exponentialRampToValueAtTime(isKick ? 44 : 48, at + duration * (isKick ? 0.62 : 1));
+  const bodyFilter = context.createBiquadFilter();
+  bodyFilter.type = "lowpass";
+  bodyFilter.frequency.setValueAtTime(isKick ? 2800 : 520, at);
+  bodyFilter.Q.setValueAtTime(isBass ? 1.15 : 0.7, at);
+  oscillator.connect(bodyFilter).connect(gain).connect(context.destination);
   oscillator.start(at);
   oscillator.stop(at + duration + 0.03);
+  if (isKick) {
+    const click = context.createOscillator();
+    const clickGain = context.createGain();
+    click.type = "triangle";
+    click.frequency.setValueAtTime(1450, at);
+    click.frequency.exponentialRampToValueAtTime(620, at + 0.026);
+    clickGain.gain.setValueAtTime(0.0001, at);
+    clickGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, level * 0.16), at + 0.002);
+    clickGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.042);
+    click.connect(clickGain).connect(context.destination);
+    click.start(at);
+    click.stop(at + 0.05);
+  }
   if (isBass) {
     // O fundamental abaixo de 60 Hz pode desaparecer em altifalantes de telemóvel.
     // Mantemos o sub grave, mas acrescentamos corpo e presença audível no médio-grave.
     const harmonics = [
-      { frequency: 130, endFrequency: 104, type: "triangle", level: 0.2 },
-      { frequency: 195, endFrequency: 156, type: "sine", level: 0.11 },
+      { frequency: 116, endFrequency: 92, type: "triangle", level: 0.28 },
+      { frequency: 174, endFrequency: 138, type: "sine", level: 0.16 },
+      { frequency: 232, endFrequency: 184, type: "triangle", level: 0.08 },
     ];
     harmonics.forEach(({ frequency, endFrequency, type, level }) => {
       const harmonic = context.createOscillator();

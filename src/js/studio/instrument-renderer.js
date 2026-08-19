@@ -60,17 +60,18 @@ function addKick(buffer, start, sampleRate, velocity = 0.8) {
   const begin = Math.max(0, Math.floor(start * sampleRate));
   const frames = Math.min(buffer.length - begin, Math.ceil(duration * sampleRate));
   if (frames <= 0) return;
-  const amplitude = 0.52 * clamp(velocity, 0, 1);
+  const amplitude = 0.72 * clamp(velocity, 0, 1);
   let phase = 0;
   for (let index = 0; index < frames; index += 1) {
     const progress = index / Math.max(1, frames - 1);
-    const frequency = 155 * Math.pow(48 / 155, Math.min(1, progress * 2.6));
+    const frequency = 185 * Math.pow(44 / 185, Math.min(1, progress * 2.8));
     phase += (2 * Math.PI * frequency) / sampleRate;
-    const body = Math.sin(phase);
-    const sub = Math.sin(phase * 0.5) * 0.18;
+    const body = Math.sin(phase) * 0.94;
+    const sub = Math.sin(phase * 0.5) * 0.28;
+    const click = Math.sin(phase * 3) * Math.pow(1 - progress, 7) * 0.08;
     const attack = Math.min(1, (index + 1) / Math.max(1, Math.ceil(sampleRate * 0.004)));
     const envelope = Math.pow(1 - progress, 2.15) * attack;
-    buffer[begin + index] += (body + sub) * amplitude * envelope;
+    buffer[begin + index] += (body + sub + click) * amplitude * envelope;
   }
 }
 
@@ -79,7 +80,7 @@ function addBass(buffer, start, sampleRate, velocity = 0.8) {
   const begin = Math.max(0, Math.floor(start * sampleRate));
   const frames = Math.min(buffer.length - begin, Math.ceil(duration * sampleRate));
   if (frames <= 0) return;
-  const amplitude = 0.28 * clamp(velocity, 0, 1);
+  const amplitude = 0.42 * clamp(velocity, 0, 1);
   for (let index = 0; index < frames; index += 1) {
     const progress = index / Math.max(1, frames - 1);
     const envelope = Math.min(1, (index + 1) / Math.max(1, Math.ceil(sampleRate * 0.008))) * Math.pow(1 - progress, 1.45);
