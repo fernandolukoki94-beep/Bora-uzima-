@@ -484,4 +484,4 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Executar QA mobile disponível e registar riscos em Samsung/Android Chrome/Safari
 - [x] Implementar Mixer profissional com medidores de pico por canal, estado real e controlos clicáveis
 - [x] Testar meters, ganho, mute, solo, pan, persistência e acessibilidade do Mixer
-- [ ] Confirmar deployment Vercel e presença funcional do Mixer em produção
+- [x] Confirmar deployment Vercel e presença funcional do Mixer em produção
