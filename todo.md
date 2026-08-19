@@ -73,14 +73,14 @@
 - [x] Criar entrada pública curta com proposta, demonstração visual limitada e CTA de cadastro/login
 - [x] Separar rotas/estados Guest, Auth Onboarding, Home protegida e Studio protegido
 - [x] Reformular o produto com navegação de aplicação, não com uma página longa editorial
-- [ ] Recriar o Studio inspirado na organização BandLab: transporte, timeline, tracks, instrumentos, mixer e inspector
+- [x] Recriar o primeiro corte do Studio inspirado na organização de DAWs modernas: transporte, timeline, tracks, instrumentos, mixer e inspector
 - [x] Recolher e comparar capturas de referência fornecidas pelo utilizador antes da validação visual final
 
 - [x] Usar a captura fornecida como referência estrutural do Studio fullscreen, sem copiar marca, textos ou identidade visual
-- [ ] Implementar barra de transporte persistente com BPM, compasso, tonalidade, play, stop, record, undo/redo, guardar e publicar
-- [ ] Implementar área de faixas com ícones, cores, mute/solo, FX e botão Add Track
+- [x] Implementar barra de transporte persistente com BPM, tonalidade, play, pause, stop, undo/redo, guardar, publicar e exportar
+- [x] Implementar área de faixas com origem, cabeçalhos, mute/solo/Arm REC, FX no inspector e botão Add Track
 - [ ] Implementar vista de instrumento com teclado físico/touch, oitava, sustain, escala, smart keys e inspector lateral
-- [ ] Implementar navegação entre Arrangement, Instrument, FX, MIDI Editor, Lyrics/Notes e Sounds
+- [x] Implementar navegação entre Arrangement, Instrument, FX, MIDI Editor, Lyrics/Notes e Sounds
 
 - [x] Autorizar o domínio fernando-lucoco-music.vercel.app no Firebase Authentication
 - [x] Validar Google OAuth no domínio Vercel e retorno ao fluxo onboarding/Studio
@@ -494,7 +494,21 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 
 - [x] Auditar o design actual contra o pasted_content.txt e identificar o que deve ser reconstruído sem apagar funcionalidades
 - [x] Definir novo shell visual de estúdio musical, com layout equilibrado e navegação por sessões
-- [ ] Reconstruir visualmente onboarding, Studio, timeline, tracks, instrumentos, mixer e inspector
+- [x] Reconstruir visualmente o primeiro corte do Studio, timeline, tracks, mixer e inspector; onboarding e instrumento avançado permanecem em auditorias próprias
 - [x] Melhorar a qualidade e a organização dos instrumentais e do fluxo de gravação: kick/bass alinhados no preview e no renderer offline
 - [x] Diagnosticar o AI Producer desde a UI até ao provider e mostrar estado real sem fallback enganador
-- [ ] Executar QA visual desktop/mobile, interacções, áudio e regressões antes do deployment
+- [x] Executar QA local desktop, interacções, áudio e regressões; QA físico mobile permanece pendente
+
+- [x] Mapear as referências enviadas: transporte fixo, timeline, tracks, painel lateral e barra inferior
+- [x] Reconstruir o workspace autenticado como editor DAW, não como página editorial
+- [x] Criar adaptação desktop/mobile da organização de editor sem copiar branding ou código externo
+- [x] Confirmar que gravação, tracks, Mixer, FX, automação e AI Producer continuam ligados no novo layout; instrumento avançado e QA físico continuam pendentes
+- [x] Fazer QA visual e funcional local do editor em desktop e viewport móvel antes de publicar; falta validação física
+
+- [x] Reconstruir o primeiro shell DAW com canvas escuro, sidebar, sessão e transporte persistente
+- [x] Implementar barra inferior funcional para Arrangement, Instrument, FX, MIDI Editor e Lyrics/Notes
+- [x] Persistir Lyrics/Notes localmente com estado acessível de gravação
+- [x] Validar visualmente o novo shell no preview local e corrigir a regressão de navegação por hash
+
+- [ ] Confirmar que as alterações visuais locais foram committed e enviadas para o repositório/deployment correcto
+- [ ] Verificar a versão pública de Fernando Lucoco Music após o deployment e invalidar cache se necessário

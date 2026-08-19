@@ -37,6 +37,39 @@ function focusArea(targetId, source) {
 }
 
 function initStudioShell() {
+  const editorTargets = { arrangement: "timeline", instrument: "instrument-lab", fx: "mixer-panel", midi: "instrument-lab", lyrics: "lyrics-panel" };
+  const notes = document.getElementById("session-notes");
+  const notesSave = document.getElementById("session-notes-save");
+  const notesStatus = document.getElementById("session-notes-status");
+  if (notes) {
+    notes.value = localStorage.getItem("flm-session-notes") || "";
+    if (notes.value && notesStatus) notesStatus.textContent = "Notas restauradas deste dispositivo.";
+  }
+  notesSave?.addEventListener("click", () => {
+    localStorage.setItem("flm-session-notes", notes?.value || "");
+    if (notesStatus) notesStatus.textContent = `Guardado às ${new Date().toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}.`;
+  });
+  document.querySelectorAll("[data-editor-view]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const view = tab.dataset.editorView || "arrangement";
+      document.querySelectorAll("[data-editor-view]").forEach((item) => {
+        const active = item === tab;
+        item.classList.toggle("is-active", active);
+        item.setAttribute("aria-selected", String(active));
+      });
+      const notesPanel = document.getElementById("lyrics-panel");
+      notesPanel?.classList.toggle("studio-context-panel-hidden", view !== "lyrics");
+      const targetId = editorTargets[view] || "timeline";
+      if (view === "lyrics") {
+        document.body.dataset.studioView = "lyrics-panel";
+        document.querySelectorAll(".studio-view-hidden").forEach((item) => { item.classList.remove("studio-view-hidden"); item.removeAttribute("aria-hidden"); if ("inert" in item) item.inert = false; });
+        notes?.focus({ preventScroll: true });
+        return;
+      }
+      focusArea(targetId, tab);
+      if (view === "midi") document.getElementById("piano-roll")?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  });
   document.querySelectorAll(".nav-links a, .studio-step, .studio-transport-bar a, .studio-sidebar-export, [data-studio-area]").forEach((link) => {
     link.addEventListener("click", (event) => {
       const href = link.getAttribute("href") || "";
@@ -51,12 +84,19 @@ function initStudioShell() {
     item.addEventListener("click", () => focusArea(item.dataset.studioArea, item));
   });
 
+  window.addEventListener("hashchange", () => {
+    const targetId = window.location.hash.replace(/^#/, "");
+    if (targetId && document.getElementById(targetId) && document.body.classList.contains("studio-ready")) focusArea(targetId);
+  });
   window.addEventListener("fernando-authenticated", () => {
     document.body.classList.add("studio-ready");
     document.body.classList.remove("public-landing");
     if (!window.location.hash || window.location.hash === "#top" || window.location.hash === "#estudio") {
       window.history.replaceState(null, "", "#studio-home");
       focusArea("studio-home");
+    } else {
+      const targetId = window.location.hash.replace(/^#/, "");
+      if (document.getElementById(targetId)) focusArea(targetId);
     }
   });
 

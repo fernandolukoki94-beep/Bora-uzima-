@@ -1207,7 +1207,7 @@ function renderTimeline() {
       return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · ${clip.gain.toFixed(2)}x · offset ${clip.sourceOffset.toFixed(1)}s</small><div class="clip-actions"><button class="mini-button" type="button" data-clip-action="move-left" data-clip-key="${key}">←</button><button class="mini-button" type="button" data-clip-action="move-right" data-clip-key="${key}">→</button><button class="mini-button" type="button" data-clip-action="trim" data-clip-key="${key}">Trim</button><button class="mini-button" type="button" data-clip-action="split" data-clip-key="${key}">Split</button><button class="mini-button" type="button" data-clip-action="shorter" data-clip-key="${key}">−Len</button><button class="mini-button" type="button" data-clip-action="longer" data-clip-key="${key}">+Len</button><button class="mini-button" type="button" data-clip-action="fade" data-clip-key="${key}">Fade</button><button class="mini-button" type="button" data-clip-action="gain" data-clip-key="${key}">Gain</button><button class="mini-button" type="button" data-copy-clip="${key}">Copiar</button><button class="mini-button" type="button" data-paste-clip="${key}">Colar</button><button class="mini-button" type="button" data-duplicate-clip="${key}">Duplicar</button><button class="mini-button danger" type="button" data-delete-clip="${key}">Apagar</button></div></div>`;
     }).join("");
     const selected = track.id === selectedMixerTrackId ? " is-selected" : "";
-    return `<div class="timeline-track timeline-track--${origin}${selected}" data-track-origin="${origin}" data-timeline-track="${escapeHtml(track.id)}" tabindex="0" aria-label="${escapeHtml(track.name)} · ${originDescription}"><div class="timeline-track-label"><div class="timeline-track-name"><span>${escapeHtml(track.name)}</span><span class="timeline-origin-badge timeline-origin-badge--${origin}" title="${originDescription}">${originLabel}</span></div><small>${escapeHtml(track.type)} · ${originDescription}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
+    return `<div class="timeline-track timeline-track--${origin}${selected}" data-track-origin="${origin}" data-timeline-track="${escapeHtml(track.id)}" tabindex="0" aria-label="${escapeHtml(track.name)} · ${originDescription}"><div class="timeline-track-label"><div class="timeline-track-name"><span>${escapeHtml(track.name)}</span><span class="timeline-origin-badge timeline-origin-badge--${origin}" title="${originDescription}">${originLabel}</span></div><small>${escapeHtml(track.type)} · ${originDescription}</small><div class="timeline-track-switches" role="group" aria-label="Controlos de ${escapeHtml(track.name)}"><button class="track-switch${track.muted ? " active" : ""}" type="button" data-timeline-field="muted" data-track-id="${escapeHtml(track.id)}" aria-pressed="${track.muted ? "true" : "false"}">${track.muted ? "M" : "M"}</button><button class="track-switch${track.solo ? " active" : ""}" type="button" data-timeline-field="solo" data-track-id="${escapeHtml(track.id)}" aria-pressed="${track.solo ? "true" : "false"}">S</button><button class="track-switch${track.recordArmed ? " active" : ""}" type="button" data-timeline-field="recordArmed" data-track-id="${escapeHtml(track.id)}" aria-pressed="${track.recordArmed ? "true" : "false"}">R</button></div></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
   }).join("");
   if (timelineUndoButton) timelineUndoButton.disabled = !canUndo(timelineHistory);
   if (timelineRedoButton) timelineRedoButton.disabled = !canRedo(timelineHistory);
@@ -3033,4 +3033,19 @@ aiTaskStation?.addEventListener("click", (event) => {
   window.setTimeout(() => target.classList.remove("is-task-focused"), 1100);
   const label = task.querySelector("strong")?.textContent || "Tarefa";
   if (aiTaskStatus) aiTaskStatus.textContent = `${label}: módulo aberto. A execução depende de uma take ou beat disponível.`;
+});
+
+// Timeline track header controls share the same project state as the Mixer.
+timelineGrid?.addEventListener("click", (event) => {
+  const control = event.target.closest("[data-timeline-field]");
+  if (!control || !timelineHistory) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const trackId = control.dataset.trackId;
+  const field = control.dataset.timelineField;
+  if (!trackId || !["muted", "solo", "recordArmed"].includes(field)) return;
+  const track = timelineHistory.present.tracks.find((item) => item.id === trackId);
+  if (!track) return;
+  selectedMixerTrackId = trackId;
+  commitTimelineProject(updateTrack(timelineHistory.present, trackId, { [field]: !track[field] }));
 });
