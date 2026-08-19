@@ -1035,3 +1035,18 @@ body.studio-ready .studio-focus-mode .studio-main-column > .shell {
     padding-bottom: max(40px, env(safe-area-inset-bottom) + 28px);
   }
 }
+
+/* Professional channel meters */
+.mixer-channel-meter { display: grid; gap: .3rem; margin: .35rem 0 .65rem; padding: .55rem .6rem; border: 1px solid rgba(139,92,246,.18); border-radius: .55rem; background: rgba(15,16,20,.045); }
+.mixer-meter-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; color: var(--muted); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.mixer-meter-head output { color: var(--ink); font-variant-numeric: tabular-nums; }
+.mixer-meter-bar { position: relative; height: .42rem; overflow: hidden; border-radius: 999px; background: linear-gradient(90deg, rgba(83,210,157,.16) 0 72%, rgba(241,190,74,.18) 72% 90%, rgba(255,103,77,.2) 90%); }
+.mixer-meter-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #53d29d, #f1be4a 72%, #ff674d 92%); transition: width .18s ease; }
+.mixer-channel-meter small { color: var(--muted); font-size: .68rem; font-variant-numeric: tabular-nums; }
+.mixer-channel-meter[data-meter-state="muted"] { opacity: .55; }
+.mixer-channel-meter[data-meter-state="clip"] { border-color: rgba(255,103,77,.62); background: rgba(255,103,77,.1); }
+.mixer-channel-meter[data-meter-state="clip"] .mixer-meter-head output, #mixer-master-peak[data-meter-state="clip"] { color: #ff674d; }
+#mixer-master-peak { font-variant-numeric: tabular-nums; }
+#mixer-master-peak[data-meter-state="signal"] { color: var(--mint); }
+#mixer-master-peak[data-meter-state="idle"] { color: var(--muted); }
+@media (max-width: 720px) { .mixer-channel-meter { padding: .48rem; } .mixer-meter-head { font-size: .62rem; } }

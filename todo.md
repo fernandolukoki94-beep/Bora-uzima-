@@ -479,3 +479,9 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Verificar logs de erro e eventos recentes do deployment Vercel actual
 - [x] Auditar novamente as 65 secções do pasted_content.txt contra código, README, TODO e produção
 - [x] Implementar a próxima melhoria de maior impacto após a auditoria: foco e estados de erro acessíveis no onboarding
+
+- [x] Auditar novamente o ficheiro de requisitos, código, módulos publicados, IA e deployment antes do Mixer
+- [x] Executar QA mobile disponível e registar riscos em Samsung/Android Chrome/Safari
+- [x] Implementar Mixer profissional com medidores de pico por canal, estado real e controlos clicáveis
+- [x] Testar meters, ganho, mute, solo, pan, persistência e acessibilidade do Mixer
+- [ ] Confirmar deployment Vercel e presença funcional do Mixer em produção

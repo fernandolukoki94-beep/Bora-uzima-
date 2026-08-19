@@ -37,6 +37,7 @@ import {
   startTransport,
   stopTransport,
 } from "./studio/transport.js";
+import { estimateMasterMeter, estimateTrackMeter } from "./studio/mixer-meters.js";
 import {
   clearLocalStudioData,
   deleteAudioBlob,
@@ -1222,8 +1223,21 @@ function renderMasterControls(project) {
   if (mixerMasterLimiter) mixerMasterLimiter.value = String(Number(master.limiter) || 1);
   if (mixerMasterLimiterValue) mixerMasterLimiterValue.textContent = `${Math.round((Number(master.limiter) || 1) * 100)}%`;
   if (mixerMasterBypass) { mixerMasterBypass.setAttribute("aria-pressed", String(Boolean(master.bypass))); mixerMasterBypass.textContent = master.bypass ? "Master activo" : "Bypass Master"; }
+  if (mixerMasterPeak) {
+    const meter = estimateMasterMeter(project || {});
+    mixerMasterPeak.textContent = `Peak ${meter.peakDb <= -59.9 ? "−∞" : meter.peakDb.toFixed(1)} dBFS · ${meter.state === "clip" ? "CLIP" : meter.state === "idle" ? "Idle" : "Signal"}`;
+    mixerMasterPeak.dataset.meterState = meter.state;
+    mixerMasterPeak.setAttribute("aria-label", `Peak Master: ${meter.peakDb.toFixed(1)} dBFS`);
+  }
 }
 
+function renderMixerChannel(track, soloActive) {
+  const volume = Number(track.volume ?? 1);
+  const meter = estimateTrackMeter(track, { soloActive });
+  const selected = track.id === selectedMixerTrackId ? " is-selected" : "";
+  const meterLabel = meter.state === "clip" ? "CLIP" : meter.state === "muted" ? "Muted" : meter.state === "idle" ? "Idle" : "Signal";
+  return `<div class="mixer-track${selected}" data-mixer-track="${escapeHtml(track.id)}" tabindex="0"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><div class="mixer-channel-meter" data-mixer-meter="${escapeHtml(track.id)}" data-meter-state="${meter.state}" aria-label="Peak do canal ${escapeHtml(track.name)}: ${meter.peakDb.toFixed(1)} dBFS"><div class="mixer-meter-head"><span>Peak</span><output data-meter-peak="${escapeHtml(track.id)}">${meter.peakDb <= -59.9 ? "−∞" : meter.peakDb.toFixed(1)} dBFS</output></div><div class="mixer-meter-bar" role="meter" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="${meter.peakDb.toFixed(1)}" aria-label="Peak de ${escapeHtml(track.name)}"><span style="width:${meter.peakPercent.toFixed(1)}%"></span></div><small>${meterLabel} · RMS ${meter.rmsDb <= -59.9 ? "−∞" : meter.rmsDb.toFixed(1)} dBFS</small></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><label><span>Input</span><select data-mixer-field="input" aria-label="Input de ${escapeHtml(track.name)}"><option value="default" ${track.input === "default" || !track.input ? "selected" : ""}>Microfone predefinido</option><option value="mic-1" ${track.input === "mic-1" ? "selected" : ""}>Microfone 1</option><option value="line-in" ${track.input === "line-in" ? "selected" : ""}>Line In</option></select></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button><button class="mini-button ${track.recordArmed ? "active" : ""}" type="button" data-mixer-field="recordArmed" aria-pressed="${track.recordArmed ? "true" : "false"}">${track.recordArmed ? "Armed" : "Arm REC"}</button></div></div>`;
+}
 function renderMixer(project) {
   renderMasterControls(project);
   if (!mixerTracks) return;
@@ -1234,7 +1248,8 @@ function renderMixer(project) {
     return;
   }
   if (!project.tracks.some((track) => track.id === selectedMixerTrackId)) selectedMixerTrackId = project.tracks[0].id;
-  mixerTracks.innerHTML = project.tracks.map((track) => { const volume = Number(track.volume ?? 1); const selected = track.id === selectedMixerTrackId ? " is-selected" : ""; return `<div class="mixer-track${selected}" data-mixer-track="${escapeHtml(track.id)}" tabindex="0"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><label><span>Input</span><select data-mixer-field="input" aria-label="Input de ${escapeHtml(track.name)}"><option value="default" ${track.input === "default" || !track.input ? "selected" : ""}>Microfone predefinido</option><option value="mic-1" ${track.input === "mic-1" ? "selected" : ""}>Microfone 1</option><option value="line-in" ${track.input === "line-in" ? "selected" : ""}>Line In</option></select></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button><button class="mini-button ${track.recordArmed ? "active" : ""}" type="button" data-mixer-field="recordArmed" aria-pressed="${track.recordArmed ? "true" : "false"}">${track.recordArmed ? "Armed" : "Arm REC"}</button></div></div>`; }).join("");
+  const soloActive = project.tracks.some((track) => track.solo);
+  mixerTracks.innerHTML = project.tracks.map((track) => renderMixerChannel(track, soloActive)).join("");
   const selected = project.tracks.find((track) => track.id === selectedMixerTrackId) || project.tracks[0];
   const origin = trackOrigin(selected);
   const fxTypes = ["compressor", "limiter", "eq", "chorus", "flanger", "saturation", "de-esser", "gate"];
