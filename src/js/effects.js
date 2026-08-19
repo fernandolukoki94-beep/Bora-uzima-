@@ -133,6 +133,59 @@ export function applyCompressor(blob, { threshold = -18, ratio = 4, attack = 0.0
   });
 }
 
+export function applyMasteringLocal(blob, { preset = "natural", intensity = 55, loudness = 70, dynamics = 50, stereo = 50, eq = 50 } = {}) {
+  const profiles = {
+    clean: { low: -0.8, presence: 1.2, air: 1.0, threshold: -19, ratio: 2.2, gain: 1.04 },
+    loud: { low: 0.8, presence: 1.5, air: 1.2, threshold: -24, ratio: 5.5, gain: 1.18 },
+    warm: { low: 2.0, presence: -0.4, air: -1.4, threshold: -20, ratio: 3.2, gain: 1.04 },
+    bright: { low: -0.6, presence: 1.8, air: 2.8, threshold: -20, ratio: 3.2, gain: 1.06 },
+    punch: { low: 1.4, presence: 1.4, air: 0.6, threshold: -22, ratio: 4.2, gain: 1.1 },
+    cinematic: { low: 1.2, presence: 0.5, air: 1.8, threshold: -18, ratio: 2.6, gain: 1.03 },
+    spatial: { low: 0.4, presence: 1.0, air: 2.2, threshold: -19, ratio: 2.8, gain: 1.05 },
+    natural: { low: 0, presence: 0.4, air: 0.8, threshold: -18, ratio: 2.4, gain: 1.02 },
+  };
+  const profile = profiles[preset] || profiles.natural;
+  const blend = Math.max(0, Math.min(1, Number(intensity) / 100 || 0));
+  const loudBlend = Math.max(0, Math.min(1, Number(loudness) / 100 || 0));
+  const dynamicBlend = Math.max(0, Math.min(1, Number(dynamics) / 100 || 0));
+  const eqBlend = Math.max(0, Math.min(1, Number(eq) / 100 || 0));
+  const stereoBlend = Math.max(0, Math.min(1, Number(stereo) / 100 || 0));
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const low = offline.createBiquadFilter();
+    low.type = "lowshelf";
+    low.frequency.value = 140;
+    low.gain.value = profile.low * blend * eqBlend;
+    const presence = offline.createBiquadFilter();
+    presence.type = "peaking";
+    presence.frequency.value = 2600;
+    presence.Q.value = 0.8;
+    presence.gain.value = profile.presence * blend * eqBlend;
+    const air = offline.createBiquadFilter();
+    air.type = "highshelf";
+    air.frequency.value = 7000;
+    air.gain.value = profile.air * blend * eqBlend;
+    const compressor = offline.createDynamicsCompressor();
+    compressor.threshold.value = profile.threshold - (dynamicBlend * 6);
+    compressor.knee.value = 12;
+    compressor.ratio.value = 1 + ((profile.ratio - 1) * dynamicBlend);
+    compressor.attack.value = 0.008;
+    compressor.release.value = 0.2;
+    const gain = offline.createGain();
+    gain.gain.value = 1 + ((profile.gain - 1) * blend) + (0.12 * loudBlend * blend);
+    const limiter = offline.createDynamicsCompressor();
+    limiter.threshold.value = -1.2;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.12;
+    const stereo = offline.createStereoPanner ? offline.createStereoPanner() : null;
+    if (stereo) stereo.pan.value = 0;
+    source.connect(low).connect(presence).connect(air).connect(compressor).connect(gain);
+    if (stereo) gain.connect(stereo).connect(limiter).connect(offline.destination);
+    else gain.connect(limiter).connect(offline.destination);
+  });
+}
+
 export function applyFade(blob, fadeSeconds = 0.12) {
   return withDecodedAudio(blob, ({ offline, source, decoded }) => {
     const gainNode = offline.createGain();
@@ -150,6 +203,65 @@ export function applyFade(blob, fadeSeconds = 0.12) {
  * Vocal enhancement local: removes low rumble, adds controlled presence and compression.
  * This is a deterministic local effect, not AI vocal repair or mastering.
  */
+export function applyVoiceCleanerLocal(blob, { noiseRemoval = true, dereverb = true, autoEq = true } = {}) {
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    let current = source;
+    if (noiseRemoval) {
+      const highPass = offline.createBiquadFilter();
+      highPass.type = "highpass";
+      highPass.frequency.value = 95;
+      highPass.Q.value = 0.707;
+      const gate = offline.createDynamicsCompressor();
+      gate.threshold.value = -48;
+      gate.knee.value = 8;
+      gate.ratio.value = 8;
+      gate.attack.value = 0.004;
+      gate.release.value = 0.16;
+      current.connect(highPass).connect(gate);
+      current = gate;
+    }
+    if (dereverb) {
+      const presenceControl = offline.createBiquadFilter();
+      presenceControl.type = "highshelf";
+      presenceControl.frequency.value = 5200;
+      presenceControl.gain.value = -1.8;
+      current.connect(presenceControl);
+      current = presenceControl;
+    }
+    if (autoEq) {
+      const body = offline.createBiquadFilter();
+      body.type = "peaking";
+      body.frequency.value = 2400;
+      body.Q.value = 0.85;
+      body.gain.value = 2.2;
+      current.connect(body);
+      current = body;
+    }
+    const output = offline.createGain();
+    output.gain.value = 0.98;
+    current.connect(output).connect(offline.destination);
+  });
+}
+
+export function applyVoiceChangerLocal(blob, { character = "deep" } = {}) {
+  const profiles = {
+    deep: { detune: -480, filter: "lowpass", frequency: 3200, gain: 1.0 },
+    bright: { detune: 420, filter: "highpass", frequency: 150, gain: 0.98 },
+    robot: { detune: 0, filter: "bandpass", frequency: 1250, gain: 0.88 },
+  };
+  const profile = profiles[character] || profiles.deep;
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    source.detune.value = profile.detune;
+    const tone = offline.createBiquadFilter();
+    tone.type = profile.filter;
+    tone.frequency.value = profile.frequency;
+    tone.Q.value = character === "robot" ? 5 : 0.707;
+    const output = offline.createGain();
+    output.gain.value = profile.gain;
+    source.connect(tone).connect(output).connect(offline.destination);
+  });
+}
+
 export function applyVocalEnhancement(blob, { presenceDb = 2.5, outputGain = 1.05 } = {}) {
   return withDecodedAudio(blob, ({ offline, source }) => {
     const highPass = offline.createBiquadFilter();
@@ -354,3 +466,95 @@ export function spatialEffectParameters(type, intensity = 0.3) {
   const safeIntensity = normalizeSpatialIntensity(intensity);
   return { type: type === "delay" ? "delay" : "reverb", intensity: safeIntensity, reversible: true };
 }
+
+export function normalizeFxIntensity(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+export function applySaturationLocal(blob, { intensity = 0.25 } = {}) {
+  const safeIntensity = normalizeFxIntensity(intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const shaper = offline.createWaveShaper();
+    const amount = 1 + safeIntensity * 18;
+    const curve = new Float32Array(2048);
+    for (let index = 0; index < curve.length; index += 1) {
+      const x = (index / (curve.length - 1)) * 2 - 1;
+      curve[index] = ((1 + amount) * x) / (1 + amount * Math.abs(x));
+    }
+    shaper.curve = curve;
+    shaper.oversample = "2x";
+    source.connect(shaper).connect(offline.destination);
+  });
+}
+
+export function applyChorusLocal(blob, { intensity = 0.25 } = {}) {
+  const safeIntensity = normalizeFxIntensity(intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const dry = offline.createGain();
+    const wet = offline.createGain();
+    const delay = offline.createDelay(0.08);
+    const lfo = offline.createOscillator();
+    const depth = offline.createGain();
+    delay.delayTime.value = 0.018;
+    depth.gain.value = safeIntensity * 0.006;
+    lfo.frequency.value = 0.35 + safeIntensity * 0.7;
+    lfo.connect(depth).connect(delay.delayTime);
+    dry.gain.value = 1 - safeIntensity * 0.25;
+    wet.gain.value = safeIntensity * 0.55;
+    source.connect(dry).connect(offline.destination);
+    source.connect(delay).connect(wet).connect(offline.destination);
+    lfo.start(0);
+  });
+}
+
+export function applyFlangerLocal(blob, { intensity = 0.2 } = {}) {
+  const safeIntensity = normalizeFxIntensity(intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const dry = offline.createGain();
+    const wet = offline.createGain();
+    const delay = offline.createDelay(0.03);
+    const lfo = offline.createOscillator();
+    const depth = offline.createGain();
+    delay.delayTime.value = 0.004 + safeIntensity * 0.004;
+    depth.gain.value = safeIntensity * 0.0025;
+    lfo.frequency.value = 0.08 + safeIntensity * 0.4;
+    lfo.connect(depth).connect(delay.delayTime);
+    dry.gain.value = 1;
+    wet.gain.value = safeIntensity * 0.5;
+    source.connect(dry).connect(offline.destination);
+    source.connect(delay).connect(wet).connect(offline.destination);
+    lfo.start(0);
+  });
+}
+
+export function applyDeEsserLocal(blob, { intensity = 0.35 } = {}) {
+  const safeIntensity = normalizeFxIntensity(intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const filter = offline.createBiquadFilter();
+    const compressor = offline.createDynamicsCompressor();
+    filter.type = "highpass";
+    filter.frequency.value = 4500;
+    filter.Q.value = 0.7;
+    compressor.threshold.value = -24 + safeIntensity * 12;
+    compressor.knee.value = 12;
+    compressor.ratio.value = 2 + safeIntensity * 8;
+    compressor.attack.value = 0.001;
+    compressor.release.value = 0.08;
+    source.connect(filter).connect(compressor).connect(offline.destination);
+  });
+}
+
+export function applyGateLocal(blob, { intensity = 0.3 } = {}) {
+  const safeIntensity = normalizeFxIntensity(intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const compressor = offline.createDynamicsCompressor();
+    compressor.threshold.value = -50 + safeIntensity * 25;
+    compressor.knee.value = 0;
+    compressor.ratio.value = 20;
+    compressor.attack.value = 0.002;
+    compressor.release.value = 0.12;
+    source.connect(compressor).connect(offline.destination);
+  });
+}
+
+export const MODULAR_FX_TYPES = Object.freeze(["compressor", "limiter", "eq", "chorus", "flanger", "saturation", "de-esser", "gate"]);

@@ -10,6 +10,41 @@ function panGains(pan = 0) {
   return { left: Math.cos(angle), right: Math.sin(angle) };
 }
 
+function lufsFromMeanSquare(meanSquare) {
+  return meanSquare > 0 ? 10 * Math.log10(meanSquare) : -Infinity;
+}
+
+function meanSquareRange(left, right, start, end) {
+  let sum = 0;
+  let frames = 0;
+  for (let index = start; index < end; index += 1) {
+    sum += ((left[index] ** 2) + (right[index] ** 2)) / 2;
+    frames += 1;
+  }
+  return frames ? sum / frames : 0;
+}
+
+export function calculateIntegratedLufs(left = new Float32Array(), right = left, { gateDb = -70 } = {}) {
+  const length = Math.min(left.length, right.length);
+  const lufs = lufsFromMeanSquare(meanSquareRange(left, right, 0, length));
+  return lufs < Number(gateDb) ? -Infinity : lufs;
+}
+
+export function calculateShortTermLufs(left = new Float32Array(), right = left, sampleRate = 44100, { windowSeconds = 3, gateDb = -70 } = {}) {
+  const length = Math.min(left.length, right.length);
+  const windowFrames = Math.max(1, Math.min(length || 1, Math.floor(Number(sampleRate) * Number(windowSeconds || 3))));
+  const start = Math.max(0, length - windowFrames);
+  const lufs = lufsFromMeanSquare(meanSquareRange(left, right, start, length));
+  return lufs < Number(gateDb) ? -Infinity : lufs;
+}
+
+export function calculateLoudnessMetrics(left = new Float32Array(), right = left, sampleRate = 44100, options = {}) {
+  return {
+    integratedLufs: calculateIntegratedLufs(left, right, options),
+    shortTermLufs: calculateShortTermLufs(left, right, sampleRate, options),
+  };
+}
+
 export function applyMastering(left, right, { threshold = 0.72, ratio = 2.8, ceiling = 0.89 } = {}) {
   const safeThreshold = clamp(threshold, 0.25, 0.95);
   const safeRatio = Math.max(1, Number(ratio) || 1);
@@ -37,7 +72,9 @@ export function applyMastering(left, right, { threshold = 0.72, ratio = 2.8, cei
   }
   const peakAfter = compressedPeak * scale;
   const rms = left.length ? Math.sqrt(sumSquares / left.length) : 0;
-  return { peakBefore, compressedPeak, scale, peakAfter, rms, loudnessDb: rms > 0 ? 20 * Math.log10(rms) : -Infinity };
+  const loudnessDb = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+  const loudness = calculateLoudnessMetrics(left, right);
+  return { peakBefore, compressedPeak, scale, peakAfter, rms, loudnessDb, ...loudness };
 }
 
 export function calculateMixdownLength(project = {}, sampleRate = 44100) {
@@ -80,7 +117,8 @@ export function mixTimelineBuffers(project = {}, buffers = new Map(), { sampleRa
   });
 
   const mastering = applyMastering(left, right, { ceiling: clamp(headroom, 0.5, 0.98) });
-  return { left, right, sampleRate, clipCount, peakBeforeHeadroom: mastering.peakBefore, peakAfterHeadroom: mastering.peakAfter, scale: mastering.scale, loudnessDb: mastering.loudnessDb, mastering };
+  const loudness = calculateLoudnessMetrics(left, right, sampleRate);
+  return { left, right, sampleRate, clipCount, peakBeforeHeadroom: mastering.peakBefore, peakAfterHeadroom: mastering.peakAfter, scale: mastering.scale, loudnessDb: mastering.loudnessDb, ...loudness, mastering };
 }
 
 export function createStereoAudioBuffer({ left, right, sampleRate = 44100 }) {

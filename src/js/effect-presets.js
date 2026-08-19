@@ -3,10 +3,10 @@ const PRESET_STORAGE_KEY = "fernando-lucoco-effect-presets-v1";
 const clampPercent = (value) => Math.min(100, Math.max(0, Number(value) || 0));
 
 const BUILT_IN_PRESETS = [
-  { id: "builtin-dry", name: "Voz seca", autoTune: { intensity: 35, root: "C", scale: "chromatic", bypass: false }, reverb: { intensity: 0, bypass: true }, delay: { intensity: 0, bypass: true } },
-  { id: "builtin-room", name: "Sala", autoTune: { intensity: 45, root: "C", scale: "major", bypass: false }, reverb: { intensity: 28, bypass: false }, delay: { intensity: 8, bypass: false } },
-  { id: "builtin-plate", name: "Plate", autoTune: { intensity: 50, root: "C", scale: "major", bypass: false }, reverb: { intensity: 42, bypass: false }, delay: { intensity: 12, bypass: false } },
-  { id: "builtin-echo", name: "Eco", autoTune: { intensity: 40, root: "A", scale: "minor", bypass: false }, reverb: { intensity: 18, bypass: false }, delay: { intensity: 38, bypass: false } },
+  { id: "builtin-dry", name: "Voz seca", autoTune: { intensity: 35, root: "C", scale: "chromatic", bypass: false }, eq: { intensity: 0, bypass: true }, compressor: { intensity: 0, bypass: true }, reverb: { intensity: 0, bypass: true }, delay: { intensity: 0, bypass: true }, saturation: { intensity: 0, bypass: true } },
+  { id: "builtin-room", name: "Sala", autoTune: { intensity: 45, root: "C", scale: "major", bypass: false }, eq: { intensity: 32, bypass: false }, compressor: { intensity: 34, bypass: false }, reverb: { intensity: 28, bypass: false }, delay: { intensity: 8, bypass: false }, saturation: { intensity: 6, bypass: false } },
+  { id: "builtin-plate", name: "Plate", autoTune: { intensity: 50, root: "C", scale: "major", bypass: false }, eq: { intensity: 40, bypass: false }, compressor: { intensity: 42, bypass: false }, reverb: { intensity: 42, bypass: false }, delay: { intensity: 12, bypass: false }, saturation: { intensity: 10, bypass: false } },
+  { id: "builtin-echo", name: "Eco", autoTune: { intensity: 40, root: "A", scale: "minor", bypass: false }, eq: { intensity: 24, bypass: false }, compressor: { intensity: 28, bypass: false }, reverb: { intensity: 18, bypass: false }, delay: { intensity: 38, bypass: false }, saturation: { intensity: 8, bypass: false } },
 ];
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -24,8 +24,11 @@ export function normalizeEffectPreset(input = {}) {
       scale: String(input.autoTune?.scale || "chromatic"),
       bypass: Boolean(input.autoTune?.bypass),
     },
+    eq: { intensity: clampPercent(input.eq?.intensity), bypass: Boolean(input.eq?.bypass) },
+    compressor: { intensity: clampPercent(input.compressor?.intensity), bypass: Boolean(input.compressor?.bypass) },
     reverb: { intensity: clampPercent(input.reverb?.intensity), bypass: Boolean(input.reverb?.bypass) },
     delay: { intensity: clampPercent(input.delay?.intensity), bypass: Boolean(input.delay?.bypass) },
+    saturation: { intensity: clampPercent(input.saturation?.intensity), bypass: Boolean(input.saturation?.bypass) },
   };
 }
 

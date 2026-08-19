@@ -17,9 +17,21 @@ export function createProjectManifest(project = {}) {
   };
 }
 
-export function mixedExportFilename(projectName = "sessao") {
+export function exportVariantFilename(projectName = "sessao", variant = "mixed") {
   const safeName = String(projectName || "sessao").replace(/[^\p{L}\p{N}._ -]/gu, "-").trim() || "sessao";
-  return `${safeName}-mixed.wav`;
+  const safeVariant = ["original", "mixed", "mastered"].includes(variant) ? variant : "mixed";
+  return `${safeName}-${safeVariant}.wav`;
+}
+
+export function preferredExportVariant(project = {}, availableVariants = {}) {
+  if (project.activeExportVariant && availableVariants[project.activeExportVariant]) return project.activeExportVariant;
+  if (availableVariants.mastered || project.variants?.mastered) return "mastered";
+  if (availableVariants.mixed || project.variants?.mixed) return "mixed";
+  return "original";
+}
+
+export function mixedExportFilename(projectName = "sessao") {
+  return exportVariantFilename(projectName, "mixed");
 }
 
 export function downloadBlob(blob, filename, { documentRef = globalThis.document, urlApi = globalThis.URL } = {}) {

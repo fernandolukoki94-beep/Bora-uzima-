@@ -7,13 +7,14 @@ export function deriveProducerStudioState(project) {
   const hasPlan = Boolean(producerPlan || (project.tracks || []).some((track) => track.type !== "audio" && (track.clips || []).some((clip) => clip.metadata?.producerPlan)));
   const hasVocal = Boolean(variants.enhanced || variants.pitchCorrected || project.processedAudioData);
   const hasMix = Boolean(variants.mixed);
+  const hasMaster = Boolean(variants.mastered);
   return {
     hasProject: true,
     hasAnalysis,
     hasPlan,
     hasVocal,
     hasMix,
-    hasMaster: hasMix,
+    hasMaster,
     processingState,
     bpm: project.manualAnalysis?.bpm || project.analysis?.bpm || project.tempo || 100,
     key: project.manualAnalysis?.key || project.analysis?.key || project.key || "C",

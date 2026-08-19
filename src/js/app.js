@@ -2,7 +2,7 @@ import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProject
 import { bindPlayerEvents } from "./player.js";
 import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./producer-plan.js";
 import { analyzeAudioDataUrl } from "./audio-analysis.js";
-import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyReverbLocal, applyDelayLocal, spatialEffectParameters } from "./effects.js";
+import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyVoiceCleanerLocal, applyVoiceChangerLocal, applyMasteringLocal, applyReverbLocal, applyDelayLocal, spatialEffectParameters } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
@@ -12,8 +12,8 @@ import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
 import { SOUND_LIBRARY, getSoundLibraryItem, soundLibraryClip } from "./studio/sound-library.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
-import { renderTimelineToWav } from "./studio/mixdown.js";
-import { createProjectManifest, downloadBlob, mixedExportFilename, projectManifestFilename } from "./export-audio.js";
+import { renderTimelineToWav, calculateLoudnessMetrics } from "./studio/mixdown.js";
+import { createProjectManifest, downloadBlob, exportVariantFilename, preferredExportVariant, projectManifestFilename } from "./export-audio.js";
 import { deriveProducerStudioState } from "./producer-studio-flow.js";
 import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback } from "./action-feedback.js";
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
@@ -55,6 +55,14 @@ import {
 
 const heroRecord = document.getElementById("hero-record");
 const mainRecord = document.getElementById("record-main");
+const recordInputLevel = document.getElementById("record-input-level");
+const recordPeakBar = document.getElementById("record-peak-bar");
+const recordPeakValue = document.getElementById("record-peak-value");
+const recordLatency = document.getElementById("record-latency");
+const recordInputDevice = document.getElementById("record-input-device");
+const recordMonitorToggle = document.getElementById("record-monitor-toggle");
+const recordMonitorVolume = document.getElementById("record-monitor-volume");
+const recordMonitorVolumeValue = document.getElementById("record-monitor-volume-value");
 const timer = document.getElementById("timer");
 const recordLabel = document.getElementById("record-label");
 const list = document.getElementById("project-list");
@@ -76,9 +84,13 @@ const mixerTracks = document.getElementById("mixer-tracks");
 const mixerInspector = document.getElementById("mixer-inspector");
 const mixerHeadroom = document.getElementById("mixer-headroom");
 const addTrackButton = document.getElementById("add-track");
+const addTrackType = document.getElementById("add-track-type");
 const timelineMixdownButton = document.getElementById("timeline-mixdown");
 const timelineUndoButton = document.getElementById("timeline-undo");
 const timelineRedoButton = document.getElementById("timeline-redo");
+const timelineSaveButton = document.getElementById("timeline-save");
+const timelineShareButton = document.getElementById("timeline-share");
+const timelineExportButton = document.getElementById("timeline-export");
 const projectTempo = document.getElementById("project-tempo");
 const projectKey = document.getElementById("project-key");
 const transportBeginning = document.getElementById("transport-beginning");
@@ -89,6 +101,13 @@ const transportClock = document.getElementById("transport-clock");
 const timelinePlayhead = document.getElementById("timeline-playhead");
 const transportStatus = document.getElementById("transport-status");
 const keyboardNotes = document.getElementById("keyboard-notes");
+const keyboardOctave = document.getElementById("keyboard-octave");
+const keyboardVelocity = document.getElementById("keyboard-velocity");
+const keyboardVelocityValue = document.getElementById("keyboard-velocity-value");
+const keyboardSustain = document.getElementById("keyboard-sustain");
+const keyboardQuantize = document.getElementById("keyboard-quantize");
+const keyboardMidiRecord = document.getElementById("keyboard-midi-record");
+const keyboardMidiStatus = document.getElementById("keyboard-midi-status");
 const chordSelect = document.getElementById("chord-select");
 const playChordButton = document.getElementById("play-chord");
 const patternSelect = document.getElementById("pattern-select");
@@ -138,10 +157,42 @@ const producerMeterB = document.getElementById("producer-meter-b");
 const producerMeterABar = document.getElementById("producer-meter-a-bar");
 const producerMeterBBar = document.getElementById("producer-meter-b-bar");
 const producerPresetName = document.getElementById("producer-preset-name");
+const voiceCleanerAnalyze = document.getElementById("voice-cleaner-analyze");
+const voiceCleanerNoise = document.getElementById("voice-cleaner-noise");
+const voiceCleanerDereverb = document.getElementById("voice-cleaner-dereverb");
+const voiceCleanerAutoEq = document.getElementById("voice-cleaner-autoeq");
+const voiceCleanerPreview = document.getElementById("voice-cleaner-preview");
+const voiceCleanerApply = document.getElementById("voice-cleaner-apply");
+const voiceCleanerReset = document.getElementById("voice-cleaner-reset");
+const voiceCleanerAnalysis = document.getElementById("voice-cleaner-analysis");
+const voiceCleanerStatus = document.getElementById("voice-cleaner-status");
+const voiceChangerCharacter = document.getElementById("voice-changer-character");
+const voiceChangerPreview = document.getElementById("voice-changer-preview");
+const voiceChangerApply = document.getElementById("voice-changer-apply");
+const voiceChangerReset = document.getElementById("voice-changer-reset");
+const voiceChangerStatus = document.getElementById("voice-changer-status");
 const producerSavePreset = document.getElementById("producer-save-preset");
 const producerPresetSelect = document.getElementById("producer-preset-select");
 const producerDeletePreset = document.getElementById("producer-delete-preset");
 const producerPresetStatus = document.getElementById("producer-preset-status");
+const automixGenre = document.getElementById("automix-genre");
+const automixPreview = document.getElementById("automix-preview");
+const automixApply = document.getElementById("automix-apply");
+const automixReset = document.getElementById("automix-reset");
+const automixStatus = document.getElementById("automix-status");
+const automixSummary = document.getElementById("automix-summary");
+const masteringPreset = document.getElementById("mastering-preset");
+const masteringIntensity = document.getElementById("mastering-intensity");
+const masteringLoudness = document.getElementById("mastering-loudness");
+const masteringDynamics = document.getElementById("mastering-dynamics");
+const masteringStereo = document.getElementById("mastering-stereo");
+const masteringEq = document.getElementById("mastering-eq");
+const masteringPreview = document.getElementById("mastering-preview");
+const masteringApply = document.getElementById("mastering-apply");
+const masteringReset = document.getElementById("mastering-reset");
+const masteringStatus = document.getElementById("mastering-status");
+const masteringBefore = document.getElementById("mastering-before");
+const masteringAfter = document.getElementById("mastering-after");
 const producerExport = document.getElementById("producer-export");
 const producerExportProject = document.getElementById("producer-export-project");
 const producerActionFeedback = document.getElementById("producer-action-feedback");
@@ -179,6 +230,8 @@ const producerPitchPanReset = document.getElementById("producer-pitch-pan-reset"
 const producerPitchZoomStatus = document.getElementById("producer-pitch-zoom-status");
 let importedBeatObjectUrl = null;
 let activePitchAnalysis = null;
+let voiceCleanerPreviewUrl = "";
+let masteringPreviewUrl = "";
 let activePitchNotes = [];
 let pitchCurveZoom = 1;
 let pitchCurvePan = 0;
@@ -186,6 +239,8 @@ let pitchCurveDrag = null;
 let cloudAutosaveTimer = null;
 let activeTimelineId = null;
 let timelineHistory = null;
+let timelineClipboard = null;
+let keyboardMidiRecording = null;
 let selectedMixerTrackId = null;
 let transportTimers = [];
 let transportFrame = null;
@@ -200,6 +255,9 @@ const VOCAL_VARIANTS = {
   original: { label: "Original", kind: "original" },
   enhanced: { label: "Enhanced", kind: "enhanced" },
   pitchCorrected: { label: "Pitch Corrected", kind: "pitch-corrected" },
+  cleaned: { label: "Voice Cleaned", kind: "cleaned" },
+  mastered: { label: "Mastered", kind: "mastered" },
+  voiceChanged: { label: "Voice Changed", kind: "voiceChanged" },
   mixed: { label: "Mixed", kind: "mixed" },
 };
 function canonicalVariant(variant) {
@@ -225,7 +283,7 @@ function blobKindForVariant(variant) {
   return VOCAL_VARIANTS[key]?.kind || (key === "processed" ? "processed" : "original");
 }
 if (pianoRoll) {
-  pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" data-piano-step="${index}" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
+  pianoRoll.innerHTML = Array.from({ length: 16 }, (_, index) => `<button class="piano-step" type="button" data-piano-note="${index % 8 === 0 ? "C4" : index % 8 === 2 ? "E4" : index % 8 === 4 ? "G4" : "C5"}" data-piano-step="${index}" data-piano-velocity="0.82" data-piano-duration="0.9" aria-label="Passo ${index + 1}">${index + 1}</button>`).join("");
 }
 if (beatGrid) {
   const channels = ["kick", "snare", "clap", "hihat", "percussion", "bass"];
@@ -258,6 +316,25 @@ function showToast(message) {
   toast.classList.add("show");
   window.clearTimeout(showToast.timeout);
   showToast.timeout = window.setTimeout(() => toast.classList.remove("show"), 3600);
+}
+
+function formatMeterDb(value) { return Number.isFinite(value) ? `${value.toFixed(1)} dB` : "−∞ dB"; }
+
+function setRecordingMetrics({ inputDb = -Infinity, peakDb = -Infinity, latencyMs = null, active = false } = {}) {
+  if (recordInputLevel) recordInputLevel.textContent = formatMeterDb(inputDb);
+  if (recordPeakValue) recordPeakValue.textContent = formatMeterDb(peakDb);
+  if (recordPeakBar) recordPeakBar.style.width = `${Math.max(0, Math.min(100, Number.isFinite(peakDb) ? ((peakDb + 60) / 60) * 100 : 0))}%`;
+  if (recordLatency) recordLatency.textContent = Number.isFinite(latencyMs) ? `${Math.round(latencyMs)} ms` : "—";
+  document.body.classList.toggle("is-recording", active);
+}
+
+async function loadRecordInputDevices() {
+  if (!navigator.mediaDevices?.enumerateDevices || !recordInputDevice) return;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter((device) => device.kind === "audioinput");
+    recordInputDevice.innerHTML = `<option value="default">Microfone predefinido</option>${inputs.map((device, index) => `<option value="${escapeHtml(device.deviceId || `input-${index}`)}">${escapeHtml(device.label || `Microfone ${index + 1}`)}</option>`).join("")}`;
+  } catch { /* Alguns browsers só revelam dispositivos depois da permissão. */ }
 }
 
 function setRecordingUI({ active, label }) {
@@ -425,22 +502,28 @@ async function updateABMeters(project = currentTimelineProject()) {
 
 async function exportMixedVersion(id) {
   const project = readProjects().find((item) => item.id === id);
-  const mixedData = getVariantData(project, "mixed");
+  const availableVariants = {
+    original: getVariantData(project, "original"),
+    mixed: getVariantData(project, "mixed"),
+    mastered: getVariantData(project, "mastered"),
+  };
+  const variant = preferredExportVariant(project, availableVariants);
+  const exportData = availableVariants[variant];
   setProducerActionFeedback("export", "start");
-  if (!project || !mixedData) {
+  if (!project || !exportData || variant === "original") {
     setProducerActionFeedback("export", "error", "Cria primeiro o Mixed através do Mixdown local.");
     showToast("Primeiro cria o Mixed através do Mixdown local.");
     return;
   }
   try {
-    const mixedBlob = await dataUrlToBlob(mixedData);
-    downloadBlob(mixedBlob, mixedExportFilename(project.name));
+    const exportBlob = await dataUrlToBlob(exportData);
+    downloadBlob(exportBlob, exportVariantFilename(project.name, variant));
     setProducerActionFeedback("export", "success");
-    showToast("A versão Mixed foi exportada em WAV.");
+    showToast(`A versão ${variant === "mastered" ? "Mastered" : "Mixed"} foi exportada em WAV.`);
   } catch (error) {
-    console.error("Exportação Mixed falhou", error);
+    console.error(`Exportação ${variant} falhou`, error);
     setProducerActionFeedback("export", "error", "Não foi possível preparar o WAV. Tenta novamente.");
-    showToast("Não foi possível exportar o Mixed. Tenta novamente neste navegador.");
+    showToast("Não foi possível exportar a faixa. Tenta novamente neste navegador.");
   }
 }
 
@@ -598,10 +681,19 @@ async function updateEditedPitch(index, value) {
   if (producerPitchStatus) producerPitchStatus.textContent = "Notas editadas e guardadas localmente. A análise manual será usada no próximo Auto-Tune.";
 }
 async function shareFinalTrack() {
-  const project = currentTimelineProject(); const mixedData = getVariantData(project, "mixed");
-  if (!project || !mixedData) return showToast("Cria primeiro o Mixed para partilhar a faixa final.");
-  try { const blob = await dataUrlToBlob(mixedData); const file = new File([blob], mixedExportFilename(project.name), { type: "audio/wav" });
-    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) { await navigator.share({ title: `${project.name} · Fernando Lucoco Music`, text: "Faixa final Vocal + beat", files: [file] }); showToast("Faixa partilhada através do dispositivo."); }
+  const project = currentTimelineProject();
+  const availableVariants = {
+    original: getVariantData(project, "original"),
+    mixed: getVariantData(project, "mixed"),
+    mastered: getVariantData(project, "mastered"),
+  };
+  const variant = preferredExportVariant(project, availableVariants);
+  const exportData = availableVariants[variant];
+  if (!project || !exportData || variant === "original") return showToast("Cria primeiro o Mixed para partilhar a faixa final.");
+  try {
+    const blob = await dataUrlToBlob(exportData);
+    const file = new File([blob], exportVariantFilename(project.name, variant), { type: "audio/wav" });
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) { await navigator.share({ title: `${project.name} · Fernando Lucoco Music`, text: `Faixa final ${variant === "mastered" ? "Mastered" : "Mixed"} Vocal + beat`, files: [file] }); showToast("Faixa partilhada através do dispositivo."); }
     else { await exportMixedVersion(project.id); showToast("Partilha directa indisponível; o WAV foi descarregado como fallback."); }
   } catch (error) { if (error?.name !== "AbortError") { console.warn("Partilha falhou", error); await exportMixedVersion(project.id); } }
 }
@@ -712,6 +804,141 @@ async function resetLocalSpaceEffects() {
   renderProjects();
   if (producerAutoTuneStatus) producerAutoTuneStatus.textContent = "Reverb e delay revertidos; vocal anterior preservado.";
   showToast("Reverb e delay revertidos.");
+}
+
+function masteringParameters() {
+  return {
+    preset: masteringPreset?.value || "natural",
+    intensity: Number(masteringIntensity?.value || 55),
+    loudness: Number(masteringLoudness?.value || 70),
+    dynamics: Number(masteringDynamics?.value || 50),
+    stereo: Number(masteringStereo?.value || 50),
+    eq: Number(masteringEq?.value || 50),
+  };
+}
+
+function updateMasteringControls() {
+  const controls = [
+    [masteringIntensity, document.getElementById("mastering-intensity-value")],
+    [masteringLoudness, document.getElementById("mastering-loudness-value")],
+    [masteringDynamics, document.getElementById("mastering-dynamics-value")],
+    [masteringStereo, document.getElementById("mastering-stereo-value")],
+    [masteringEq, document.getElementById("mastering-eq-value")],
+  ];
+  controls.forEach(([input, output]) => { if (input && output) output.textContent = `${input.value}%`; });
+}
+
+async function createMasteredBlob(project) {
+  const mixedData = getVariantData(project, "mixed");
+  if (!mixedData) throw new Error("Cria primeiro um Mixed para iniciar o Mastering.");
+  return applyMasteringLocal(await dataUrlToBlob(mixedData), masteringParameters());
+}
+async function measureLufsFromBlob(blob) {
+  if (!blob) return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  const context = new AudioContextClass();
+  try {
+    const buffer = await context.decodeAudioData(await blob.arrayBuffer());
+    const left = buffer.getChannelData(0);
+    const right = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : left;
+    return calculateLoudnessMetrics(left, right, buffer.sampleRate);
+  } finally {
+    await context.close();
+  }
+}
+function formatMasteringLufs(metrics) {
+  if (!metrics) return "LUFS indisponível";
+  return `LUFS integrado ${metrics.integratedLufs.toFixed(1)} · short-term ${metrics.shortTermLufs.toFixed(1)}`;
+}
+
+async function previewMastering() {
+  const project = currentTimelineProject();
+  if (!project || !getVariantData(project, "mixed")) {
+    if (masteringStatus) masteringStatus.textContent = "Mixed necessário para iniciar o Mastering.";
+    return showToast("Cria primeiro um Mixed através do Mixdown local.");
+  }
+  if (masteringPreview) masteringPreview.disabled = true;
+  if (masteringStatus) masteringStatus.textContent = "A preparar comparação Before / After…";
+  try {
+    const mixedBlob = await dataUrlToBlob(getVariantData(project, "mixed"));
+    const blob = await createMasteredBlob(project);
+    const [beforeMetrics, afterMetrics] = await Promise.all([measureLufsFromBlob(mixedBlob), measureLufsFromBlob(blob)]);
+    masteringPreviewUrl = await blobToDataUrl(blob);
+    producerPreviewAudio?.pause();
+    producerPreviewAudio = new Audio(masteringPreviewUrl);
+    producerPreviewAudio.playsInline = true;
+    producerPreviewAudio.onended = () => { producerPreviewAudio = null; };
+    masteringBefore.textContent = `Before · Mixed · ${formatMasteringLufs(beforeMetrics)}`;
+    masteringAfter.textContent = `After · ${masteringParameters().preset} · ${formatMasteringLufs(afterMetrics)}`;
+    await producerPreviewAudio.play();
+    if (masteringStatus) masteringStatus.textContent = "After em reprodução · o Mixed permanece intacto.";
+  } catch (error) {
+    if (masteringStatus) masteringStatus.textContent = error instanceof Error ? error.message : "Não foi possível preparar o preview.";
+    showToast(error instanceof Error ? error.message : "Preview de Mastering falhou.");
+  } finally {
+    if (masteringPreview) masteringPreview.disabled = false;
+  }
+}
+
+async function applyMasteringFromUi() {
+  const project = currentTimelineProject();
+  if (!project || !getVariantData(project, "mixed")) return showToast("Cria primeiro um Mixed através do Mixdown local.");
+  if (masteringApply) masteringApply.disabled = true;
+  if (masteringStatus) masteringStatus.textContent = "A aplicar cadeia Mastering local…";
+  try {
+    const parameters = masteringParameters();
+    const mixedBlob = await dataUrlToBlob(getVariantData(project, "mixed"));
+    const blob = await createMasteredBlob(project);
+    const [beforeMetrics, afterMetrics] = await Promise.all([measureLufsFromBlob(mixedBlob), measureLufsFromBlob(blob)]);
+    const data = await blobToDataUrl(blob);
+    const updated = readProjects().map((item) => item.id === project.id ? {
+      ...item,
+      audioVariants: { ...(item.audioVariants || {}), mastered: { data, mimeType: "audio/wav", bytes: blob.size, source: "local-mastering", parameters, sourceVariant: "mixed", updatedAt: new Date().toISOString() } },
+      masteringApplied: true,
+      masteringParameters: parameters,
+      status: "Mastered WAV disponível",
+    } : item);
+    saveProjects(updated);
+    if (await indexedDbAvailable()) await Promise.all([
+      putAudioBlob(project.id, "mastered", blob),
+      putEffect({ id: `${project.id}:mastering`, projectId: project.id, type: "mastering-local", parameters, createdAt: new Date().toISOString() }),
+      putProject(updated.find((item) => item.id === project.id)),
+    ]);
+    masteringBefore.textContent = `Before · Mixed · ${formatMasteringLufs(beforeMetrics)}`;
+    masteringAfter.textContent = `After · ${parameters.preset} aplicado · ${formatMasteringLufs(afterMetrics)}`;
+    if (masteringStatus) masteringStatus.textContent = "Mastering aplicado · variante reversível guardada localmente.";
+    renderProjects();
+    renderProducerStudio();
+    updateABMeters();
+    showToast("Mastering local aplicado. O Mixed e o Original continuam preservados.");
+  } catch (error) {
+    if (masteringStatus) masteringStatus.textContent = error instanceof Error ? error.message : "Não foi possível aplicar o Mastering.";
+    showToast(error instanceof Error ? error.message : "Mastering local falhou.");
+  } finally {
+    if (masteringApply) masteringApply.disabled = !Boolean(getVariantData(currentTimelineProject(), "mixed"));
+  }
+}
+
+async function resetMastering() {
+  const project = currentTimelineProject();
+  if (!project) return;
+  const updated = readProjects().map((item) => {
+    if (item.id !== project.id) return item;
+    const variants = { ...(item.audioVariants || {}) };
+    delete variants.mastered;
+    return { ...item, audioVariants: variants, masteringApplied: false, masteringParameters: null, status: "Mastering revertido; Mixed preservado" };
+  });
+  saveProjects(updated);
+  try {
+    if (await indexedDbAvailable()) await Promise.all([deleteAudioBlob(project.id, "mastered"), deleteEffect(project.id, "mastering"), putProject(updated.find((item) => item.id === project.id))]);
+  } catch { showToast("A variante Mastered foi removida localmente; a limpeza IndexedDB será tentada novamente."); }
+  masteringBefore.textContent = "Before · Mixed";
+  masteringAfter.textContent = "After · Ainda não aplicado";
+  if (masteringStatus) masteringStatus.textContent = "Mastering revertido · Mixed preservado.";
+  renderProjects();
+  renderProducerStudio();
+  showToast("Mastering revertido. O Mixed e o Original continuam disponíveis.");
 }
 
 async function mixImportedBeatWithVocal() {
@@ -863,7 +1090,7 @@ function renderTimeline() {
       const left = Math.min(92, Math.max(0, (clip.start / 40) * 100));
       const width = Math.max(8, Math.min(96 - left, (clip.duration / 40) * 100));
       const key = `${escapeHtml(track.id)}:${escapeHtml(clip.id)}`;
-      return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · ${clip.gain.toFixed(2)}x · offset ${clip.sourceOffset.toFixed(1)}s</small><div class="clip-actions"><button class="mini-button" type="button" data-clip-action="move-left" data-clip-key="${key}">←</button><button class="mini-button" type="button" data-clip-action="move-right" data-clip-key="${key}">→</button><button class="mini-button" type="button" data-clip-action="trim" data-clip-key="${key}">Trim</button><button class="mini-button" type="button" data-clip-action="split" data-clip-key="${key}">Split</button><button class="mini-button" type="button" data-clip-action="shorter" data-clip-key="${key}">−Len</button><button class="mini-button" type="button" data-clip-action="longer" data-clip-key="${key}">+Len</button><button class="mini-button" type="button" data-clip-action="fade" data-clip-key="${key}">Fade</button><button class="mini-button" type="button" data-clip-action="gain" data-clip-key="${key}">Gain</button><button class="mini-button" type="button" data-duplicate-clip="${key}">Duplicar</button><button class="mini-button danger" type="button" data-delete-clip="${key}">Apagar</button></div></div>`;
+      return `<div class="timeline-clip" style="left:${left}%;width:${width}%" title="${escapeHtml(clip.name)}"><strong>${escapeHtml(clip.name)}</strong><small>${clip.duration.toFixed(1)}s · ${clip.gain.toFixed(2)}x · offset ${clip.sourceOffset.toFixed(1)}s</small><div class="clip-actions"><button class="mini-button" type="button" data-clip-action="move-left" data-clip-key="${key}">←</button><button class="mini-button" type="button" data-clip-action="move-right" data-clip-key="${key}">→</button><button class="mini-button" type="button" data-clip-action="trim" data-clip-key="${key}">Trim</button><button class="mini-button" type="button" data-clip-action="split" data-clip-key="${key}">Split</button><button class="mini-button" type="button" data-clip-action="shorter" data-clip-key="${key}">−Len</button><button class="mini-button" type="button" data-clip-action="longer" data-clip-key="${key}">+Len</button><button class="mini-button" type="button" data-clip-action="fade" data-clip-key="${key}">Fade</button><button class="mini-button" type="button" data-clip-action="gain" data-clip-key="${key}">Gain</button><button class="mini-button" type="button" data-copy-clip="${key}">Copiar</button><button class="mini-button" type="button" data-paste-clip="${key}">Colar</button><button class="mini-button" type="button" data-duplicate-clip="${key}">Duplicar</button><button class="mini-button danger" type="button" data-delete-clip="${key}">Apagar</button></div></div>`;
     }).join("");
     const selected = track.id === selectedMixerTrackId ? " is-selected" : "";
     return `<div class="timeline-track timeline-track--${origin}${selected}" data-track-origin="${origin}" data-timeline-track="${escapeHtml(track.id)}" tabindex="0" aria-label="${escapeHtml(track.name)} · ${originDescription}"><div class="timeline-track-label"><div class="timeline-track-name"><span>${escapeHtml(track.name)}</span><span class="timeline-origin-badge timeline-origin-badge--${origin}" title="${originDescription}">${originLabel}</span></div><small>${escapeHtml(track.type)} · ${originDescription}</small></div><div class="timeline-lane">${clips || '<span class="empty">Sem clips</span>'}</div></div>`;
@@ -882,7 +1109,7 @@ function renderMixer(project) {
     return;
   }
   if (!project.tracks.some((track) => track.id === selectedMixerTrackId)) selectedMixerTrackId = project.tracks[0].id;
-  mixerTracks.innerHTML = project.tracks.map((track) => { const volume = Number(track.volume ?? 1); const selected = track.id === selectedMixerTrackId ? " is-selected" : ""; return `<div class="mixer-track${selected}" data-mixer-track="${escapeHtml(track.id)}" tabindex="0"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button></div></div>`; }).join("");
+  mixerTracks.innerHTML = project.tracks.map((track) => { const volume = Number(track.volume ?? 1); const selected = track.id === selectedMixerTrackId ? " is-selected" : ""; return `<div class="mixer-track${selected}" data-mixer-track="${escapeHtml(track.id)}" tabindex="0"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><label><span>Input</span><select data-mixer-field="input" aria-label="Input de ${escapeHtml(track.name)}"><option value="default" ${track.input === "default" || !track.input ? "selected" : ""}>Microfone predefinido</option><option value="mic-1" ${track.input === "mic-1" ? "selected" : ""}>Microfone 1</option><option value="line-in" ${track.input === "line-in" ? "selected" : ""}>Line In</option></select></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button><button class="mini-button ${track.recordArmed ? "active" : ""}" type="button" data-mixer-field="recordArmed" aria-pressed="${track.recordArmed ? "true" : "false"}">${track.recordArmed ? "Armed" : "Arm REC"}</button></div></div>`; }).join("");
   const selected = project.tracks.find((track) => track.id === selectedMixerTrackId) || project.tracks[0];
   const origin = trackOrigin(selected);
   if (mixerInspector) mixerInspector.innerHTML = `<strong>${escapeHtml(selected.name)}</strong><span>${escapeHtml(selected.type)} · ${origin === "producer-plan" ? "Producer Plan" : "Manual"}</span><small>${selected.clips.length} clip${selected.clips.length === 1 ? "" : "s"} · ${selected.effects.length} efeito${selected.effects.length === 1 ? "" : "s"}</small><div class="mixer-inspector-clips">${selected.clips.length ? selected.clips.map((clip) => `<span>${escapeHtml(clip.name)} · ${Number(clip.duration || 0).toFixed(1)}s</span>`).join("") : "<span>Sem clips nesta faixa.</span>"}</div>`;
@@ -1023,6 +1250,52 @@ function addSoundLibraryItem(item, start = null) {
   return added;
 }
 
+const AUTOMIX_GENRE_MAP = { "Hip-Hop": "Hip-Hop", "R&B": "R&B", Afrobeats: "Afrobeat", House: "Afro House", "Lo-fi": "R&B", Pop: "Afrobeat", Amapiano: "Amapiano" };
+let automixSnapshot = null;
+
+function buildAutoMixProposal(project = currentTimelineProject()) {
+  if (!project) return null;
+  const label = automixGenre?.value || "Hip-Hop";
+  const genre = AUTOMIX_GENRE_MAP[label] || "Hip-Hop";
+  const plan = buildProducerPlan({ genre, tempo: project.tempo || 100, key: project.key || "C", duration: getTimelineDuration(project), brief: label });
+  const panByType = { audio: 0, vocal: -0.08, drums: 0.04, instrument: 0.08, guitar: -0.1, bus: 0, fx: 0.12 };
+  const adjusted = applyProducerMix(normalizeProject(project), plan);
+  const next = { ...adjusted, tracks: adjusted.tracks.map((track) => ({ ...track, pan: panByType[track.type] ?? track.pan ?? 0, automixGenre: label })) };
+  return { label, genre, plan, next };
+}
+
+function renderAutoMixProposal(proposal = buildAutoMixProposal()) {
+  if (!proposal || !automixSummary) return;
+  const mixText = proposal.plan?.mix ? `Bass ${proposal.plan.mix.bassDb} dB · Instrumental ${proposal.plan.mix.instrumentalDb} dB` : "equilíbrio por género";
+  automixSummary.textContent = `${proposal.label}: ${mixText}. Vocal centrado; bateria e instrumentos recebem panorama leve.`;
+}
+
+function previewAutoMix() {
+  const proposal = buildAutoMixProposal();
+  if (!proposal) { if (automixStatus) automixStatus.textContent = "Abre um projecto antes de gerar AutoMix."; return; }
+  renderAutoMixProposal(proposal);
+  if (automixStatus) automixStatus.textContent = `Preview ${proposal.label} pronto; o projecto ainda não foi alterado.`;
+}
+
+async function applyAutoMix() {
+  const project = currentTimelineProject();
+  const proposal = buildAutoMixProposal(project);
+  if (!project || !proposal) { if (automixStatus) automixStatus.textContent = "Abre um projecto antes de aplicar AutoMix."; return; }
+  if (!automixSnapshot) automixSnapshot = normalizeProject(project);
+  await commitTimelineProject(proposal.next);
+  renderAutoMixProposal(proposal);
+  if (automixStatus) automixStatus.textContent = `AutoMix ${proposal.label} aplicado. Volumes e panorama foram ajustados de forma reversível.`;
+  if (automixReset) automixReset.disabled = false;
+}
+
+async function resetAutoMix() {
+  if (!automixSnapshot) { if (automixStatus) automixStatus.textContent = "Não existe um AutoMix para reverter."; return; }
+  await commitTimelineProject(automixSnapshot);
+  automixSnapshot = null;
+  if (automixStatus) automixStatus.textContent = "AutoMix revertido; os valores anteriores foram restaurados.";
+  if (automixReset) automixReset.disabled = true;
+}
+
 async function runProducerPlan(id, { planOverride = null, sourceLabel = "local" } = {}) {
   const source = readProjects().find((item) => item.id === id);
   if (!source) return;
@@ -1101,7 +1374,12 @@ function renderProducerStudio() {
   if (producerPlanStatus) producerPlanStatus.textContent = state.hasPlan ? (state.processingState === PRODUCTION_STATES.COMPLETED ? "Arranjo local concluído" : "Arranjo disponível na timeline") : "Ainda não aplicado";
   if (producerVocalStatus) producerVocalStatus.textContent = state.hasVocal ? "Enhanced / Pitch Corrected disponíveis" : "Original preservado";
   if (producerMixStatus) producerMixStatus.textContent = state.hasMix ? "Mixed WAV disponível" : "Aguardando Mixdown";
-  if (producerFinalStatus) producerFinalStatus.textContent = state.hasMix ? "Compara Original e Mixed antes de exportar." : "Cria um Mixed para comparar versões.";
+  if (masteringStatus && state.hasMix && !project.masteringApplied) masteringStatus.textContent = "Mixed pronto · escolhe um preset e faz Preview ou Aplicar.";
+  if (masteringApply) masteringApply.disabled = !state.hasMix;
+  if (masteringReset) masteringReset.disabled = !Boolean(project.audioVariants?.mastered);
+  if (masteringPreview) masteringPreview.disabled = !state.hasMix;
+  if (masteringAfter && project.audioVariants?.mastered) masteringAfter.textContent = `After · ${project.masteringParameters?.preset || "Mastered"} aplicado`;
+  if (producerFinalStatus) producerFinalStatus.textContent = state.hasMix ? (project.audioVariants?.mastered ? "Mastered disponível · exporta a versão final quando estiver pronta." : "Compara Original e Mixed antes de exportar.") : "Cria um Mixed para comparar versões.";
   if (producerAbMixed) producerAbMixed.disabled = !state.hasMix;
   updateProducerBypassUI(state.hasMix);
   if (producerExport) producerExport.disabled = !state.hasMix;
@@ -1127,6 +1405,22 @@ function renderRecentProjects(projects) {
   }).join("");
 }
 
+function takeGroupKey(project) { return project.takeGroupId || `takes-${String(project.name || project.id).toLocaleLowerCase("pt-PT")}`; }
+function renderCompedControl(groupProjects) {
+  if (groupProjects.length < 2) return "";
+  const options = groupProjects.map((take) => `<option value="${escapeHtml(take.id)}">${escapeHtml(take.takeLabel || `Take ${take.takeNumber || 1}`)}</option>`).join("");
+  return `<fieldset class="comped-control"><legend>Comped Vocal · escolher takes por secção</legend><div class="comped-grid">${["Intro", "Verso", "Refrão", "Outro"].map((segment) => `<label>${segment}<select data-comp-segment="${segment}" data-comp-group="${escapeHtml(takeGroupKey(groupProjects[0]))}">${options}</select></label>`).join("")}</div><button class="mini-button primary" type="button" data-create-comped="${escapeHtml(takeGroupKey(groupProjects[0]))}">Criar Comped Vocal</button></fieldset>`;
+}
+async function createCompedVocal(groupId, container) {
+  const projects = readProjects().filter((item) => takeGroupKey(item) === groupId);
+  if (projects.length < 2) return showToast("Grava pelo menos duas takes da mesma sessão.");
+  const selections = [...container.querySelectorAll(`[data-comp-group="${CSS.escape(groupId)}"]`)].map((select) => ({ segment: select.dataset.compSegment, takeId: select.value }));
+  const primary = projects.find((item) => item.id === selections[0]?.takeId) || projects[0];
+  const comped = normalizeProject({ ...primary, id: makeProjectId(), name: `${primary.name} · Comped Vocal`, takeLabel: "Comped Vocal", takeGroupId: `${groupId}-comped`, takeNumber: 1, compSelections: selections, status: "Comped Vocal criada", createdAt: new Date().toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" }) });
+  saveProjects([comped, ...readProjects()]);
+  renderProjects();
+  showToast(`“${comped.name}” criada a partir de ${projects.length} takes.`);
+}
 function renderProjects() {
   renderSoundLibrary();
   const projects = readProjects();
@@ -1192,6 +1486,9 @@ function renderProjects() {
     const projectVersion = project.version || (getVariantData(project, "mixed") ? "Mixed" : "Original");
     const trackCount = Array.isArray(project.tracks) ? project.tracks.length : (project.originalAudioData ? 1 : 0);
     const coverGlyph = project.coverGlyph || "♫";
+    const groupProjects = visibleProjects.filter((item) => takeGroupKey(item) === takeGroupKey(project));
+    const takeMeta = project.takeLabel || (project.takeNumber ? `Take ${project.takeNumber}` : "Take 1");
+    const compedControl = groupProjects[0]?.id === project.id ? renderCompedControl(groupProjects) : "";
     const archiveButton = project.archived
       ? `<button class="mini-button" type="button" data-archive-id="${escapeHtml(project.id)}">Restaurar</button>`
       : `<button class="mini-button" type="button" data-archive-id="${escapeHtml(project.id)}">Arquivar</button>`;
@@ -1201,7 +1498,7 @@ function renderProjects() {
     const mixedExport = getVariantData(project, "mixed")
       ? `<button class="mini-button primary" type="button" data-export-mixed-id="${escapeHtml(project.id)}">Exportar Mixed WAV</button>`
       : "";
-    return `<div class="project${project.archived ? " is-archived" : ""}"><div class="project-cover" aria-hidden="true">${escapeHtml(coverGlyph)}</div><div class="project-content"><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(projectArtist)} · ${escapeHtml(project.createdAt)} · ${escapeHtml(project.durationLabel || "duração não registada")}</small><small class="project-specs">${escapeHtml(String(project.tempo || 100))} BPM · ${escapeHtml(project.key || "C")} · ${trackCount} track${trackCount === 1 ? "" : "s"} · versão ${escapeHtml(projectVersion)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}${archiveButton}<button class="mini-button" type="button" data-rename-id="${escapeHtml(project.id)}">Renomear</button><button class="mini-button" type="button" data-duplicate-id="${escapeHtml(project.id)}">Duplicar</button><button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
+    return `<div class="project${project.archived ? " is-archived" : ""}"><div class="project-cover" aria-hidden="true">${escapeHtml(coverGlyph)}</div><div class="project-content"><strong>${escapeHtml(project.name)} <span class="take-label">${escapeHtml(takeMeta)}</span></strong><small>${escapeHtml(projectArtist)} · ${escapeHtml(project.createdAt)} · ${escapeHtml(project.durationLabel || "duração não registada")}</small><small class="project-specs">${escapeHtml(String(project.tempo || 100))} BPM · ${escapeHtml(project.key || "C")} · ${trackCount} track${trackCount === 1 ? "" : "s"} · versão ${escapeHtml(projectVersion)}</small><div class="project-audio-stack">${original}${processed}${variantBlocks}${legacyNotice}${brief}${compedControl}</div><div class="project-actions">${gain}${fade}${normalize}${compressor}${vocalEnhancement}${pitchAssist}${mixedExport}${resetEffects}${process}${archiveButton}<button class="mini-button" type="button" data-rename-id="${escapeHtml(project.id)}">Renomear</button><button class="mini-button" type="button" data-duplicate-id="${escapeHtml(project.id)}">Duplicar</button><button class="mini-button danger" type="button" data-delete-id="${escapeHtml(project.id)}">Apagar</button></div></div><span class="pill">${escapeHtml(project.status)}</span></div>`;
     }).join("");
   renderProducerStudio();
   renderTimeline();
@@ -1210,9 +1507,14 @@ async function saveRecording({ blob, mimeType, seconds }) {
   const name = nameInput.value.trim() || `Take ${String(readProjects().length + 1).padStart(2, "0")}`;
   const originalAudioData = await blobToDataUrl(blob);
   const projectId = makeProjectId();
+  const takeGroupId = `takes-${name.toLocaleLowerCase("pt-PT").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || projectId}`;
+  const takeNumber = readProjects().filter((item) => item.takeGroupId === takeGroupId || (!item.takeGroupId && item.name === name)).length + 1;
   const project = normalizeProject({
     id: projectId,
     name,
+    takeGroupId,
+    takeNumber,
+    takeLabel: `Take ${takeNumber}`,
     tempo: 100,
     key: "C",
     preset: presetInput.value,
@@ -1316,9 +1618,98 @@ function applyLocalCompressor(id) {
 function applyLocalVocalEnhancement(id) {
   return applyLocalEffect(id, "vocalEnhancementApplied", applyVocalEnhancement, "Melhoria vocal local aplicada. O original continua preservado.", "enhanced");
 }
-
+async function applyLocalVoiceCleaner(id, options = {}) {
+  return applyLocalEffect(id, "voiceCleanerApplied", (blob) => applyVoiceCleanerLocal(blob, options), "Voice Cleaner local aplicado. O original continua preservado.", "cleaned");
+}
+async function applyLocalVoiceChanger(id, character = "deep") {
+  return applyLocalEffect(id, "voiceChangerApplied", (blob) => applyVoiceChangerLocal(blob, { character }), "Voice Changer local aplicado. O original continua preservado.", "voiceChanged");
+}
+function voiceChangerCharacterValue() { return voiceChangerCharacter?.value || "deep"; }
+function setVoiceChangerStatus(message, state = "") {
+  if (voiceChangerStatus) { voiceChangerStatus.textContent = message; voiceChangerStatus.dataset.state = state; }
+}
+async function previewVoiceChanger() {
+  const project = currentTimelineProject();
+  const sourceData = getVariantData(project, "original");
+  if (!project || !sourceData) { setVoiceChangerStatus("Abre ou grava uma sessão vocal antes da pré-escuta.", "error"); return; }
+  try {
+    const processed = await applyVoiceChangerLocal(await dataUrlToBlob(sourceData), { character: voiceChangerCharacterValue() });
+    if (voiceCleanerPreviewUrl) URL.revokeObjectURL(voiceCleanerPreviewUrl);
+    voiceCleanerPreviewUrl = URL.createObjectURL(processed);
+    const player = new Audio(voiceCleanerPreviewUrl);
+    player.onended = () => URL.revokeObjectURL(voiceCleanerPreviewUrl);
+    await player.play();
+    setVoiceChangerStatus(`Pré-escuta ${voiceChangerCharacterValue()} em reprodução.`, "success");
+  } catch (error) { setVoiceChangerStatus(`Pré-escuta indisponível: ${error instanceof Error ? error.message : "erro desconhecido"}.`, "error"); }
+}
+async function applyVoiceChangerFromUi() {
+  const project = currentTimelineProject();
+  if (!project) { setVoiceChangerStatus("Abre ou grava uma sessão vocal antes de aplicar.", "error"); return; }
+  await applyLocalVoiceChanger(project.id, voiceChangerCharacterValue());
+  setVoiceChangerStatus("Voice Changer aplicado como variante reversível.", "success");
+  renderProducerStudio();
+}
+async function resetLocalVoiceChanger() {
+  const project = currentTimelineProject();
+  if (!project) return;
+  const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: Object.fromEntries(Object.entries(item.audioVariants || {}).filter(([key]) => key !== "voiceChanged")), voiceChangerApplied: false, status: "Voice Changer revertido; vocal anterior preservado" } : item);
+  saveProjects(updated);
+  try { if (await indexedDbAvailable()) await Promise.all([deleteAudioBlob(project.id, "voiceChanged"), putProject(updated.find((item) => item.id === project.id))]); } catch { showToast("A variante foi revertida localmente; o reset IndexedDB será tentado novamente."); }
+  setVoiceChangerStatus("Voice Changer revertido; Original preservado.", "success");
+  renderProjects();
+  renderProducerStudio();
+}
 function applyLocalPitchAssist(id) {
   return applyLocalEffect(id, "pitchCorrectionApplied", applyPitchCorrectionAssist, "Pitch correction assistida aplicada localmente. O original continua preservado.", "pitchCorrected");
+}
+function voiceCleanerOptions() {
+  return { noiseRemoval: Boolean(voiceCleanerNoise?.checked), dereverb: Boolean(voiceCleanerDereverb?.checked), autoEq: Boolean(voiceCleanerAutoEq?.checked) };
+}
+function setVoiceCleanerStatus(message, state = "") {
+  if (voiceCleanerStatus) { voiceCleanerStatus.textContent = message; voiceCleanerStatus.dataset.state = state; }
+}
+async function analyzeVoiceCleaner() {
+  const project = currentTimelineProject();
+  const sourceData = getVariantData(project, "original");
+  if (!project || !sourceData) { setVoiceCleanerStatus("Abre ou grava uma sessão vocal antes de analisar.", "error"); return; }
+  try {
+    const analysis = await analyzeAudioDataUrl(sourceData);
+    const peak = Number.isFinite(analysis.peakDb) ? `${analysis.peakDb.toFixed(1)} dBFS` : "indisponível";
+    const rms = Number.isFinite(analysis.rmsDb) ? `${analysis.rmsDb.toFixed(1)} dBFS` : "indisponível";
+    if (voiceCleanerAnalysis) voiceCleanerAnalysis.textContent = `Análise local: ${analysis.durationSeconds.toFixed(2)} s · pico ${peak} · loudness RMS ${rms}. Os módulos seleccionados serão processados de forma reversível.`;
+    setVoiceCleanerStatus("Análise concluída localmente.", "success");
+  } catch (error) { setVoiceCleanerStatus(`Não foi possível analisar o vocal: ${error instanceof Error ? error.message : "erro desconhecido"}.`, "error"); }
+}
+async function previewVoiceCleaner() {
+  const project = currentTimelineProject();
+  const sourceData = getVariantData(project, "original");
+  if (!project || !sourceData) { setVoiceCleanerStatus("Abre ou grava uma sessão vocal antes da pré-escuta.", "error"); return; }
+  try {
+    const processed = await applyVoiceCleanerLocal(await dataUrlToBlob(sourceData), voiceCleanerOptions());
+    if (voiceCleanerPreviewUrl) URL.revokeObjectURL(voiceCleanerPreviewUrl);
+    voiceCleanerPreviewUrl = URL.createObjectURL(processed);
+    const player = new Audio(voiceCleanerPreviewUrl);
+    player.onended = () => URL.revokeObjectURL(voiceCleanerPreviewUrl);
+    await player.play();
+    setVoiceCleanerStatus("Pré-escuta Voice Cleaner em reprodução.", "success");
+  } catch (error) { setVoiceCleanerStatus(`Pré-escuta indisponível: ${error instanceof Error ? error.message : "erro desconhecido"}.`, "error"); }
+}
+async function applyVoiceCleanerFromUi() {
+  const project = currentTimelineProject();
+  if (!project) { setVoiceCleanerStatus("Abre ou grava uma sessão vocal antes de aplicar.", "error"); return; }
+  await applyLocalVoiceCleaner(project.id, voiceCleanerOptions());
+  setVoiceCleanerStatus("Voice Cleaner aplicado como variante reversível.", "success");
+  renderProducerStudio();
+}
+async function resetLocalVoiceCleaner() {
+  const project = currentTimelineProject();
+  if (!project) return;
+  const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: Object.fromEntries(Object.entries(item.audioVariants || {}).filter(([key]) => key !== "cleaned")), voiceCleanerApplied: false, status: "Voice Cleaner revertido; vocal anterior preservado" } : item);
+  saveProjects(updated);
+  try { if (await indexedDbAvailable()) await Promise.all([deleteAudioBlob(project.id, "cleaned"), putProject(updated.find((item) => item.id === project.id))]); } catch { showToast("A variante foi revertida localmente; a limpeza IndexedDB será tentada novamente."); }
+  setVoiceCleanerStatus("Voice Cleaner revertido; Original preservado.", "success");
+  renderProjects();
+  renderProducerStudio();
 }
 
 async function resetEffects(id) {
@@ -1396,7 +1787,10 @@ async function deleteProject(id) {
   showToast("A sessão foi apagada localmente.");
 }
 
-const recorder = createRecorderController({ onStateChange: setRecordingUI, onComplete: saveRecording, showToast });
+const recorder = createRecorderController({ onStateChange: setRecordingUI, onMetrics: setRecordingMetrics, getInputDeviceId: () => recordInputDevice?.value || "default", onComplete: async (payload) => { await saveRecording(payload); await loadRecordInputDevices(); }, showToast });
+loadRecordInputDevices();
+recordMonitorToggle?.addEventListener("change", () => recorder.setMonitoring({ enabled: recordMonitorToggle.checked, volume: Number(recordMonitorVolume?.value || 35) / 100 }));
+recordMonitorVolume?.addEventListener("input", () => { if (recordMonitorVolumeValue) recordMonitorVolumeValue.textContent = `${recordMonitorVolume.value}%`; recorder.setMonitoring({ enabled: recordMonitorToggle?.checked, volume: Number(recordMonitorVolume.value) / 100 }); });
 
 producerSaveAnalysis?.addEventListener("click", () => {
   const project = currentTimelineProject();
@@ -1532,6 +1926,13 @@ producerPitchZoomIn?.addEventListener("click", () => { pitchCurveZoom = Math.min
 producerPitchZoomOut?.addEventListener("click", () => { pitchCurveZoom = Math.max(1, Number((pitchCurveZoom - 0.5).toFixed(1))); pitchCurvePan = Math.min(pitchCurvePan, Math.max(0, pitchCurveZoom - 1)); drawPitchCurve(activePitchNotes); });
 producerPitchPanReset?.addEventListener("click", () => { pitchCurveZoom = 1; pitchCurvePan = 0; drawPitchCurve(activePitchNotes); });
 producerShare?.addEventListener("click", shareFinalTrack);
+voiceCleanerAnalyze?.addEventListener("click", analyzeVoiceCleaner);
+voiceCleanerPreview?.addEventListener("click", previewVoiceCleaner);
+voiceCleanerApply?.addEventListener("click", applyVoiceCleanerFromUi);
+voiceCleanerReset?.addEventListener("click", resetLocalVoiceCleaner);
+voiceChangerPreview?.addEventListener("click", previewVoiceChanger);
+voiceChangerApply?.addEventListener("click", applyVoiceChangerFromUi);
+voiceChangerReset?.addEventListener("click", resetLocalVoiceChanger);
 producerApplyAutoTune?.addEventListener("click", applyLocalAutoTune);
 producerResetAutoTune?.addEventListener("click", resetLocalAutoTune);
 producerApplySpace?.addEventListener("click", applyLocalSpaceEffects);
@@ -1540,6 +1941,16 @@ producerReverbIntensity?.addEventListener("input", () => { if (producerReverbVal
 producerDelayIntensity?.addEventListener("input", () => { if (producerDelayValue) producerDelayValue.textContent = `${producerDelayIntensity.value}%`; });
 producerVocalBeatMix?.addEventListener("click", mixImportedBeatWithVocal);
 [[producerBypassAutoTune, "autoTune"], [producerBypassReverb, "reverb"], [producerBypassDelay, "delay"]].forEach(([button, key]) => button?.addEventListener("click", () => { effectBypassState[key] = !effectBypassState[key]; updateIndividualBypassUI(); }));
+automixGenre?.addEventListener("change", () => { renderAutoMixProposal(); if (automixStatus) automixStatus.textContent = "Nova proposta AutoMix pronta para preview."; });
+automixPreview?.addEventListener("click", previewAutoMix);
+automixApply?.addEventListener("click", applyAutoMix);
+automixReset?.addEventListener("click", resetAutoMix);
+masteringPreset?.addEventListener("change", () => { updateMasteringControls(); if (masteringStatus) masteringStatus.textContent = `Preset ${masteringPreset.value} seleccionado · pronto para preview.`; });
+[masteringIntensity, masteringLoudness, masteringDynamics, masteringStereo, masteringEq].forEach((input) => input?.addEventListener("input", () => { updateMasteringControls(); if (masteringStatus) masteringStatus.textContent = "Parâmetros Mastering alterados · faz Preview para comparar."; }));
+masteringPreview?.addEventListener("click", previewMastering);
+masteringApply?.addEventListener("click", applyMasteringFromUi);
+masteringReset?.addEventListener("click", resetMastering);
+
 producerSavePreset?.addEventListener("click", () => { const name = producerPresetName?.value?.trim(); if (!name) { if (producerPresetStatus) producerPresetStatus.textContent = "Escreve um nome para guardar a predefinição."; producerPresetName?.focus(); return; } const preset = saveEffectPreset({ ...currentEffectPreset(), name }); activePresetId = preset.id; const project = currentTimelineProject(); if (project) persistActivePreset(project.id, preset.id); updateEffectPresetOptions(); if (producerPresetName) producerPresetName.value = ""; if (producerPresetStatus) producerPresetStatus.textContent = `Predefinição “${preset.name}” guardada.`; });
 producerPresetSelect?.addEventListener("change", () => { activePresetId = producerPresetSelect.value; const preset = loadEffectPresets().find((item) => item.id === activePresetId); applyEffectPreset(preset); const project = currentTimelineProject(); if (project) persistActivePreset(project.id, activePresetId); if (producerDeletePreset) producerDeletePreset.disabled = !preset || isBuiltInEffectPreset(activePresetId); if (producerPresetStatus) producerPresetStatus.textContent = preset ? `Predefinição “${preset.name}” aplicada.` : "Nenhuma predefinição seleccionada."; });
 producerDeletePreset?.addEventListener("click", () => { if (!activePresetId || isBuiltInEffectPreset(activePresetId)) return; const project = currentTimelineProject(); deleteEffectPreset(activePresetId); activePresetId = ""; if (project) persistActivePreset(project.id, ""); updateEffectPresetOptions(); if (producerPresetStatus) producerPresetStatus.textContent = "Predefinição apagada."; });
@@ -1605,6 +2016,7 @@ window.addEventListener("firebase-signed-out", () => {
 updateIndividualBypassUI();
 updateEffectPresetOptions();
 updateABMeters();
+updateMasteringControls();
 
 recentProjects?.addEventListener("click", (event) => {
   const openButton = event.target.closest("[data-open-project]");
@@ -1629,6 +2041,8 @@ list?.addEventListener("click", (event) => {
   const renameButton = event.target.closest("[data-rename-id]");
   const duplicateButton = event.target.closest("[data-duplicate-id]");
   const archiveButton = event.target.closest("[data-archive-id]");
+  const compedButton = event.target.closest("[data-create-comped]");
+  if (compedButton) createCompedVocal(compedButton.dataset.createComped, compedButton.closest(".project"));
   if (deleteButton) deleteProject(deleteButton.dataset.deleteId);
   if (processButton) runProducerPlan(processButton.dataset.processId);
   if (cancelProcessButton) cancelProducerPlan(cancelProcessButton.dataset.cancelProcessId);
@@ -1664,6 +2078,11 @@ mixerTracks?.addEventListener("input", (event) => {
   const trackNode = event.target.closest("[data-mixer-track]");
   if (!control || !trackNode || !timelineHistory) return;
   const field = control.dataset.mixerField;
+  if (field === "input") {
+    const trackId = trackNode.dataset.mixerTrack;
+    commitTimelineProject(updateTrack(timelineHistory.present, trackId, { input: control.value }));
+    return;
+  }
   if (field !== "volume" && field !== "pan") return;
   const rawValue = Number(control.value);
   const value = field === "volume" ? dbToLinear(rawValue) : rawValue;
@@ -1680,7 +2099,7 @@ mixerTracks?.addEventListener("click", (event) => {
   const trackNode = event.target.closest("[data-mixer-track]");
   if (!control || !trackNode || !timelineHistory) return;
   const field = control.dataset.mixerField;
-  if (field !== "muted" && field !== "solo") return;
+  if (field !== "muted" && field !== "solo" && field !== "recordArmed") return;
   const trackId = trackNode.dataset.mixerTrack;
   const track = timelineHistory.present.tracks.find((item) => item.id === trackId);
   if (track) commitTimelineProject(updateTrack(timelineHistory.present, trackId, { [field]: !track[field] }));
@@ -1705,11 +2124,19 @@ timelineGrid?.addEventListener("click", (event) => {
   }
   const button = event.target.closest("button");
   if (!button || !timelineHistory) return;
-  const [trackId, clipId] = (button.dataset.clipKey || button.dataset.duplicateClip || button.dataset.deleteClip || "").split(":");
+  const [trackId, clipId] = (button.dataset.clipKey || button.dataset.duplicateClip || button.dataset.deleteClip || button.dataset.copyClip || button.dataset.pasteClip || "").split(":");
   if (!trackId || !clipId) return;
+  const sourceClip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+  if (button.dataset.copyClip) { timelineClipboard = sourceClip ? JSON.parse(JSON.stringify(sourceClip)) : null; showToast(timelineClipboard ? `“${timelineClipboard.name}” copiado.` : "Não foi possível copiar o clip."); return; }
   const actionName = button.dataset.clipAction;
   let next = timelineHistory.present;
-  if (button.dataset.duplicateClip) next = duplicateClip(next, trackId, clipId);
+  if (button.dataset.pasteClip) {
+    if (!timelineClipboard) return showToast("Copia primeiro um clip para colar.");
+    const targetTrack = timelineHistory.present.tracks.find((track) => track.id === trackId);
+    const targetClip = targetTrack?.clips.find((clip) => clip.id === clipId);
+    const pasted = { ...JSON.parse(JSON.stringify(timelineClipboard)), id: `${timelineClipboard.id}-paste-${Date.now()}`, start: Math.max(0, Number(targetClip?.start || 0) + Number(targetClip?.duration || 0)) };
+    next = { ...timelineHistory.present, tracks: timelineHistory.present.tracks.map((track) => track.id === trackId ? { ...track, clips: [...track.clips, pasted] } : track) };
+  } else if (button.dataset.duplicateClip) next = duplicateClip(next, trackId, clipId);
   else if (button.dataset.deleteClip) next = deleteClip(next, trackId, clipId);
   else if (actionName === "move-left" || actionName === "move-right") {
     const clip = timelineHistory.present.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
@@ -1733,12 +2160,18 @@ timelineGrid?.addEventListener("click", (event) => {
   commitTimelineProject(next);
 });
 timelineMixdownButton?.addEventListener("click", () => { mixdownActiveTimeline(); });
+timelineSaveButton?.addEventListener("click", () => { saveCurrentProjectToCloud(); });
+timelineShareButton?.addEventListener("click", () => { shareFinalTrack(); });
+timelineExportButton?.addEventListener("click", () => { const project = currentTimelineProject(); if (project) exportMixedVersion(project.id); else showToast("Abre ou grava uma sessão antes de exportar."); });
 
 addTrackButton?.addEventListener("click", () => {
   const project = currentTimelineProject();
   if (!project || !timelineHistory) return showToast("Grava primeiro uma take para criar tracks.");
-  const name = window.prompt("Nome da nova track", `Track ${timelineHistory.present.tracks.length + 1}`)?.trim();
-  if (name) commitTimelineProject(addTrack(timelineHistory.present, { name, type: "audio" }));
+  const type = addTrackType?.value || "audio";
+  const labels = { audio: "Audio", midi: "MIDI", instrument: "Instrument", drums: "Drum", vocal: "Vocal", bus: "Bus", fx: "FX" };
+  const colors = { audio: "#62d6c7", midi: "#9c8cff", instrument: "#9c8cff", drums: "#f4b860", vocal: "#f06aa8", bus: "#6ea8fe", fx: "#d68cff" };
+  const name = window.prompt("Nome da track", `${labels[type]} track`);
+  if (name) commitTimelineProject(addTrack(timelineHistory.present, { name, type, color: colors[type] || colors.audio }));
 });
 timelineUndoButton?.addEventListener("click", () => {
   if (!timelineHistory || !canUndo(timelineHistory)) return;
@@ -1793,11 +2226,53 @@ transportBeginning?.addEventListener("click", stopTimeline);
 transportPlay?.addEventListener("click", playTimeline);
 transportPause?.addEventListener("click", pauseTimeline);
 transportStop?.addEventListener("click", stopTimeline);
+const keyboardPhysicalMap = { a: "C", w: "C#", s: "D", e: "D#", d: "E", f: "F", t: "F#", g: "G", y: "G#", h: "A", u: "A#", j: "B" };
+async function previewKeyboardNote(noteName) {
+  const octave = Number(keyboardOctave?.value || 4);
+  const velocity = Math.max(0.1, Math.min(1, Number(keyboardVelocity?.value || 0.82)));
+  const duration = keyboardSustain?.checked ? 1.25 : 0.42;
+  const note = `${noteName}${octave}`;
+  const button = keyboardNotes?.querySelector(`[data-note-name="${noteName}"]`);
+  if (button) { flashControl(button); button.classList.add("is-active"); }
+  if (keyboardMidiRecording) {
+    const elapsed = Math.max(0, (performance.now() - keyboardMidiRecording.startedAt) / 1000);
+    const grid = { "1/4": 0.5, "1/8": 0.25, "1/16": 0.125, "1/32": 0.0625, triplet: 1 / 6 }[keyboardQuantize?.value || "1/16"];
+    const time = keyboardQuantize?.value ? Math.round(elapsed / grid) * grid : elapsed;
+    keyboardMidiRecording.events.push({ note, time, duration, velocity, instrument: "piano" });
+    if (keyboardMidiStatus) keyboardMidiStatus.textContent = `${keyboardMidiRecording.events.length} notas gravadas · ${time.toFixed(2)}s`;
+  }
+  try { await playNote(note, { duration, volume: velocity * 0.18 }); }
+  catch (error) { showToast(error.message); }
+  finally { window.setTimeout(() => button?.classList.remove("is-active"), duration * 1000); }
+}
 keyboardNotes?.addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-note]");
+  const button = event.target.closest("[data-note-name]");
   if (!button) return;
-  flashControl(button);
-  try { await playNote(button.dataset.note); } catch (error) { showToast(error.message); }
+  await previewKeyboardNote(button.dataset.noteName);
+});
+keyboardVelocity?.addEventListener("input", () => { if (keyboardVelocityValue) keyboardVelocityValue.value = `${Math.round(Number(keyboardVelocity.value) * 100)}%`; });
+keyboardQuantize?.addEventListener("change", () => showToast(`Quantização do teclado: ${keyboardQuantize.value}.`));
+keyboardMidiRecord?.addEventListener("click", () => {
+  if (!keyboardMidiRecording) {
+    keyboardMidiRecording = { startedAt: performance.now(), events: [] };
+    keyboardMidiRecord.setAttribute("aria-pressed", "true");
+    keyboardMidiRecord.textContent = "■ Parar MIDI";
+    if (keyboardMidiStatus) keyboardMidiStatus.textContent = "A gravar notas do teclado…";
+    return;
+  }
+  const events = keyboardMidiRecording.events;
+  keyboardMidiRecording = null;
+  keyboardMidiRecord.setAttribute("aria-pressed", "false");
+  keyboardMidiRecord.textContent = "● Gravar MIDI";
+  if (!events.length) { if (keyboardMidiStatus) keyboardMidiStatus.textContent = "Nenhuma nota gravada."; return; }
+  const duration = Math.max(0.25, events.reduce((latest, event) => Math.max(latest, event.time + event.duration), 0));
+  const added = insertInstrumentClip({ name: "Teclado · take MIDI", type: "midi", duration, metadata: { instrument: "piano", events, sequence: "keyboard-recording", quantize: keyboardQuantize?.value || null } });
+  if (keyboardMidiStatus) keyboardMidiStatus.textContent = added ? `${events.length} notas inseridas na timeline.` : "Abre uma sessão para inserir o MIDI.";
+});
+document.addEventListener("keydown", async (event) => {
+  if (event.repeat || event.target.matches("input, textarea, select, button")) return;
+  const noteName = keyboardPhysicalMap[event.key.toLowerCase()];
+  if (noteName) { event.preventDefault(); await previewKeyboardNote(noteName); }
 });
 playChordButton?.addEventListener("click", async () => {
   try { await playChord(chordSelect?.value || "C"); } catch (error) { showToast(error.message); }
@@ -1832,8 +2307,8 @@ function pianoRollEvents() {
   return [...(pianoRoll?.querySelectorAll("[data-piano-note].is-active") || [])].map((button) => ({
     note: button.dataset.pianoNote,
     time: Number(button.dataset.pianoStep || 0) * stepDuration,
-    duration: stepDuration * 0.9,
-    velocity: 0.82,
+    duration: stepDuration * Math.max(0.25, Math.min(2, Number(button.dataset.pianoDuration || 0.9))),
+    velocity: Math.max(0.1, Math.min(1, Number(button.dataset.pianoVelocity || 0.82))),
     instrument: "piano",
   }));
 }
@@ -1900,13 +2375,31 @@ beatGrid?.addEventListener("click", async (event) => {
   flashControl(button);
   try { await playDrumHit(channel, { velocity: channel === "hihat" ? 0.72 : 0.9 }); } catch (error) { showToast(error.message); }
 });
+const pianoEditableNotes = ["C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4", "C5"];
 pianoRoll?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-piano-note]");
   if (!button) return;
-  button.classList.toggle("is-active");
+  if (event.altKey) {
+    button.dataset.pianoVelocity = (Math.min(1, Number(button.dataset.pianoVelocity || 0.82) + 0.1)).toFixed(2);
+    button.title = `${button.dataset.pianoNote} · velocity ${button.dataset.pianoVelocity}`;
+  } else if (event.shiftKey) {
+    button.dataset.pianoDuration = (Math.min(2, Number(button.dataset.pianoDuration || 0.9) + 0.25)).toFixed(2);
+    button.title = `${button.dataset.pianoNote} · duração ${button.dataset.pianoDuration}`;
+  } else {
+    button.classList.toggle("is-active");
+  }
   flashControl(button);
-  if (pianoRollStatus) pianoRollStatus.textContent = `${pianoRollEvents().length} passos activos · pronto para ouvir ou inserir.`;
-  try { await playNote(button.dataset.pianoNote, { type: "triangle", duration: 0.28, volume: 0.11 }); } catch (error) { showToast(error.message); }
+  if (pianoRollStatus) pianoRollStatus.textContent = `${pianoRollEvents().length} passos activos · ${button.dataset.pianoNote} · velocity ${button.dataset.pianoVelocity} · duração ${button.dataset.pianoDuration}`;
+  try { await playNote(button.dataset.pianoNote, { type: "triangle", duration: 0.28, volume: Number(button.dataset.pianoVelocity) * 0.14 }); } catch (error) { showToast(error.message); }
+});
+pianoRoll?.addEventListener("dblclick", (event) => {
+  const button = event.target.closest("[data-piano-note]");
+  if (!button) return;
+  const current = pianoEditableNotes.indexOf(button.dataset.pianoNote);
+  button.dataset.pianoNote = pianoEditableNotes[(current + 1) % pianoEditableNotes.length];
+  button.textContent = button.dataset.pianoNote.replace(/[0-9]/g, "");
+  button.title = `${button.dataset.pianoNote} · duplo clique para mudar altura`;
+  if (pianoRollStatus) pianoRollStatus.textContent = `Nota editada: ${button.dataset.pianoNote}.`;
 });
 playPianoSequence?.addEventListener("click", previewPianoRollSequence);
 addPianoTimeline?.addEventListener("click", addPianoRollToTimeline);

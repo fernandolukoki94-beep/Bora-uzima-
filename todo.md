@@ -152,3 +152,169 @@
 - [ ] Recuperar e restaurar uma versão completa anterior
 - [ ] Resolver conflitos de edição entre dispositivos
 - [ ] Validar sincronização end-to-end em dois dispositivos autenticados
+
+- [x] HEADER com salvar, compartilhar e exportar
+- [x] Reutilizar autosave cloud, partilha Web Share/fallback e exportação Mixed WAV
+- [x] Validar HEADER com 155 testes aprovados
+- [ ] Testar partilha e download em Chrome Android e Safari iPhone
+
+- [x] Criar Audio, MIDI, Instrument, Drum, Vocal, Bus e FX tracks
+- [x] Atribuir nome, tipo e cor determinística a novas tracks
+- [x] Validar criação de tracks com 155 testes aprovados
+- [ ] Implementar Record Arm e selecção de Input
+- [ ] Implementar routing Output entre tracks e buses
+- [ ] Implementar automação de volume, pan e parâmetros FX
+
+- [x] Record Arm persistente por track
+- [x] Selector de Input persistente por track
+- [x] Validar Record Arm/Input com 155 testes aprovados
+- [ ] Ligar o Input seleccionado à cadeia de gravação real
+
+## Gravação Vocal — diagnóstico de entrada
+
+- [x] Expor Input level durante a captura
+- [x] Expor Peak meter com valor em dB
+- [x] Expor Latency quando o browser fornece base/output latency
+- [x] Enumerar e seleccionar microfone para a próxima gravação
+- [x] Limpar medição e AudioContext ao parar
+- [x] Validar com 155 testes aprovados
+- [ ] Implementar monitorização de entrada com mute/volume separado
+- [ ] Validar múltiplos microfones em Chrome Android e Safari iPhone
+
+- [x] Monitorização de entrada opcional com mute por defeito
+- [x] Volume independente de monitorização entre 0 e 100%
+- [x] Libertar GainNode e AudioContext ao parar
+- [x] Validar monitorização com 155 testes aprovados
+- [ ] Testar monitorização com auscultadores em Chrome Android e Safari iPhone
+
+## Multi-Take e Comped Vocal
+
+- [x] Agrupar gravações da mesma sessão por takeGroupId
+- [x] Numerar takes e mostrar Take 1–4 no projecto
+- [x] Seleccionar Intro, Verso, Refrão e Outro a partir de takes diferentes
+- [x] Criar e persistir manifesto Comped Vocal
+- [x] Preservar todos os originais sem mutação
+- [x] Validar com 155 testes aprovados
+- [ ] Montar áudio real por regiões com crossfades
+- [ ] Validar o fluxo de comping num dispositivo móvel
+
+## Edição de Áudio — operações de clips
+
+- [x] Copiar clip para clipboard local
+- [x] Colar clip após o clip alvo com novo ID
+- [x] Preservar eventos MIDI, offsets, ganho e fades durante a cópia
+- [x] Integrar colagem no histórico undo/redo e autosave
+- [x] Validar com 155 testes aprovados
+- [ ] Silêncio não destrutivo no clip
+- [ ] Reverse de áudio com processamento local
+- [ ] Stretch/tempo com processamento local
+- [ ] Transpose de áudio com processamento local
+
+## Piano/Teclado Virtual e MIDI
+
+- [x] Teclas naturais e pretas
+- [x] Suporte mouse/toque pelo mesmo handler
+- [x] Suporte teclado físico com mapeamento de notas
+- [x] Selector de oitava 3–6
+- [x] Velocity ajustável
+- [x] Sustain opcional
+- [x] Quantização seleccionável 1/4, 1/8, 1/16, 1/32 e triplet
+- [x] Validar com 155 testes aprovados
+- [ ] Gravar notas do teclado como eventos MIDI na timeline
+- [ ] Mover e redimensionar notas no Piano Roll
+- [ ] Apagar e duplicar notas individualmente
+- [ ] Quantizar notas existentes e editar velocity/duração
+
+- [x] Gravar notas do teclado virtual/físico em eventos temporizados
+- [x] Aplicar velocity, sustain e quantização aos eventos gravados
+- [x] Inserir take MIDI como clip reversível na timeline
+- [x] Validar com 155 testes aprovados
+
+- [x] Editar altura da nota por duplo clique
+- [x] Ajustar duração com Shift e velocity com Alt
+- [x] Usar os parâmetros editados na pré-escuta e materialização MIDI
+- [x] Validar com 155 testes aprovados
+- [ ] Editar notas MIDI já materializadas fora da grelha de 16 passos
+
+## Voice Cleaner local — etapa seguinte da especificação
+
+- [x] Analisar vocal localmente com pico, RMS e duração
+- [x] Noise Removal independente
+- [x] DeReverb local aproximado e reversível
+- [x] AutoEQ vocal independente
+- [x] Pré-escuta sem substituir o Original
+- [x] Aplicar variante Voice Cleaned no IndexedDB
+- [x] Reset individual sem apagar Auto-Tune, reverb ou delay
+- [x] Validar Voice Cleaner com 155 testes aprovados
+- [ ] Melhorar DeReverb com um modelo DSP dedicado e comparação A/B específica
+
+## AI Voice Tools — Voice Changer
+
+- [x] Perfis Deep, Bright e Robot
+- [x] Preview local sem substituir o Original
+- [x] Aplicar como variante voiceChanged no IndexedDB
+- [x] Reverter apenas o Voice Changer
+- [x] Integrar no resolver de variantes e no Mixdown
+- [x] Validar Voice Changer com 155 testes aprovados
+- [ ] Voice Changer com processamento formant-preserving dedicado
+- [ ] Harmony local com vozes adicionais
+- [ ] Voice Character avançado e preview A/B multi-variante
+
+## AutoMix e Masterização
+
+- [x] Proposta AutoMix local por género
+- [x] Preview sem mutar o projecto
+- [x] Aplicação reversível de volume e panorama por track
+- [x] Reutilização do plano determinístico e autosave existente
+- [x] Validar AutoMix local com 155 testes aprovados
+- [ ] AutoMix IA com provider real e plano contextual
+- [x] Mastering dedicado com cadeia local e perfis de processamento
+- [ ] Automação editável de volume, pan e parâmetros FX
+
+## Mastering local — entrega validada
+
+- [x] Ligar presets, intensidade, loudness, dynamics, stereo e EQ ao painel Mastering
+- [x] Implementar Preview Before/After sobre o Mixed sem mutação
+- [x] Aplicar Mastering local como variante reversível `mastered` em IndexedDB
+- [x] Reverter Mastering removendo apenas a variante final e o efeito persistido
+- [x] Corrigir o estado Producer para distinguir Mixed de Mastered
+- [x] Actualizar contrato de testes e validar 156 testes aprovados
+- [x] Corrigir erro de sintaxe no mapa de géneros AutoMix
+- [ ] Medir LUFS integrado/short-term real no output
+- [ ] Ligar exportação final preferencial à variante Mastered
+
+## Correcção da associação do preview web
+
+- [ ] Identificar e confirmar o repositório web Fernando Lucoco Music activo
+- [ ] Separar a associação WebDev do projecto mobile `bora-uzima-mobile`
+- [ ] Gerar preview correcto sem referências a MemoryOS
+- [ ] Validar identidade visual, título e rota inicial do site no preview
+
+## Auditoria integral do pasted_content.txt
+
+- [x] Extrair os blocos funcionais completos do ficheiro de requisitos
+- [x] Comparar cada bloco com implementação, testes e documentação reais
+- [x] Classificar cada requisito como concluído, parcial, ausente ou bloqueado
+- [x] Produzir matriz de cobertura com evidência por ficheiro e fluxo
+- [x] Definir a sequência de implementação para as lacunas críticas
+
+## Próxima fase de implementação — lacunas do pasted_content.txt
+
+- [ ] Confirmar associação do repositório web Fernando Lucoco Music e preview correcto
+- [x] Implementar medição LUFS integrada e short-term no Mastering
+- [x] Ligar exportação final e partilha preferencial à variante Mastered
+- [ ] Completar FX modular: EQ, compressor, limiter, chorus, flanger, saturation, de-esser e gate
+- [ ] Completar Mixer profissional por canais, master, VU/peak e routing
+- [ ] Implementar automação editável de volume, pan e parâmetros FX
+- [ ] Implementar Drum Machine separada com kits, swing, velocity, pattern e loop
+- [ ] Implementar Looper com camadas e undo de camadas
+- [ ] Implementar Sampler com corte, mapeamento, pitch, reverse, loop, ADSR e filtro
+- [ ] Expandir MIDI/Piano Roll para edição de notas, duração, velocity, snapping e triplets
+- [ ] Implementar provider IA real para Producer, Music AI, Voice AI e FX Preset Generator
+- [ ] Implementar Harmony e Voice Character avançados
+- [ ] Implementar Sounds/My Sounds com pesquisa, filtros, tags e armazenamento
+- [ ] Implementar Audio-to-MIDI e Stem Splitter como jobs reais
+- [ ] Implementar Community, Profiles, Followers, Likes, Comments e Collaboration
+- [ ] Implementar Distribution, Artist Services, Marketplace, Subscriptions e Notifications
+- [ ] Consolidar segurança, acessibilidade, estados offline e responsividade dedicada
+- [ ] Executar QA desktop, Chrome Android/Samsung Galaxy A06 e Safari iPhone

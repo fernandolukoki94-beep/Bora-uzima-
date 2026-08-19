@@ -49,4 +49,14 @@ test("masterização local comprime picos, respeita ceiling e mede loudness", as
   assert.ok(metrics.peakBefore > metrics.peakAfter);
   assert.ok(metrics.peakAfter <= 0.89 + 1e-6);
   assert.ok(Number.isFinite(metrics.loudnessDb));
+  assert.ok(Number.isFinite(metrics.integratedLufs));
+  assert.ok(Number.isFinite(metrics.shortTermLufs));
+});
+
+test("LUFS integrado e short-term descem quando o sinal é atenuado", async () => {
+  const { calculateLoudnessMetrics } = await import("../src/js/studio/mixdown.js");
+  const loud = calculateLoudnessMetrics(new Float32Array([1, 1, 1, 1]), new Float32Array([1, 1, 1, 1]), 4);
+  const quiet = calculateLoudnessMetrics(new Float32Array([0.5, 0.5, 0.5, 0.5]), new Float32Array([0.5, 0.5, 0.5, 0.5]), 4);
+  assert.ok(loud.integratedLufs > quiet.integratedLufs);
+  assert.ok(loud.shortTermLufs > quiet.shortTermLufs);
 });

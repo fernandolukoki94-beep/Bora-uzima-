@@ -117,3 +117,58 @@ Os cartões de projecto passam a expor título, capa visual, artista, data, dura
 ### Cloud Projects — autosave e histórico de manifesto
 
 A edição da timeline agora agenda autosave cloud com debounce de 1,2 segundos quando existe sessão Firebase. A interface expõe os estados “Sincronizando…”, “Salvo agora” e “Sincronizado”; o Firestore recebe apenas o manifesto e um histórico leve das últimas 20 revisões, enquanto o áudio permanece no IndexedDB local. A suite determinística mantém 155 testes aprovados e 0 falhas. A validação end-to-end em dois dispositivos e a recuperação de versões completas continuam pendentes.
+
+
+### Studio — HEADER funcional
+
+A timeline passou a expor directamente Salvar, Compartilhar e Exportar no cabeçalho, além dos controlos já existentes de nome/contexto, BPM, tom, transporte, undo e redo. Salvar reutiliza o manifesto Firebase e autosave cloud; Compartilhar reutiliza Web Share com fallback de download; Exportar reutiliza o renderer Mixed WAV. Suite: 155 testes aprovados, 0 falhas. A validação física de partilha em Android/iOS continua pendente.
+
+
+### Tracks — tipos explícitos
+
+A secção Tracks agora permite escolher e criar Audio, MIDI, Instrument, Drum, Vocal, Bus e FX tracks. Cada nova track recebe nome, tipo e cor determinística, e entra no mesmo modelo local com os controlos de volume, pan, mute, solo e inspector já existentes. Suite: 155 testes aprovados, 0 falhas. Routing Input/Output, Record Arm, automação e buses/FX com processamento dedicado continuam pendentes.
+
+
+### Tracks — Record Arm e Input
+
+O mixer agora permite seleccionar Input por track e alternar Record Arm de forma persistente no manifesto local, com estado acessível no botão. Isto completa a superfície de controlo pedida para preparação de gravação, mas ainda não liga fisicamente cada Input a uma cadeia de captura independente. Suite: 155 testes aprovados, 0 falhas.
+
+
+### Gravação Vocal — diagnóstico de entrada
+
+A gravação vocal passou a expor **Input level**, **Peak meter**, **Latency** e selecção de microfone. O controlador local usa `AnalyserNode` para RMS/pico durante a captura, mede `baseLatency`/`outputLatency` quando disponíveis, aplica o dispositivo escolhido na próxima chamada `getUserMedia` e limpa o `AudioContext` ao parar. O MediaRecorder, o armazenamento local e o Original preservado permanecem inalterados. Suite: 155 testes aprovados, 0 falhas. Continua pendente a escolha de monitorização de entrada, mute de monitorização e teste físico com múltiplos microfones.
+
+
+### Gravação Vocal — monitorização
+
+Foi adicionada monitorização opcional da entrada com **mute por defeito** e volume separado de 0–100%. A cadeia local usa `GainNode` apenas quando activada, desliga-se e é libertada ao parar, e não altera o ficheiro gravado. Suite: 155 testes aprovados, 0 falhas. O controlo deve ser testado com auscultadores para evitar feedback acústico.
+
+
+### Multi-Take e Comped Vocal
+
+A gravação da mesma sessão agora agrupa e numera as takes como **Take 1, Take 2, Take 3 e Take 4**, sem limite artificial no modelo. Quando existem pelo menos duas takes, a UI apresenta quatro segmentos — Intro, Verso, Refrão e Outro — para seleccionar a take de cada parte e cria um manifesto **Comped Vocal** persistente com essas escolhas. O áudio original de cada take continua preservado e a suite terminou com 155 testes aprovados. Continua pendente a renderização DSP por regiões, com crossfades reais entre takes, e a validação física do fluxo.
+
+
+### Edição de Áudio — copiar e colar
+
+O timeline agora suporta **Copiar** e **Colar** por clip. O clipboard é local e transitório, a colagem gera um novo ID, coloca o clip após o clip alvo e passa pelo mesmo commit de histórico usado por undo/redo, sem mutar a origem. A suite terminou com 155 testes aprovados. Continuam pendentes, nesta secção, silêncio destrutivo/não destrutivo, reverse, stretch e transpose de áudio, além da montagem DSP por regiões.
+
+
+### Piano/Teclado Virtual e MIDI — primeira entrega
+
+O Instrument Lab passou a expor teclas naturais e pretas, suporte por clique/toque, oitavas 3–6, velocity, sustain opcional, quantização seleccionável e mapeamento do teclado físico (`A W S E D F T G Y H U J`). A pré-escuta usa o Web Audio local e não altera a persistência. A suite terminou com 155 testes aprovados. O editor MIDI avançado ainda precisa de operações nota-a-nota como mover, redimensionar, apagar, duplicar, quantizar e editar velocity/duração.
+
+
+### Gravação MIDI pelo teclado — primeira entrega
+
+O teclado virtual/físico pode agora iniciar e parar uma gravação MIDI local. Cada nota recebe oitava, velocity, duração dependente do sustain e tempo quantizado pela grelha seleccionada. Ao parar, os eventos são materializados como clip `midi` reversível na timeline, sem remover clips anteriores. A suite terminou com 155 testes aprovados. Permanecem pendentes as operações nota-a-nota dentro do Piano Roll.
+
+
+### Piano Roll — edição nota-a-nota inicial
+
+O Piano Roll permite agora editar a altura de uma nota por duplo clique, alternar a activação por clique e ajustar duração ou velocity com modificadores Shift/Alt. Esses valores entram no mesmo contrato de eventos MIDI usado pela pré-escuta, materialização na timeline e renderer WAV local. A suite terminou com 155 testes aprovados. Continua pendente a edição livre de notas já materializadas fora da grelha de 16 passos.
+
+
+### AutoMix local — primeira entrega
+
+O Producer Studio passou a permitir seleccionar um perfil de género, gerar uma proposta local de equilíbrio, pré-visualizar sem mutar o projecto, aplicar ajustes de volume e panorama por track e reverter a operação. A implementação reutiliza o contrato existente de `buildProducerPlan` e `applyProducerMix`, preserva o snapshot anterior e passa pelo commit/autosave da timeline. A suite determinística terminou com 155 testes aprovados e 0 falhas. Esta é uma camada local baseada em regras; AutoMix IA com provider e mastering dedicado continuam pendentes.

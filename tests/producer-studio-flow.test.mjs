@@ -17,7 +17,7 @@ describe("Producer Studio V2 flow", () => {
     assert.deepEqual({ hasProject: state.hasProject, hasAnalysis: state.hasAnalysis, bpm: state.bpm, key: state.key, confidence: state.confidence }, { hasProject: true, hasAnalysis: true, bpm: 96, key: "Dm", confidence: 0.82 });
   });
 
-  it("marks the complete local path when plan, vocal and mixed exist", () => {
+  it("marks the local path through Mixed while Mastering remains pending", () => {
     const state = deriveProducerStudioState({
       genre: "Afrobeat",
       productionBrief: "Bass presente",
@@ -27,6 +27,12 @@ describe("Producer Studio V2 flow", () => {
       tracks: [{ id: "vocal", type: "audio" }, { id: "drums", type: "drums", clips: [{ metadata: { producerPlan: true } }] }],
       audioVariants: { enhanced: {}, pitchCorrected: {}, mixed: {} },
     });
-    assert.deepEqual({ hasPlan: state.hasPlan, hasVocal: state.hasVocal, hasMix: state.hasMix, hasMaster: state.hasMaster, genre: state.genre }, { hasPlan: true, hasVocal: true, hasMix: true, hasMaster: true, genre: "Afrobeat" });
+    assert.deepEqual({ hasPlan: state.hasPlan, hasVocal: state.hasVocal, hasMix: state.hasMix, hasMaster: state.hasMaster, genre: state.genre }, { hasPlan: true, hasVocal: true, hasMix: true, hasMaster: false, genre: "Afrobeat" });
+  });
+
+  it("marks Mastering complete only when a mastered variant exists", () => {
+    const state = deriveProducerStudioState({ audioVariants: { mixed: {}, mastered: {} } });
+    assert.equal(state.hasMix, true);
+    assert.equal(state.hasMaster, true);
   });
 });
