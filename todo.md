@@ -445,3 +445,21 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Validar com 16 testes Node aprovados, sintaxe limpa e `git diff --check`
 - [ ] Voice Character avançado com modelos/transformações adicionais
 - [ ] Harmony cloud/AI generativo; o marco actual é DSP local, explicitamente rotulado
+
+## Auditoria integral dos 46 blocos — nova versão do ficheiro
+
+- [ ] Construir matriz bloco a bloco: concluído, parcial, ausente ou com erro
+- [ ] Auditar o site publicado com foco em rolagem, sobreposição, cabeçalho, equilíbrio e áreas acessíveis
+- [ ] Comparar a matriz com README, QA, portfólio e código real; corrigir discrepâncias documentais
+- [ ] Corrigir primeiro os problemas de layout/navegação que afectam a operação no desktop e mobile
+- [ ] Implementar os blocos ausentes apenas depois da correcção estrutural
+- [ ] Validar cada bloco com testes e evidência no preview/site publicado
+
+## Correcção de estabilidade visual — 2026-08-19
+
+- [x] Identificar a combinação problemática de topbar fixed, barras sticky, frame sem altura definida e múltiplos overflow
+- [x] Fazer do shell autenticado um layout de viewport com `100dvh` e coluna principal flexível
+- [x] Definir o shell como contentor vertical único com `overflow-y: auto`
+- [x] Conter overscroll e preservar safe-area no mobile
+- [ ] Confirmar a correcção no workspace autenticado publicado em Chrome desktop, Samsung Galaxy A06 e Safari iPhone
+- [ ] Corrigir eventuais problemas residuais depois da validação física
