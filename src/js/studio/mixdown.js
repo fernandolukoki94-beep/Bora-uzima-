@@ -10,6 +10,101 @@ function panGains(pan = 0) {
   return { left: Math.cos(angle), right: Math.sin(angle) };
 }
 
+const MODULAR_FX_TYPES = ["compressor", "limiter", "eq", "chorus", "flanger", "saturation", "de-esser", "gate"];
+
+export function normalizeTrackEffects(effects = []) {
+  return (Array.isArray(effects) ? effects : []).map((effect) => ({
+    type: MODULAR_FX_TYPES.includes(effect?.type) ? effect.type : "compressor",
+    intensity: clamp(effect?.intensity ?? 0.5, 0, 1),
+    bypass: Boolean(effect?.bypass),
+  }));
+}
+
+function makeSaturationCurve(intensity) {
+  const curve = new Float32Array(1024);
+  const amount = 1 + intensity * 8;
+  for (let index = 0; index < curve.length; index += 1) {
+    const x = (index * 2) / (curve.length - 1) - 1;
+    curve[index] = Math.tanh(amount * x) / Math.tanh(amount);
+  }
+  return curve;
+}
+
+function connectTrackEffects(context, track, input, destination) {
+  let current = input;
+  normalizeTrackEffects(track?.effects).forEach((effect) => {
+    if (effect.bypass || effect.intensity <= 0) return;
+    const intensity = effect.intensity;
+    if (effect.type === "compressor" || effect.type === "gate" || effect.type === "de-esser") {
+      if (effect.type === "de-esser") {
+        const filter = context.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 4200;
+        current.connect(filter);
+        current = filter;
+      }
+      const compressor = context.createDynamicsCompressor();
+      compressor.threshold.value = effect.type === "gate" ? -48 + intensity * 18 : -30 + intensity * 12;
+      compressor.ratio.value = effect.type === "gate" ? 12 + intensity * 8 : 1.5 + intensity * 8;
+      compressor.attack.value = effect.type === "de-esser" ? 0.001 : 0.003;
+      compressor.release.value = 0.08 + intensity * 0.2;
+      current.connect(compressor);
+      current = compressor;
+      return;
+    }
+    if (effect.type === "limiter") {
+      const limiter = context.createDynamicsCompressor();
+      limiter.threshold.value = -2 - intensity * 10;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.08;
+      current.connect(limiter);
+      current = limiter;
+      return;
+    }
+    if (effect.type === "eq") {
+      const eq = context.createBiquadFilter();
+      eq.type = "peaking";
+      eq.frequency.value = 1800;
+      eq.Q.value = 0.8;
+      eq.gain.value = -3 + intensity * 6;
+      current.connect(eq);
+      current = eq;
+      return;
+    }
+    if (effect.type === "saturation") {
+      const saturator = context.createWaveShaper();
+      saturator.curve = makeSaturationCurve(intensity);
+      saturator.oversample = "2x";
+      current.connect(saturator);
+      current = saturator;
+      return;
+    }
+    if (effect.type === "chorus" || effect.type === "flanger") {
+      const delay = context.createDelay(0.05);
+      delay.delayTime.value = effect.type === "chorus" ? 0.018 : 0.004;
+      const wet = context.createGain();
+      wet.gain.value = 0.15 + intensity * 0.35;
+      const lfo = context.createOscillator();
+      const lfoGain = context.createGain();
+      lfo.frequency.value = effect.type === "chorus" ? 0.8 : 0.25;
+      lfoGain.gain.value = effect.type === "chorus" ? 0.004 * intensity : 0.0015 * intensity;
+      lfo.connect(lfoGain).connect(delay.delayTime);
+      current.connect(delay).connect(wet);
+      const dry = context.createGain();
+      dry.gain.value = 1 - intensity * 0.25;
+      current.connect(dry);
+      const merger = context.createGain();
+      dry.connect(merger);
+      wet.connect(merger);
+      lfo.start(0);
+      current = merger;
+    }
+  });
+  current.connect(destination);
+}
+
 function lufsFromMeanSquare(meanSquare) {
   return meanSquare > 0 ? 10 * Math.log10(meanSquare) : -Infinity;
 }
@@ -91,11 +186,15 @@ export function mixTimelineBuffers(project = {}, buffers = new Map(), { sampleRa
   const tracks = project.tracks || [];
   const soloActive = tracks.some((track) => track.solo);
   let clipCount = 0;
+  const trackMetrics = {};
 
   tracks.forEach((track) => {
     if (track.muted || (soloActive && !track.solo)) return;
     const trackGain = clamp(track.volume ?? track.gain ?? 1, 0, 2);
     const pan = panGains(track.pan);
+    let trackPeak = 0;
+    let trackSumSquares = 0;
+    let trackFrames = 0;
     (track.clips || []).forEach((clip) => {
       const source = buffers.get(clip.blobKey) || buffers.get(clip.id) || (isInstrumentClip(clip) ? renderInstrumentClip(clip, { sampleRate, tempo: project.tempo }) : null);
       if (!(source instanceof Float32Array)) return;
@@ -110,15 +209,20 @@ export function mixTimelineBuffers(project = {}, buffers = new Map(), { sampleRa
         if (fadeInFrames > 0) envelope = Math.min(envelope, frame / fadeInFrames);
         if (fadeOutFrames > 0) envelope = Math.min(envelope, (frames - frame) / fadeOutFrames);
         const value = source[offset + frame] * clamp(clip.gain, 0, 2) * trackGain * envelope * Number(masterGain || 0);
+        trackPeak = Math.max(trackPeak, Math.abs(value));
+        trackSumSquares += value ** 2;
+        trackFrames += 1;
         left[start + frame] += value * pan.left;
         right[start + frame] += value * pan.right;
       }
     });
+    const trackRms = trackFrames ? Math.sqrt(trackSumSquares / trackFrames) : 0;
+    trackMetrics[track.id] = { peak: trackPeak, rms: trackRms, peakDb: trackPeak > 0 ? 20 * Math.log10(trackPeak) : -Infinity, rmsDb: trackRms > 0 ? 20 * Math.log10(trackRms) : -Infinity, frames: trackFrames, stage: "pre-fx" };
   });
 
   const mastering = applyMastering(left, right, { ceiling: clamp(headroom, 0.5, 0.98) });
   const loudness = calculateLoudnessMetrics(left, right, sampleRate);
-  return { left, right, sampleRate, clipCount, peakBeforeHeadroom: mastering.peakBefore, peakAfterHeadroom: mastering.peakAfter, scale: mastering.scale, loudnessDb: mastering.loudnessDb, ...loudness, mastering };
+  return { left, right, sampleRate, clipCount, trackMetrics, peakBeforeHeadroom: mastering.peakBefore, peakAfterHeadroom: mastering.peakAfter, scale: mastering.scale, loudnessDb: mastering.loudnessDb, ...loudness, mastering };
 }
 
 export function createStereoAudioBuffer({ left, right, sampleRate = 44100 }) {
@@ -173,8 +277,14 @@ export async function renderTimelineToWav(project, blobByKey, options = {}) {
         gain.gain.setValueAtTime(trackGain * clipGain, start + Math.max(fadeIn, duration - fadeOut));
         gain.gain.linearRampToValueAtTime(0, start + duration);
         const stereo = offline.createStereoPanner ? offline.createStereoPanner() : null;
-        if (stereo) { stereo.pan.value = clamp(track.pan, -1, 1); source.connect(gain).connect(stereo).connect(offline.destination); }
-        else source.connect(gain).connect(offline.destination);
+        const effectInput = source.connect(gain);
+        if (stereo) {
+          stereo.pan.value = clamp(track.pan, -1, 1);
+          connectTrackEffects(offline, track, effectInput, stereo);
+          stereo.connect(offline.destination);
+        } else {
+          connectTrackEffects(offline, track, effectInput, offline.destination);
+        }
         source.start(start, Math.max(0, Number(clip.sourceOffset || 0)), duration);
       });
     });

@@ -48,6 +48,26 @@ export function quantizeNote(note, grid = 0.25) {
   return { ...note, start: Math.max(0, Math.round(note.start / safeGrid) * safeGrid) };
 }
 
+export const PIANO_ROLL_GRIDS = { "1/4": 0.5, "1/8": 0.25, "1/16": 0.125, "1/32": 0.0625, triplet: 1 / 6 };
+
+export function normalizePianoRollNote(note = {}) {
+  return createNote({ pitch: note.pitch, start: note.start, duration: note.duration, velocity: note.velocity });
+}
+
+export function editPianoRollNote(note, patch = {}) {
+  return normalizePianoRollNote({ ...note, ...patch });
+}
+
+export function quantizePianoRollNotes(notes = [], grid = "1/16") {
+  const safeGrid = typeof grid === "string" ? (PIANO_ROLL_GRIDS[grid] || PIANO_ROLL_GRIDS["1/16"]) : grid;
+  return notes.map((note) => quantizeNote(normalizePianoRollNote(note), safeGrid)).sort((a, b) => a.start - b.start || a.pitch - b.pitch);
+}
+
+export function transposePianoRollNotes(notes = [], semitones = 0) {
+  const delta = Math.round(Number(semitones) || 0);
+  return notes.map((note) => editPianoRollNote(note, { pitch: note.pitch + delta }));
+}
+
 export function createPatternSequence(pattern, bars = 1) {
   const safePattern = DRUM_PATTERNS[pattern] || DRUM_PATTERNS.Afrobeat;
   const result = [];

@@ -28,7 +28,7 @@ A produção local inclui tipos de track Audio, MIDI, Instrument, Drum, Vocal, B
 
 A cadeia vocal reversível inclui Enhanced, Pitch Corrected, Auto-Tune local orientado por key/scale e intensidade, detecção de notas, edição manual da curva de afinação, zoom/arrasto, reverb, delay, bypass A/B, medidores A/B, Voice Cleaner local com Noise Removal, DeReverb aproximado e AutoEQ, e Voice Changer local com perfis Deep, Bright e Robot. O Original é preservado.
 
-O AutoMix local já permite proposta por género, preview e aplicação reversível de volume/pan por track. O Mastering local agora possui presets Natural, Clean, Loud, Warm, Bright, Punch, Cinematic e Spatial, controlos de intensidade, loudness, dynamics, stereo e EQ, Preview Before/After, aplicação como variante `mastered`, reset seguro e estado Producer que distingue Mixed de Mastered. A suite determinística reportada no último ciclo tem **156 testes aprovados**.
+O AutoMix local já permite proposta por género, preview e aplicação reversível de volume/pan por track. O Mastering local agora possui presets Natural, Clean, Loud, Warm, Bright, Punch, Cinematic e Spatial, controlos de intensidade, loudness, dynamics, stereo e EQ, Preview Before/After, aplicação como variante `mastered`, reset seguro e estado Producer que distingue Mixed de Mastered. A suite determinística reportada no ciclo actual tem **158 testes aprovados**; LUFS, exportação Mastered-first e routing FX por track estão cobertos por validação de código e contratos.
 
 ## Matriz dos 65 blocos do ficheiro
 
@@ -62,12 +62,12 @@ O AutoMix local já permite proposta por género, preview e aplicação reversí
 | 26. Palette/gerador de ideias | Ausente | Não existe gerador completo de combinações com regenerate, favorite, delete e Add to Studio. |
 | 27. Audio-to-MIDI | Ausente/parcial | Pitch note detection vocal existe, mas não há conversor funcional de voz/instrumento/drums para MIDI seleccionável. |
 | 28. Stem Splitter | Ausente | Não existe separação Vocal, Drums, Bass, Piano, Guitar e Other com solo/mute/exportação. |
-| 29. Efeitos | Parcial | Auto-Tune, reverb, delay, bypass, presets e medidores existem; faltam EQ modular, compressor dedicado, limiter, chorus, flanger, distortion, saturation, de-esser, gate e auto filter. |
+| 29. Efeitos | Parcial avançado | Auto-Tune, reverb, delay, bypass, presets e medidores existem; EQ, compressor, limiter, chorus, flanger, saturation, de-esser e gate já podem ser aplicados por track no renderizador WAV com intensidade/bypass; falta completar o rack visual, distortion e auto filter. |
 | 30. FX Preset Generator IA | Ausente/bloqueado | Não existe cadeia de FX gerada por descrição textual com preview/apply/modify/save; provider IA real permanece limitado por quota. |
-| 31. Mixer | Parcial | Volume, pan, mute, solo, tracks e medidores A/B existem; falta mixer de canais com master channel, VU/peak reais e routing completo. |
+| 31. Mixer | Parcial avançado | Volume, pan, mute, solo, tracks, medidores A/B e efeitos modulares por track no renderizador WAV existem; falta rack visual completo, master channel, VU/peak de canais e routing completo. |
 | 32. Automation | Ausente | Não existem curvas editáveis de volume, pan, FX, pitch e parâmetros. |
 | 33. AutoMix IA | Parcial local/bloqueado | AutoMix local determinístico por género, preview e apply existem; AutoMix contextual por provider real ainda não foi comprovado. |
-| 34. Masterização | Implementado local/parcial | Presets, intensity, loudness, dynamics, stereo, EQ, Before/After, apply/reset e variante `mastered` existem; LUFS real e exportação Mastered preferencial continuam pendentes. |
+| 34. Masterização | Implementado local/parcial | Presets, intensity, loudness, dynamics, stereo, EQ, Before/After, apply/reset, LUFS integrado/short-term e variante `mastered` com exportação/partilha preferencial existem; continuam pendentes provider IA real e formatos MP3/FLAC/stems. |
 | 35. Player | Parcial | Reprodução, transporte, playhead e waveform existem; falta mini-player persistente no dashboard com previous/next/seek/volume/progress completo. |
 | 36. Exportação | Parcial avançado | Download/exportação WAV Mixed e partilha existem; faltam MP3, FLAC, stems, escolha de bit depth/bitrate e pipeline progressivo completo. |
 | 37. Compartilhamento | Parcial | Web Share/fallback e link do projecto existem em nível local; faltam estados Private/Unlisted/Public, likes, comentários, follows e remix/fork. |

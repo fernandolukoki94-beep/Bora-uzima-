@@ -83,6 +83,14 @@ const timelineGrid = document.getElementById("timeline-grid");
 const mixerTracks = document.getElementById("mixer-tracks");
 const mixerInspector = document.getElementById("mixer-inspector");
 const mixerHeadroom = document.getElementById("mixer-headroom");
+const mixerMasterGain = document.getElementById("mixer-master-gain");
+const mixerMasterGainValue = document.getElementById("mixer-master-gain-value");
+const mixerMasterPan = document.getElementById("mixer-master-pan");
+const mixerMasterPanValue = document.getElementById("mixer-master-pan-value");
+const mixerMasterLimiter = document.getElementById("mixer-master-limiter");
+const mixerMasterLimiterValue = document.getElementById("mixer-master-limiter-value");
+const mixerMasterBypass = document.getElementById("mixer-master-bypass");
+const mixerMasterPeak = document.getElementById("mixer-master-peak");
 const addTrackButton = document.getElementById("add-track");
 const addTrackType = document.getElementById("add-track-type");
 const timelineMixdownButton = document.getElementById("timeline-mixdown");
@@ -128,6 +136,13 @@ const resetBeat = document.getElementById("reset-beat");
 const addChordTimeline = document.getElementById("add-chord-timeline");
 const addGuitarTimeline = document.getElementById("add-guitar-timeline");
 const addBeatTimeline = document.getElementById("add-beat-timeline");
+const beatKit = document.getElementById("beat-kit");
+const beatSwing = document.getElementById("beat-swing");
+const beatSwingValue = document.getElementById("beat-swing-value");
+const beatVelocity = document.getElementById("beat-velocity");
+const beatVelocityValue = document.getElementById("beat-velocity-value");
+const beatLoop = document.getElementById("beat-loop");
+const beatLoopCount = document.getElementById("beat-loop-count");
 const producerStudioEmpty = document.getElementById("producer-studio-empty");
 const producerStudioContent = document.getElementById("producer-studio-content");
 const producerAnalysisTitle = document.getElementById("producer-analysis-title");
@@ -1100,7 +1115,20 @@ function renderTimeline() {
   renderMixer(normalized);
   updateTransportUI();
 }
+function renderMasterControls(project) {
+  const master = project?.master || { gain: 1, pan: 0, limiter: 1, bypass: false };
+  const gainDb = linearToDb(Number(master.gain) || 1);
+  if (mixerMasterGain) mixerMasterGain.value = String(Math.max(-24, Math.min(6, gainDb)));
+  if (mixerMasterGainValue) mixerMasterGainValue.textContent = `${gainDb >= 0 ? "+" : ""}${gainDb.toFixed(1)} dB`;
+  if (mixerMasterPan) mixerMasterPan.value = String(Number(master.pan) || 0);
+  if (mixerMasterPanValue) mixerMasterPanValue.textContent = (Number(master.pan) || 0).toFixed(2);
+  if (mixerMasterLimiter) mixerMasterLimiter.value = String(Number(master.limiter) || 1);
+  if (mixerMasterLimiterValue) mixerMasterLimiterValue.textContent = `${Math.round((Number(master.limiter) || 1) * 100)}%`;
+  if (mixerMasterBypass) { mixerMasterBypass.setAttribute("aria-pressed", String(Boolean(master.bypass))); mixerMasterBypass.textContent = master.bypass ? "Master activo" : "Bypass Master"; }
+}
+
 function renderMixer(project) {
+  renderMasterControls(project);
   if (!mixerTracks) return;
   if (!project?.tracks?.length) {
     mixerTracks.innerHTML = '<div class="empty">Abre uma sessão para ver as tracks.</div>';
@@ -1112,7 +1140,10 @@ function renderMixer(project) {
   mixerTracks.innerHTML = project.tracks.map((track) => { const volume = Number(track.volume ?? 1); const selected = track.id === selectedMixerTrackId ? " is-selected" : ""; return `<div class="mixer-track${selected}" data-mixer-track="${escapeHtml(track.id)}" tabindex="0"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><label><span>Input</span><select data-mixer-field="input" aria-label="Input de ${escapeHtml(track.name)}"><option value="default" ${track.input === "default" || !track.input ? "selected" : ""}>Microfone predefinido</option><option value="mic-1" ${track.input === "mic-1" ? "selected" : ""}>Microfone 1</option><option value="line-in" ${track.input === "line-in" ? "selected" : ""}>Line In</option></select></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button><button class="mini-button ${track.recordArmed ? "active" : ""}" type="button" data-mixer-field="recordArmed" aria-pressed="${track.recordArmed ? "true" : "false"}">${track.recordArmed ? "Armed" : "Arm REC"}</button></div></div>`; }).join("");
   const selected = project.tracks.find((track) => track.id === selectedMixerTrackId) || project.tracks[0];
   const origin = trackOrigin(selected);
-  if (mixerInspector) mixerInspector.innerHTML = `<strong>${escapeHtml(selected.name)}</strong><span>${escapeHtml(selected.type)} · ${origin === "producer-plan" ? "Producer Plan" : "Manual"}</span><small>${selected.clips.length} clip${selected.clips.length === 1 ? "" : "s"} · ${selected.effects.length} efeito${selected.effects.length === 1 ? "" : "s"}</small><div class="mixer-inspector-clips">${selected.clips.length ? selected.clips.map((clip) => `<span>${escapeHtml(clip.name)} · ${Number(clip.duration || 0).toFixed(1)}s</span>`).join("") : "<span>Sem clips nesta faixa.</span>"}</div>`;
+  const fxTypes = ["compressor", "limiter", "eq", "chorus", "flanger", "saturation", "de-esser", "gate"];
+  const effects = Array.isArray(selected.effects) ? selected.effects : [];
+  const fxMarkup = effects.length ? effects.map((effect, index) => `<div class="mixer-fx-row"><label><span>FX ${index + 1}</span><select data-mixer-fx-field="type" data-fx-index="${index}">${fxTypes.map((type) => `<option value="${type}" ${effect.type === type ? "selected" : ""}>${type}</option>`).join("")}</select></label><label><span>Intensidade <output data-fx-output="intensity" data-fx-index="${index}">${Math.round(Number(effect.intensity ?? 0.5) * 100)}%</output></span><input type="range" min="0" max="1" step="0.01" value="${Number(effect.intensity ?? 0.5)}" data-mixer-fx-field="intensity" data-fx-index="${index}" aria-label="Intensidade do FX ${index + 1}"></label><button class="mini-button ${effect.bypass ? "active" : ""}" type="button" data-mixer-fx-bypass="${index}" aria-pressed="${effect.bypass ? "true" : "false"}">${effect.bypass ? "Activar" : "Bypass"}</button><button class="mini-button" type="button" data-mixer-fx-remove="${index}">Remover</button></div>`).join("") : "<span class=\"empty\">Sem FX nesta faixa.</span>";
+  if (mixerInspector) mixerInspector.innerHTML = `<strong>${escapeHtml(selected.name)}</strong><span>${escapeHtml(selected.type)} · ${origin === "producer-plan" ? "Producer Plan" : "Manual"}</span><small>${selected.clips.length} clip${selected.clips.length === 1 ? "" : "s"} · ${effects.length} efeito${effects.length === 1 ? "" : "s"}</small><div class="mixer-inspector-clips">${selected.clips.length ? selected.clips.map((clip) => `<span>${escapeHtml(clip.name)} · ${Number(clip.duration || 0).toFixed(1)}s</span>`).join("") : "<span>Sem clips nesta faixa.</span>"}</div><section class="mixer-fx-rack" aria-label="Efeitos da faixa"><div class="mixer-fx-heading"><strong>Rack FX</strong><button class="mini-button primary" type="button" data-mixer-fx-add>＋ Adicionar FX</button></div>${fxMarkup}</section>`;
   const active = project.tracks.filter((track) => !track.muted);
   const estimatedPeak = active.reduce((sum, track) => sum + Number(track.volume ?? 1), 0);
   const headroomDb = estimatedPeak > 0 ? 20 * Math.log10(Math.max(0.0001, 0.98 / estimatedPeak)) : 0;
@@ -2105,6 +2136,64 @@ mixerTracks?.addEventListener("click", (event) => {
   if (track) commitTimelineProject(updateTrack(timelineHistory.present, trackId, { [field]: !track[field] }));
 });
 
+mixerMasterGain?.addEventListener("input", (event) => {
+  if (!timelineHistory) return;
+  const gainDb = Number(event.target.value) || 0;
+  const gain = Math.pow(10, gainDb / 20);
+  if (mixerMasterGainValue) mixerMasterGainValue.textContent = `${gainDb >= 0 ? "+" : ""}${gainDb.toFixed(1)} dB`;
+  commitTimelineProject({ ...timelineHistory.present, master: { ...(timelineHistory.present.master || {}), gain } });
+});
+mixerMasterPan?.addEventListener("input", (event) => {
+  if (!timelineHistory) return;
+  const pan = Math.max(-1, Math.min(1, Number(event.target.value) || 0));
+  if (mixerMasterPanValue) mixerMasterPanValue.textContent = pan.toFixed(2);
+  commitTimelineProject({ ...timelineHistory.present, master: { ...(timelineHistory.present.master || {}), pan } });
+});
+mixerMasterLimiter?.addEventListener("input", (event) => {
+  if (!timelineHistory) return;
+  const limiter = Math.max(0.1, Math.min(1, Number(event.target.value) || 1));
+  if (mixerMasterLimiterValue) mixerMasterLimiterValue.textContent = `${Math.round(limiter * 100)}%`;
+  commitTimelineProject({ ...timelineHistory.present, master: { ...(timelineHistory.present.master || {}), limiter } });
+});
+mixerMasterBypass?.addEventListener("click", () => {
+  if (!timelineHistory) return;
+  const master = timelineHistory.present.master || {};
+  commitTimelineProject({ ...timelineHistory.present, master: { ...master, bypass: !master.bypass } });
+});
+
+mixerInspector?.addEventListener("click", (event) => {
+  if (!timelineHistory || !selectedMixerTrackId) return;
+  const track = timelineHistory.present.tracks.find((item) => item.id === selectedMixerTrackId);
+  if (!track) return;
+  const effects = Array.isArray(track.effects) ? [...track.effects] : [];
+  const addButton = event.target.closest("[data-mixer-fx-add]");
+  const bypassButton = event.target.closest("[data-mixer-fx-bypass]");
+  const removeButton = event.target.closest("[data-mixer-fx-remove]");
+  if (addButton) effects.push({ type: "compressor", intensity: 0.5, bypass: false });
+  else if (bypassButton) { const index = Number(bypassButton.dataset.mixerFxBypass); if (effects[index]) effects[index] = { ...effects[index], bypass: !effects[index].bypass }; }
+  else if (removeButton) effects.splice(Number(removeButton.dataset.mixerFxRemove), 1);
+  else return;
+  commitTimelineProject(updateTrack(timelineHistory.present, selectedMixerTrackId, { effects }));
+});
+mixerInspector?.addEventListener("input", (event) => {
+  if (!timelineHistory || !selectedMixerTrackId) return;
+  const control = event.target.closest("[data-mixer-fx-field]");
+  if (!control) return;
+  const track = timelineHistory.present.tracks.find((item) => item.id === selectedMixerTrackId);
+  if (!track) return;
+  const effects = Array.isArray(track.effects) ? [...track.effects] : [];
+  const index = Number(control.dataset.fxIndex);
+  if (!effects[index]) return;
+  if (control.dataset.mixerFxField === "type") effects[index] = { ...effects[index], type: control.value };
+  if (control.dataset.mixerFxField === "intensity") {
+    const intensity = Math.max(0, Math.min(1, Number(control.value) || 0));
+    effects[index] = { ...effects[index], intensity };
+    const output = mixerInspector.querySelector(`[data-fx-output="intensity"][data-fx-index="${index}"]`);
+    if (output) output.textContent = `${Math.round(intensity * 100)}%`;
+  }
+  commitTimelineProject(updateTrack(timelineHistory.present, selectedMixerTrackId, { effects }));
+});
+
 timelineGrid?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
   const trackNode = event.target.closest("[data-timeline-track]");
@@ -2351,9 +2440,21 @@ resetBeat?.addEventListener("click", () => {
   resetBeatGrid();
   showToast("Beat Maker reposto sem alterar as gravações.");
 });
+function beatMachineOptions() {
+  const swing = Number(beatSwing?.value) || 0;
+  const velocity = Number(beatVelocity?.value) || 0.8;
+  const loop = Boolean(beatLoop?.checked);
+  const loopCount = Math.max(1, Math.min(32, Number(beatLoopCount?.value) || 1));
+  if (beatSwingValue) beatSwingValue.textContent = `${swing}%`;
+  if (beatVelocityValue) beatVelocityValue.textContent = `${Math.round(velocity * 100)}%`;
+  return { kit: beatKit?.value || "Acoustic", swing, velocity, loop, loopCount };
+}
+[beatSwing, beatVelocity, beatLoop, beatLoopCount].forEach((control) => control?.addEventListener("input", beatMachineOptions));
 addBeatTimeline?.addEventListener("click", () => {
   const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
-  insertInstrumentClip({ name: `Beat · ${preset.name}`, type: "drums", duration: 8, metadata: { instrument: "drums", preset: preset.name, bpm: preset.bpm, channels: preset.channels } });
+  const options = beatMachineOptions();
+  const sequence = createGridEvents({ channels: preset.channels, bpm: Number(projectTempo?.value) || preset.bpm, ...options });
+  insertInstrumentClip({ name: `Beat · ${preset.name} · ${options.kit}`, type: "drums", duration: sequence.duration, metadata: { instrument: "drums", preset: preset.name, bpm: preset.bpm, channels: preset.channels, ...options, events: sequence.events } });
 });
 playBeatSequence?.addEventListener("click", async () => {
   const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
@@ -2361,7 +2462,7 @@ playBeatSequence?.addEventListener("click", async () => {
     channel,
     [...(beatGrid?.querySelectorAll(`[data-beat-channel="${channel}"].is-active`) || [])].map((button) => Number(button.dataset.beatStep)),
   ]));
-  const sequence = createGridEvents({ channels, bpm: Number(projectTempo?.value) || preset.bpm });
+  const sequence = createGridEvents({ channels, bpm: Number(projectTempo?.value) || preset.bpm, ...beatMachineOptions() });
   try {
     const result = await playSequence(sequence);
     showToast(`${preset.name}: ${result.steps} eventos do grid reproduzidos localmente.`);
@@ -2373,7 +2474,7 @@ beatGrid?.addEventListener("click", async (event) => {
   button.classList.toggle("is-active");
   const channel = button.dataset.beatChannel;
   flashControl(button);
-  try { await playDrumHit(channel, { velocity: channel === "hihat" ? 0.72 : 0.9 }); } catch (error) { showToast(error.message); }
+  try { await playDrumHit(channel, { velocity: (Number(beatVelocity?.value) || 0.8) * (channel === "hihat" ? 0.9 : 1) }); } catch (error) { showToast(error.message); }
 });
 const pianoEditableNotes = ["C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4", "C5"];
 pianoRoll?.addEventListener("click", async (event) => {

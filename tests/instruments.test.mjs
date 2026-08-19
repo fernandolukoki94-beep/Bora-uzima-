@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BEAT_PRESETS, CHORDS, DRUM_PATTERNS, createNote, createPatternSequence, getBeatPreset, midiToFrequency, noteToFrequency, quantizeNote } from "../src/js/studio/instruments.js";
+import { BEAT_PRESETS, CHORDS, DRUM_PATTERNS, createNote, createPatternSequence, editPianoRollNote, getBeatPreset, midiToFrequency, noteToFrequency, quantizeNote, quantizePianoRollNotes, transposePianoRollNotes } from "../src/js/studio/instruments.js";
 
 test("calcula frequências de notas e acordes base", () => {
   assert.ok(Math.abs(noteToFrequency("A4") - 440) < 0.00001);
@@ -18,6 +18,21 @@ test("cria nota com limites de MIDI e velocity", () => {
 
 test("quantiza notas numa grelha temporal", () => {
   assert.equal(quantizeNote({ pitch: 60, start: 0.37, duration: 1, velocity: 0.8 }, 0.25).start, 0.25);
+});
+
+test("Piano Roll normaliza, edita e quantiza notas com grid triplet", () => {
+  const note = editPianoRollNote({ pitch: 60, start: 0.37, duration: 0.2, velocity: 0.7 }, { pitch: 64, duration: 0.5 });
+  assert.equal(note.pitch, 64);
+  assert.equal(note.duration, 0.5);
+  const snapped = quantizePianoRollNotes([{ pitch: 60, start: 0.37, duration: 0.2, velocity: 0.7 }], "1/16");
+  assert.equal(snapped[0].start, 0.375);
+  const triplet = quantizePianoRollNotes([{ pitch: 60, start: 0.31, duration: 0.2, velocity: 0.7 }], "triplet");
+  assert.equal(triplet[0].start, 1 / 3);
+});
+
+test("Piano Roll transpõe notas com limites MIDI", () => {
+  const notes = transposePianoRollNotes([{ pitch: 126, start: 0, duration: 0.2, velocity: 1 }], 4);
+  assert.equal(notes[0].pitch, 127);
 });
 
 test("disponibiliza padrões de bateria para os cinco estilos", () => {

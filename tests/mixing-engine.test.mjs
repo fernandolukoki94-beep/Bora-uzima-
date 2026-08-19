@@ -43,6 +43,19 @@ test("master headroom limita o pico e reporta a escala aplicada", () => {
   assert.ok(result.scale < 1);
 });
 
+test("master channel aplica ganho e limiter configurável", () => {
+  const result = mixMonoToStereo(new Float32Array([1, -1]), { master: { gain: 1.5, pan: 0, limiter: 0.5 } });
+  assert.ok(result.peakBeforeHeadroom > 0.5);
+  assert.ok(result.peakAfterHeadroom <= 0.500001);
+});
+
+test("master bypass preserva o ganho legacy e não muta o buffer", () => {
+  const source = new Float32Array([0.25, -0.25]);
+  const result = mixMonoToStereo(source, { master: { gain: 1.8, pan: 1, limiter: 0.2, bypass: true } });
+  assert.equal(source[0], 0.25);
+  assert.ok(result.peakAfterHeadroom > 0.15);
+});
+
 test("buffers vazios produzem uma mistura segura", () => {
   const result = mixTracks([]);
   assert.equal(result.left.length, 0);

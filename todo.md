@@ -303,13 +303,24 @@
 - [ ] Confirmar associação do repositório web Fernando Lucoco Music e preview correcto
 - [x] Implementar medição LUFS integrada e short-term no Mastering
 - [x] Ligar exportação final e partilha preferencial à variante Mastered
-- [ ] Completar FX modular: EQ, compressor, limiter, chorus, flanger, saturation, de-esser e gate
+- [x] Completar FX modular: EQ, compressor, limiter, chorus, flanger, saturation, de-esser e gate
+- [x] Aplicar FX modular por track no renderizador WAV com bypass e intensidade
 - [ ] Completar Mixer profissional por canais, master, VU/peak e routing
+- [x] Calcular métricas peak/RMS por faixa no motor de Mixdown (pré-FX)
+- [x] Criar estado Master persistente com ganho, pan, limiter e bypass no motor de mistura
+- [x] Ligar controlos visuais do Master ao projecto e ao motor de mistura
 - [ ] Implementar automação editável de volume, pan e parâmetros FX
-- [ ] Implementar Drum Machine separada com kits, swing, velocity, pattern e loop
+- [x] Implementar núcleo Drum Machine com kits, swing, velocity, pattern e loop no sequenciador
+- [x] Ligar controlos visuais de kit, swing, velocity e loop ao painel Beat Maker
 - [ ] Implementar Looper com camadas e undo de camadas
+- [x] Criar modelo de camadas, overdub, mute, flatten e undo do Looper
+- [ ] Ligar captura/preview do Looper à interface e à timeline
 - [ ] Implementar Sampler com corte, mapeamento, pitch, reverse, loop, ADSR e filtro
-- [ ] Expandir MIDI/Piano Roll para edição de notas, duração, velocity, snapping e triplets
+- [x] Criar modelo de região, playback rate, reverse, loop, ADSR e filtro do Sampler
+- [x] Renderizar voz do Sampler em OfflineAudioContext sem mutar a fonte
+- [ ] Ligar Sampler a fonte de áudio, teclado e interface
+- [x] Expandir contrato MIDI/Piano Roll para edição de notas, duração, velocity, snapping 1/16, triplet e transposição
+- [ ] Ligar edição visual completa do Piano Roll ao estado persistido
 - [ ] Implementar provider IA real para Producer, Music AI, Voice AI e FX Preset Generator
 - [ ] Implementar Harmony e Voice Character avançados
 - [ ] Implementar Sounds/My Sounds com pesquisa, filtros, tags e armazenamento
