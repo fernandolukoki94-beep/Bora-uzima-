@@ -24,6 +24,7 @@ A demonstração pública está disponível em [fernando-lucoco-music.vercel.app
 | Beat Maker | V1 local | 16 passos, seis canais, presets e padrões Afrobeat, Amapiano, Kuduro, Afro House e Rumba; preview e Mixdown com síntese dedicada para bass e percussão. |
 | Mixing local | V1 com painel e exportação | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel persiste controlos e o Mixdown exporta WAV local com headroom. Clips instrumentais são renderizados localmente quando não existe blob externo. |
 | Producer Plan local | V1.1/V2 inicial funcional | Plano determinístico por género, BPM, tonalidade, estrutura, instrumentos, cadeia vocal e mix; aceita intenção de produção e análise local sem API externa. |
+| Community/Profile | Primeira fatia operacional autenticada | Feed Firestore de songs, projects, beats, videos e clips; Novo/Trending; likes, comentários, partilha; perfil artístico; descoberta de perfis e follows persistentes. Mensagens, stories, media Storage e colaboração continuam pendentes. |
 | Mastering e IA externa | V2 planeada | A V1 mantém DSP local e original preservado; o Producer Studio V2 terá primeiro uma cadeia vocal local reversível e só depois poderá receber um provider IA server-side protegido. |
 
 ## Producer Plan local
@@ -57,6 +58,12 @@ O ficheiro de requisitos recebido foi arquivado em [`docs/pasted_content-v21-req
 A V1 funcional local está consolidada com os instrumentos existentes, Beat Maker, bass validado pelo utilizador, timeline, mixer, Mixdown e Producer Plan determinístico. A V2 deixa de adicionar instrumentos e passa a transformar uma voz gravada numa produção guiada: análise, instrução de produção, arranjo, melhoria vocal reversível, mix e master local. Os critérios, limites e ordem de implementação estão em [`docs/v1-v2-transition.md`](./docs/v1-v2-transition.md).
 
 A futura assistência IA deve interpretar intenções e propor parâmetros, sem substituir a autoria de Fernando Lucoco. Nenhum token OpenAI ou Gemini será colocado no cliente, no armazenamento local ou no repositório.
+
+## Community/Profile
+
+A primeira fatia social está integrada no Firebase já existente e só abre em sessão autenticada. `firebase-community.js` reutiliza o `auth` e o `db` existentes para guardar perfis artísticos, posts, likes, comentários, relações de follow e descoberta de artistas. O feed suporta os tipos `song`, `project`, `beat`, `video` e `clip`, com ordenação **Novo** ou **Trending** e filtragem por tipo. A área de descoberta pesquisa nome artístico, username e géneros e permite alternar **Seguir/A seguir** com estado persistido no Firestore.
+
+Esta etapa partilha texto e referências de projecto; não envia automaticamente áudio para o servidor. Upload de media para Firebase Storage, mensagens privadas, stories, notificações, repost e colaboração multi-utilizador permanecem como lacunas explícitas do `pasted_content.txt`.
 
 ## Arquitectura
 

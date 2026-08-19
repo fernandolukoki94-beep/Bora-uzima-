@@ -3,12 +3,15 @@ import {
   createCommunityPost,
   getMyCommunityProfile,
   listCommunityPosts,
+  listCommunityProfiles,
+  listCommunityFollowing,
+  followCommunityUser,
   saveCommunityProfile,
   toggleCommunityLike,
 } from "./firebase-community.js";
 
 const $ = (id) => document.getElementById(id);
-const state = { mode: "new", type: "all", posts: [] };
+const state = { mode: "new", type: "all", posts: [], profiles: [], following: new Set() };
 
 const els = {
   status: $("community-status"),
@@ -26,6 +29,8 @@ const els = {
   bio: $("profile-bio"),
   genres: $("profile-genres"),
   location: $("profile-location"),
+  profileSearch: $("community-profile-search"),
+  profileResults: $("community-profile-results"),
 };
 
 function escapeHtml(value) {
@@ -47,6 +52,30 @@ function postCard(post) {
     <div class="community-post-actions"><button class="mini-button" type="button" data-community-action="like" data-liked="${liked ? "true" : "false"}">${liked ? "♥" : "♡"} ${post.likeIds?.length || 0}</button><button class="mini-button" type="button" data-community-action="comment">Comentar</button><button class="mini-button" type="button" data-community-action="share">Partilhar</button></div>
     <div class="community-comment-box" hidden><form data-community-comment-form><input name="body" maxlength="500" placeholder="Escreve um comentário" required /><button class="mini-button" type="submit">Publicar</button></form><div class="community-comment-status" role="status"></div></div>
   </article>`;
+}
+
+function renderProfiles() {
+  if (!els.profileResults) return;
+  if (!state.profiles.length) {
+    els.profileResults.innerHTML = `<div class="empty">Não encontrámos artistas para esta pesquisa.</div>`;
+    return;
+  }
+  els.profileResults.innerHTML = state.profiles.map((profile) => {
+    const following = state.following.has(profile.uid);
+    return `<article class="community-profile-result"><div><strong>${escapeHtml(profile.displayName)}</strong><span>@${escapeHtml(profile.username)}</span><small>${escapeHtml(profile.genres.join(" · ") || "Artista")}</small></div><button class="mini-button" type="button" data-profile-follow="${escapeHtml(profile.uid)}" data-following="${following ? "true" : "false"}">${following ? "A seguir" : "Seguir"}</button></article>`;
+  }).join("");
+}
+
+async function loadProfiles() {
+  if (!els.profileResults) return;
+  try {
+    const [profiles, followingIds] = await Promise.all([listCommunityProfiles({ search: els.profileSearch?.value || "" }), listCommunityFollowing()]);
+    state.profiles = profiles;
+    state.following = new Set(followingIds);
+    renderProfiles();
+  } catch (error) {
+    els.profileResults.innerHTML = `<div class="empty">Descoberta indisponível: ${escapeHtml(error.message)}</div>`;
+  }
 }
 
 function renderFeed() {
@@ -116,6 +145,19 @@ els.profileForm?.addEventListener("submit", async (event) => {
 });
 
 els.typeFilter?.addEventListener("change", () => { state.type = els.typeFilter.value; loadFeed(); });
+els.profileSearch?.addEventListener("input", () => loadProfiles());
+els.profileResults?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-profile-follow]");
+  if (!button) return;
+  button.disabled = true;
+  try {
+    const nextFollowing = await followCommunityUser(button.dataset.profileFollow, button.dataset.following === "true");
+    if (nextFollowing) state.following.add(button.dataset.profileFollow); else state.following.delete(button.dataset.profileFollow);
+    renderProfiles();
+  } catch (error) {
+    setStatus(els.status, error.message, "error");
+  }
+});
 document.querySelectorAll("[data-community-mode]").forEach((button) => button.addEventListener("click", () => {
   document.querySelectorAll("[data-community-mode]").forEach((item) => item.classList.toggle("is-active", item === button));
   state.mode = button.dataset.communityMode || "new";
@@ -156,6 +198,7 @@ window.addEventListener("fernando-authenticated", (event) => {
   window.firebaseCommunityUid = event.detail?.user?.uid || "";
   loadFeed();
   loadProfile();
+  loadProfiles();
 });
 window.addEventListener("firebase-signed-out", () => {
   window.firebaseCommunityUid = "";

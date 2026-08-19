@@ -8,6 +8,7 @@ import {
   getDocs,
   limit,
   query,
+  where,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -84,6 +85,27 @@ export async function createCommunityPost({ type = "song", title = "", body = ""
   return { ...post, createdAt: post.createdAtMs };
 }
 
+export async function listCommunityProfiles({ search = "" } = {}) {
+  requireUser();
+  const snapshot = await getDocs(query(collection(db, "users"), limit(MAX_ITEMS)));
+  const needle = clean(search, 80).toLowerCase();
+  return snapshot.docs.map((item) => {
+    const data = item.data();
+    const profile = data.profile || {};
+    return {
+      ...publicProfile({ uid: item.id, email: "" }, profile),
+      followersCount: Number(data.followersCount || 0),
+      followingCount: Number(data.followingCount || 0),
+    };
+  }).filter((profile) => !needle || `${profile.displayName} ${profile.username} ${profile.genres.join(" ")}`.toLowerCase().includes(needle));
+}
+
+export async function listCommunityFollowing() {
+  const user = requireUser();
+  const snapshot = await getDocs(query(collection(db, "follows"), where("followerId", "==", user.uid), where("active", "!=", false), limit(MAX_ITEMS)));
+  return snapshot.docs.map((item) => item.data().followingId).filter(Boolean);
+}
+
 export async function listCommunityPosts({ mode = "new", type = "all" } = {}) {
   requireUser();
   const snapshot = await getDocs(query(collection(db, "posts"), limit(MAX_ITEMS)));
@@ -131,10 +153,11 @@ export async function followCommunityUser(targetUid, following) {
     await setDoc(doc(db, "follows", followId), {
       followerId: user.uid,
       followingId: targetUid,
+      active: true,
       createdAt: serverTimestamp(),
     });
   } else {
-    await updateDoc(doc(db, "follows", followId), { active: false });
+    await setDoc(doc(db, "follows", followId), { active: false }, { merge: true });
   }
   return !following;
 }

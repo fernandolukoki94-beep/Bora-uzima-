@@ -392,6 +392,13 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Guardar perfil artístico com nome, username, bio, géneros e localização
 - [x] Mostrar estados de sincronização, erro, sessão obrigatória e privacidade
 - [x] Validar o avanço com 173 testes Node aprovados, 0 falhas, sintaxe e diff limpos
-- [ ] Implementar follows e descoberta de perfis com contadores
+- [x] Implementar follows e descoberta de perfis com contadores base
 - [ ] Implementar upload real de áudio/vídeo/imagem no Firebase Storage
 - [ ] Implementar mensagens privadas, stories, notificações e colaboração
+
+## Auditoria contínua solicitada
+
+- [x] Cruzar README, portfólio/QA, código publicado e pasted_content.txt antes de cada novo módulo
+- [x] Confirmar no relatório o que já está operacional e não o reimplementar
+- [x] Seleccionar a próxima lacuna funcional real do ficheiro — follows e descoberta de perfis
+- [x] Actualizar README, documentação de portfólio e TODO após a entrega
