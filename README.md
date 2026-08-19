@@ -338,3 +338,10 @@ A sincronização está coberta por validação de sintaxe e a suite determinís
 A área **Messages** está integrada no Firebase/Firestore existente e só funciona em sessão autenticada. As conversas privadas ficam em `conversations/{conversationId}`, com mensagens em `conversations/{conversationId}/messages`; o identificador é determinístico para o par de utilizadores. O cliente valida o destinatário, limita cada mensagem a 2.000 caracteres, mostra lista de conversas, thread, composer, estados vazios, erro e sincronização. O feed público não consulta nem expõe conversas privadas.
 
 A implementação cliente está pronta e coberta por testes de contrato. As regras remotas do Firestore devem confirmar que apenas os dois participantes podem ler e escrever cada conversa. Anexos em mensagens, notificações, stories e colaboração continuam pendentes.
+
+
+## Harmony vocal local
+
+O AI Voice inclui Harmony local operacional. A cadeia mantém a voz original e mistura duas vozes transpostas por intervalos de quarta e quinta, com intensidade ajustável entre 0 e 100%. O utilizador pode fazer preview, aplicar a variante `harmony`, comparar e reverter sem apagar o Original, mantendo o resultado no ciclo de persistência de áudio existente.
+
+Esta capacidade é **DSP local e reversível**, não uma afirmação de Harmony generativo por IA cloud. Voice Character avançado, formant-preserving dedicado e Harmony generativo continuam identificados como trabalho futuro na matriz de requisitos.

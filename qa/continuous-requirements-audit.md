@@ -66,3 +66,9 @@ A auditoria do `pasted_content.txt` indicou Message Storage como a etapa seguint
 A interface autenticada Messages inclui lista de conversas, thread privada, composer, estados vazio/sincronização/erro e entrada directa a partir do botão **Mensagem** nos resultados de descoberta da Community. O feed público não consulta conversas. Foram validados `firebase-messages.js`, `messages-ui.js`, `community-ui.js` e `firebase-community.js` com `node --check`; os contratos seleccionados terminaram com **13 testes aprovados e 0 falhas**.
 
 A implementação cliente não substitui as regras remotas: o Firebase Console ainda deve confirmar regras Firestore que permitam leitura/escrita apenas aos dois participantes da conversa. Anexos, notificações, stories e colaboração continuam pendentes e não foram declarados como concluídos.
+
+## Marco executado — Harmony local
+
+A especificação de AI Voice recebeu Harmony local operacional. O motor combina a voz original seca com duas camadas transpostas por intervalos de quarta e quinta, controladas por intensidade entre 0 e 100%. A interface oferece preview, aplicação como variante `harmony`, estado persistido no ciclo existente, bypass/reversão e preservação do Original.
+
+A entrega foi validada com 16 testes Node relacionados, `node --check` em `effects.js` e `app.js`, e `git diff --check`. Este marco é explicitamente DSP local e reversível; Harmony generativo/cloud e Voice Character avançado continuam pendentes.

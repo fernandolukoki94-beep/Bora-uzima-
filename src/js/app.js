@@ -2,7 +2,7 @@ import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProject
 import { bindPlayerEvents } from "./player.js";
 import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./producer-plan.js";
 import { analyzeAudioDataUrl } from "./audio-analysis.js";
-import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyVoiceCleanerLocal, applyVoiceChangerLocal, applyMasteringLocal, applyReverbLocal, applyDelayLocal, spatialEffectParameters } from "./effects.js";
+import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyVoiceCleanerLocal, applyVoiceChangerLocal, applyHarmonyLocal, harmonyParameters, applyMasteringLocal, applyReverbLocal, applyDelayLocal, spatialEffectParameters } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
@@ -227,6 +227,12 @@ const voiceChangerPreview = document.getElementById("voice-changer-preview");
 const voiceChangerApply = document.getElementById("voice-changer-apply");
 const voiceChangerReset = document.getElementById("voice-changer-reset");
 const voiceChangerStatus = document.getElementById("voice-changer-status");
+const harmonyIntensity = document.getElementById("harmony-intensity");
+const harmonyIntensityValue = document.getElementById("harmony-intensity-value");
+const harmonyPreview = document.getElementById("harmony-preview");
+const harmonyApply = document.getElementById("harmony-apply");
+const harmonyReset = document.getElementById("harmony-reset");
+const harmonyStatus = document.getElementById("harmony-status");
 const producerSavePreset = document.getElementById("producer-save-preset");
 const producerPresetSelect = document.getElementById("producer-preset-select");
 const producerDeletePreset = document.getElementById("producer-delete-preset");
@@ -681,6 +687,10 @@ async function updateProducerBeatControls(project = currentTimelineProject()) {
   if (producerResetAutoTune) producerResetAutoTune.disabled = !project?.audioVariants?.pitchCorrected;
   if (producerApplySpace) producerApplySpace.disabled = !getVariantData(project, "original");
   if (producerResetSpace) producerResetSpace.disabled = !project?.audioVariants?.spatial;
+  if (harmonyPreview) harmonyPreview.disabled = !Boolean(getVariantData(project, "original"));
+  if (harmonyApply) harmonyApply.disabled = !Boolean(getVariantData(project, "original"));
+  if (harmonyReset) harmonyReset.disabled = !project?.audioVariants?.harmony;
+  if (harmonyStatus && project?.audioVariants?.harmony) harmonyStatus.textContent = `Harmony disponível · ${Math.round((project.audioVariants.harmony.intensity || 0) * 100)}%`;
   if (producerExport) producerExport.disabled = !getVariantData(project, "mixed");
   if (producerExportProject) producerExportProject.disabled = !project;
   if (producerShare) producerShare.disabled = !getVariantData(project, "mixed");
@@ -1834,6 +1844,44 @@ async function applyLocalVoiceCleaner(id, options = {}) {
 async function applyLocalVoiceChanger(id, character = "deep") {
   return applyLocalEffect(id, "voiceChangerApplied", (blob) => applyVoiceChangerLocal(blob, { character }), "Voice Changer local aplicado. O original continua preservado.", "voiceChanged");
 }
+async function applyLocalHarmony(id, intensity = 0.35) {
+  return applyLocalEffect(id, "harmonyApplied", (blob) => applyHarmonyLocal(blob, { intensity }), "Harmony local aplicado. O original continua preservado.", "harmony");
+}
+function harmonyLevel() { return Math.max(0, Math.min(1, Number(harmonyIntensity?.value || 35) / 100)); }
+function setHarmonyStatus(message, state = "") {
+  if (harmonyStatus) { harmonyStatus.textContent = message; harmonyStatus.dataset.state = state; }
+}
+async function previewHarmony() {
+  const project = currentTimelineProject();
+  const sourceData = getVariantData(project, "original");
+  if (!project || !sourceData) { setHarmonyStatus("Abre ou grava uma sessão vocal antes da pré-escuta.", "error"); return; }
+  try {
+    const processed = await applyHarmonyLocal(await dataUrlToBlob(sourceData), { intensity: harmonyLevel() });
+    if (voiceCleanerPreviewUrl) URL.revokeObjectURL(voiceCleanerPreviewUrl);
+    voiceCleanerPreviewUrl = URL.createObjectURL(processed);
+    const player = new Audio(voiceCleanerPreviewUrl);
+    player.onended = () => URL.revokeObjectURL(voiceCleanerPreviewUrl);
+    await player.play();
+    setHarmonyStatus(`Pré-escuta Harmony: ${Math.round(harmonyLevel() * 100)}% em reprodução.`, "success");
+  } catch (error) { setHarmonyStatus(`Pré-escuta indisponível: ${error instanceof Error ? error.message : "erro desconhecido"}.`, "error"); }
+}
+async function applyHarmonyFromUi() {
+  const project = currentTimelineProject();
+  if (!project) { setHarmonyStatus("Abre ou grava uma sessão vocal antes de aplicar.", "error"); return; }
+  await applyLocalHarmony(project.id, harmonyLevel());
+  setHarmonyStatus("Harmony aplicado como variante reversível.", "success");
+  renderProducerStudio();
+}
+async function resetLocalHarmony() {
+  const project = currentTimelineProject();
+  if (!project) return;
+  const updated = readProjects().map((item) => item.id === project.id ? { ...item, audioVariants: Object.fromEntries(Object.entries(item.audioVariants || {}).filter(([key]) => key !== "harmony")), harmonyApplied: false, status: "Harmony revertido; vocal anterior preservado" } : item);
+  saveProjects(updated);
+  try { if (await indexedDbAvailable()) await Promise.all([deleteAudioBlob(project.id, "harmony"), putProject(updated.find((item) => item.id === project.id))]); } catch { showToast("A variante Harmony foi revertida localmente; o reset IndexedDB será tentado novamente."); }
+  setHarmonyStatus("Harmony revertido; Original preservado.", "success");
+  renderProjects();
+  renderProducerStudio();
+}
 function voiceChangerCharacterValue() { return voiceChangerCharacter?.value || "deep"; }
 function setVoiceChangerStatus(message, state = "") {
   if (voiceChangerStatus) { voiceChangerStatus.textContent = message; voiceChangerStatus.dataset.state = state; }
@@ -2143,6 +2191,10 @@ voiceCleanerReset?.addEventListener("click", resetLocalVoiceCleaner);
 voiceChangerPreview?.addEventListener("click", previewVoiceChanger);
 voiceChangerApply?.addEventListener("click", applyVoiceChangerFromUi);
 voiceChangerReset?.addEventListener("click", resetLocalVoiceChanger);
+harmonyIntensity?.addEventListener("input", () => { if (harmonyIntensityValue) harmonyIntensityValue.textContent = `${harmonyIntensity.value}%`; });
+harmonyPreview?.addEventListener("click", previewHarmony);
+harmonyApply?.addEventListener("click", applyHarmonyFromUi);
+harmonyReset?.addEventListener("click", resetLocalHarmony);
 producerApplyAutoTune?.addEventListener("click", applyLocalAutoTune);
 producerResetAutoTune?.addEventListener("click", resetLocalAutoTune);
 producerApplySpace?.addEventListener("click", applyLocalSpaceEffects);

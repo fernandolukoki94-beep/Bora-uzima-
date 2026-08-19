@@ -262,6 +262,48 @@ export function applyVoiceChangerLocal(blob, { character = "deep" } = {}) {
   });
 }
 
+/**
+ * Harmony vocal local: mantém a voz original e acrescenta duas vozes
+ * transpostas de forma determinística. É uma variante reversível, não um
+ * modelo generativo nem um substituto de arranjo profissional.
+ */
+export function normalizeHarmonyIntensity(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+export function harmonyParameters(intensity = 0.35) {
+  const safeIntensity = normalizeHarmonyIntensity(intensity);
+  return {
+    intensity: safeIntensity,
+    voices: 2,
+    intervals: [4, 7],
+    wetGain: Number((safeIntensity * 0.42).toFixed(3)),
+    reversible: true,
+  };
+}
+
+export function applyHarmonyLocal(blob, { intensity = 0.35 } = {}) {
+  const parameters = harmonyParameters(intensity);
+  return withDecodedAudio(blob, ({ offline, source, decoded }) => {
+    const dry = offline.createGain();
+    dry.gain.value = 1;
+    source.connect(dry).connect(offline.destination);
+
+    parameters.intervals.forEach((interval, index) => {
+      const harmonySource = offline.createBufferSource();
+      harmonySource.buffer = decoded;
+      harmonySource.detune.value = interval * 100;
+      const voiceGain = offline.createGain();
+      voiceGain.gain.value = parameters.wetGain;
+      const panner = offline.createStereoPanner ? offline.createStereoPanner() : null;
+      if (panner) panner.pan.value = index === 0 ? -0.32 : 0.32;
+      if (panner) harmonySource.connect(voiceGain).connect(panner).connect(offline.destination);
+      else harmonySource.connect(voiceGain).connect(offline.destination);
+      harmonySource.start(0);
+    });
+  });
+}
+
 export function applyVocalEnhancement(blob, { presenceDb = 2.5, outputGain = 1.05 } = {}) {
   return withDecodedAudio(blob, ({ offline, source }) => {
     const highPass = offline.createBiquadFilter();

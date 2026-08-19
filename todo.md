@@ -419,3 +419,29 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Integrar a área Messages no shell autenticado com estados vazios, erro e sincronização
 - [x] Definir contrato de privacidade por participantes e não expor conversas no feed público; regras finais Firestore requerem confirmação no Console
 - [x] Testar contratos, sintaxe e actualizar TODO/README; QA e confirmação de deployment ficam para o fecho desta etapa
+
+## Ciclo contínuo até ao fim do pasted_content.txt
+
+- [ ] Mapear todos os blocos restantes do ficheiro contra README, QA, portfólio e código actual
+- [ ] Ordenar as lacunas por dependência funcional e risco operacional
+- [ ] Implementar cada lacuna real sem repetir módulos já concluídos
+- [ ] Validar cada módulo com testes determinísticos e integração Firebase/Firestore/Storage quando aplicável
+- [ ] Actualizar README, matriz, auditoria QA e TODO a cada etapa
+- [ ] Repetir o ciclo até não restarem requisitos implementáveis no escopo actual
+- [ ] Manter bloqueios externos explicitamente documentados, incluindo regras remotas e QA físico
+
+## Próximo bloco da especificação — Harmony
+
+- [ ] Implementar Harmony vocal local com duas vozes adicionais e controlo de intensidade
+- [ ] Permitir preview, bypass e aplicação como variante sem substituir o Original
+- [ ] Integrar Harmony no painel AI Voice existente e nos estados de exportação
+- [ ] Testar o processamento e actualizar README/QA/TODO
+
+## Marco Harmony — Voice AI local
+
+- [x] Implementar Harmony vocal local com duas vozes adicionais e controlo de intensidade
+- [x] Permitir preview, aplicação e reversão como variante `audioVariants.harmony`
+- [x] Preservar o Original e integrar o estado no painel AI Voice e no IndexedDB existente
+- [x] Validar com 16 testes Node aprovados, sintaxe limpa e `git diff --check`
+- [ ] Voice Character avançado com modelos/transformações adicionais
+- [ ] Harmony cloud/AI generativo; o marco actual é DSP local, explicitamente rotulado
