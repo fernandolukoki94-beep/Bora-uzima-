@@ -349,7 +349,7 @@
 - [x] Preservar pré-escuta local, drag-and-drop e materialização na timeline
 - [x] Validar Sound Library com 4 testes dedicados e suite Node limpa com 169 testes aprovados
 - [ ] Migrar My Sounds para upload real com IndexedDB dedicado e organização por pastas/tags
-- [ ] Sincronizar biblioteca pessoal com Firebase Storage/Firestore após definir regras de autorização
+- [x] Sincronizar biblioteca pessoal com Firebase Storage/Firestore com path por utilizador e metadados; regras finais do projecto continuam a requerer confirmação
 - [ ] Implementar feed, perfis, follows, comentários, mensagens, stories e colaboração com dados reais
 - [ ] Implementar Audio-to-MIDI e Stem Splitter como jobs reais, não apenas estados locais
 
@@ -373,7 +373,7 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Favoritar, pré-escutar localmente, apagar e adicionar referência à timeline
 - [x] Adicionar layout responsivo do painel My Sounds
 - [x] Cobrir contrato com 3 testes dedicados; sintaxe e diff limpos
-- [ ] Sincronizar My Sounds com Firebase Storage/Firestore com regras por utilizador
+- [x] Sincronizar My Sounds com Firebase Storage/Firestore com path por utilizador e metadados; regras finais do projecto continuam a requerer confirmação
 - [ ] Materializar reprodução dos blobs My Sounds directamente no mixdown/export final
 
 ## Correcção de rumo — continuidade sem regressão
@@ -393,7 +393,7 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Mostrar estados de sincronização, erro, sessão obrigatória e privacidade
 - [x] Validar o avanço com 173 testes Node aprovados, 0 falhas, sintaxe e diff limpos
 - [x] Implementar follows e descoberta de perfis com contadores base
-- [ ] Implementar upload real de áudio/vídeo/imagem no Firebase Storage
+- [x] Implementar upload real de áudio/vídeo/imagem no Firebase Storage com validação, limite de 80 MB e path privado por utilizador
 - [ ] Implementar mensagens privadas, stories, notificações e colaboração
 
 ## Auditoria contínua solicitada
@@ -402,3 +402,11 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Confirmar no relatório o que já está operacional e não o reimplementar
 - [x] Seleccionar a próxima lacuna funcional real do ficheiro — follows e descoberta de perfis
 - [x] Actualizar README, documentação de portfólio e TODO após a entrega
+
+## Próximo passo escolhido pelo utilizador — Firebase Storage ou Message Storage
+
+- [x] Auditar no pasted_content.txt a ordem exacta entre media no Firebase Storage e Message Storage
+- [x] Confirmar no README, portfólio/QA, Firestore e site publicado o que já existe e o que falta
+- [x] Escolher formalmente o próximo módulo com base na matriz, sem duplicar Community/Profile ou Firebase já concluídos — Firebase Storage para media
+- [x] Implementar regras de autorização, persistência e UI operacional do módulo escolhido — cliente, persistência e UI concluídos; regras finais do projecto requerem confirmação
+- [x] Testar no runner correcto, actualizar README/QA/TODO e validar o deployment local; confirmação do deployment automático permanece pendente

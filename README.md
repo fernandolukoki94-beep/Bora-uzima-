@@ -1,6 +1,6 @@
 # Fernando Lucoco Music
 
-**Fernando Lucoco Music** é um estúdio musical web-first, local-first e orientado à privacidade, criado por **Fernando Lucoco**. A plataforma começa pela gravação vocal no navegador e evolui para um Music Engine modular com projectos, tracks, clips, timeline, instrumentos e Beat Maker. A V1 funciona sem custos externos e não envia áudio automaticamente para servidores.
+**Fernando Lucoco Music** é um estúdio musical web-first, local-first e orientado à privacidade, criado por **Fernando Lucoco**. A plataforma começa pela gravação vocal no navegador e evolui para um Music Engine modular com projectos, tracks, clips, timeline, instrumentos e Beat Maker. A V1 funciona sem custos externos e não envia media automaticamente para servidores: o upload cloud só ocorre por acção explícita do utilizador autenticado.
 
 > A tua voz. A tua demo. O teu próximo take.
 
@@ -24,7 +24,8 @@ A demonstração pública está disponível em [fernando-lucoco-music.vercel.app
 | Beat Maker | V1 local | 16 passos, seis canais, presets e padrões Afrobeat, Amapiano, Kuduro, Afro House e Rumba; preview e Mixdown com síntese dedicada para bass e percussão. |
 | Mixing local | V1 com painel e exportação | Soma estéreo pura com ganho por faixa, pan, mute, solo e headroom master; o painel persiste controlos e o Mixdown exporta WAV local com headroom. Clips instrumentais são renderizados localmente quando não existe blob externo. |
 | Producer Plan local | V1.1/V2 inicial funcional | Plano determinístico por género, BPM, tonalidade, estrutura, instrumentos, cadeia vocal e mix; aceita intenção de produção e análise local sem API externa. |
-| Community/Profile | Primeira fatia operacional autenticada | Feed Firestore de songs, projects, beats, videos e clips; Novo/Trending; likes, comentários, partilha; perfil artístico; descoberta de perfis e follows persistentes. Mensagens, stories, media Storage e colaboração continuam pendentes. |
+| Community/Profile | Primeira fatia operacional autenticada | Feed Firestore de songs, projects, beats, videos e clips; Novo/Trending; likes, comentários, partilha; perfil artístico; descoberta de perfis e follows persistentes. Mensagens, stories e colaboração continuam pendentes. |
+| Media Storage | Primeira fatia operacional autenticada | My Sounds mantém IndexedDB offline-first e permite sincronizar media áudio, vídeo ou imagem até 80 MB no Firebase Storage, com path isolado por utilizador e metadados na subcolecção Firestore `users/{uid}/media`. Message Storage, stories e colaboração continuam pendentes. |
 | Mastering e IA externa | V2 planeada | A V1 mantém DSP local e original preservado; o Producer Studio V2 terá primeiro uma cadeia vocal local reversível e só depois poderá receber um provider IA server-side protegido. |
 
 ## Producer Plan local
@@ -63,7 +64,7 @@ A futura assistência IA deve interpretar intenções e propor parâmetros, sem 
 
 A primeira fatia social está integrada no Firebase já existente e só abre em sessão autenticada. `firebase-community.js` reutiliza o `auth` e o `db` existentes para guardar perfis artísticos, posts, likes, comentários, relações de follow e descoberta de artistas. O feed suporta os tipos `song`, `project`, `beat`, `video` e `clip`, com ordenação **Novo** ou **Trending** e filtragem por tipo. A área de descoberta pesquisa nome artístico, username e géneros e permite alternar **Seguir/A seguir** com estado persistido no Firestore.
 
-Esta etapa partilha texto e referências de projecto; não envia automaticamente áudio para o servidor. Upload de media para Firebase Storage, mensagens privadas, stories, notificações, repost e colaboração multi-utilizador permanecem como lacunas explícitas do `pasted_content.txt`.
+Esta etapa partilha texto e referências de projecto; não envia automaticamente áudio para o servidor. A sincronização privada de media para Firebase Storage está agora disponível como acção explícita autenticada no My Sounds. O fluxo local continua preservado como fallback offline. Mensagens privadas, stories, notificações, repost e colaboração multi-utilizador permanecem como lacunas explícitas do `pasted_content.txt`.
 
 ## Arquitectura
 

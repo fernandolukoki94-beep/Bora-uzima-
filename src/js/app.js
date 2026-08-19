@@ -21,6 +21,8 @@ import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback }
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
 import { requestProductionAdvice } from "./ai-producer-client.js";
 import { isFirebaseSignedIn, listCloudProjects, saveCloudProject, cloudProjectToLocal } from "./firebase-projects.js";
+import { uploadUserMedia } from "./firebase-media.js";
+import { auth } from "./firebase-client.js";
 import { adviceToProducerPlan } from "./ai-advice-to-plan.js";
 import { createImportedBeat, revokeImportedBeat } from "./beat-import.js";
 import { createLooperState, addLooperLayer, removeLastLooperLayer, toggleLooperLayerMute, materializeLooperClip, looperSummary } from "./studio/looper.js";
@@ -167,6 +169,7 @@ const mySoundsFolderFilter = document.getElementById("my-sounds-folder-filter");
 const mySoundsFavoritesOnly = document.getElementById("my-sounds-favorites-only");
 const mySoundsGrid = document.getElementById("my-sounds-grid");
 const mySoundsStatus = document.getElementById("my-sounds-status");
+const mySoundsCloudUpload = document.getElementById("my-sounds-cloud-upload");
 const beatPreset = document.getElementById("beat-preset");
 const applyBeatPreset = document.getElementById("apply-beat-preset");
 const playBeatSequence = document.getElementById("play-beat-sequence");
@@ -1417,6 +1420,20 @@ function addMySoundToTimeline(id) {
   insertInstrumentClip({ name: item.name, type: "sample", duration: item.duration || 4, metadata: { origin: "my-sounds", mySoundId: item.id, folder: item.folder, tags: item.tags } });
   if (mySoundsStatus) mySoundsStatus.textContent = `${item.name} adicionado à timeline; o ficheiro original permanece privado no IndexedDB.`;
 }
+mySoundsCloudUpload?.addEventListener("click", async () => {
+  const file = mySoundsFile?.files?.[0];
+  try {
+    if (!auth.currentUser) throw new Error("Inicia sessão para sincronizar media.");
+    const uploaded = await uploadUserMedia(auth.currentUser, file, {
+      name: mySoundsName?.value,
+      folder: mySoundsFolder?.value,
+      tags: mySoundsTags?.value,
+    });
+    if (mySoundsStatus) mySoundsStatus.textContent = `Sincronizado no Firebase Storage: ${uploaded.name}`;
+  } catch (error) {
+    if (mySoundsStatus) mySoundsStatus.textContent = error instanceof Error ? error.message : "Não foi possível sincronizar a media.";
+  }
+});
 mySoundsForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const file = mySoundsFile?.files?.[0];

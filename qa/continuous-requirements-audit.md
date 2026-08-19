@@ -34,3 +34,26 @@ A lacuna seleccionada foi **Community/Profile — descoberta e relações**, seg
 Foi entregue pesquisa de perfis por nome artístico, username e géneros; lista de resultados no sidebar; seguir/deixar de seguir; persistência na colecção Firestore `follows`; e manutenção do feed, posts, likes, comentários, partilha e perfil artístico já existentes.
 
 Uploads de áudio/vídeo/imagem no Firebase Storage, mensagens privadas, stories, notificações, repost e colaboração multi-utilizador continuam pendentes. `node --check` passou, `git diff --check` passou e a suite Node correcta terminou com **173 testes aprovados e 0 falhas**.
+
+## Marco executado — Firebase Storage para media
+
+A matriz do `pasted_content.txt` coloca upload, validação de formato, limite e permissões de media antes de Message Storage. Por isso, o próximo passo escolhido foi **Firebase Storage para media privada**.
+
+### Implementado
+
+- `src/js/firebase-client.js` exporta o Storage da mesma instância Firebase já usada por Auth e Firestore.
+- `src/js/firebase-media.js` valida áudio, vídeo e imagem; aplica limite de 80 MB; normaliza nome, pasta e tags; usa o path privado `users/{uid}/media/{mediaId}`; faz upload explícito; obtém URL; e guarda metadados na subcolecção `users/{uid}/media`.
+- My Sounds mantém o botão local IndexedDB e recebeu uma acção separada **Sincronizar no Firebase**, exigindo sessão autenticada.
+- O README foi actualizado para distinguir media cloud operacional de Message Storage, stories e colaboração ainda pendentes.
+
+### Limites e segurança
+
+O upload não é automático e não substitui o fallback offline. A segurança efectiva depende das regras Firebase Storage/Firestore do projecto, que devem permitir apenas `request.auth.uid == userId` e limitar o conteúdo ao path do próprio utilizador. Não foram introduzidas credenciais administrativas no cliente.
+
+### Validação
+
+`node --check` passou em `firebase-client.js`, `firebase-media.js` e `app.js`; `git diff --check` passou; os testes seleccionados terminaram com 24 testes aprovados, 0 falhas, incluindo o contrato de limite, MIME, isolamento por UID e persistência Firestore.
+
+### Próxima lacuna
+
+Message Storage continua como próximo bloco social possível, seguido de stories, notificações e colaboração. A sincronização cloud não foi declarada como concluída para mensagens.

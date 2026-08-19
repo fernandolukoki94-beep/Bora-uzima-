@@ -256,13 +256,13 @@
           <div id="sound-library-status" class="action-feedback" role="status" aria-live="polite">Escolhe um som para ouvir ou arrasta-o para o Studio.</div>
         </section>
         <section class="sound-library my-sounds" id="my-sounds" aria-labelledby="my-sounds-title">
-          <div class="panel-heading"><div><div class="section-kicker">My Sounds</div><h3 id="my-sounds-title">A tua biblioteca privada</h3><p>Guarda samples, loops, beats, vocals e instrumentais neste dispositivo. Os ficheiros ficam privados e locais.</p></div><span class="pill">IndexedDB · privado</span></div>
+          <div class="panel-heading"><div><div class="section-kicker">My Sounds</div><h3 id="my-sounds-title">A tua biblioteca privada</h3><p>Guarda samples, loops, beats, vocals e instrumentais neste dispositivo; sincroniza uma cópia privada no Firebase quando tens sessão.</p></div><span class="pill">IndexedDB + Firebase</span></div>
           <form id="my-sounds-form" class="my-sounds-upload" novalidate>
             <label class="field"><span>Ficheiro de áudio</span><input id="my-sounds-file" type="file" accept="audio/*" required /></label>
             <label class="field"><span>Nome</span><input id="my-sounds-name" type="text" maxlength="120" placeholder="Nome do sample ou beat" /></label>
             <label class="field"><span>Pasta</span><input id="my-sounds-folder" type="text" maxlength="60" value="Raiz" placeholder="Raiz, Vocals, Beats…" /></label>
             <label class="field"><span>Tags</span><input id="my-sounds-tags" type="text" maxlength="180" placeholder="afrobeat, chorus, warm" /></label>
-            <button class="button button-primary" type="submit">＋ Guardar em My Sounds</button>
+            <div class="my-sounds-actions"><button class="button button-primary" type="submit">＋ Guardar em My Sounds</button><button class="button button-secondary" id="my-sounds-cloud-upload" type="button">☁ Sincronizar no Firebase</button></div>
           </form>
           <div class="sound-library-toolbar" role="search" aria-label="Pesquisar My Sounds">
             <input id="my-sounds-query" class="text-input" type="search" placeholder="Pesquisar nome, pasta ou tag…" autocomplete="off" />
