@@ -38,6 +38,7 @@ import {
   stopTransport,
 } from "./studio/transport.js";
 import { estimateMasterMeter, estimateTrackMeter } from "./studio/mixer-meters.js";
+import { AUTOMATION_TARGETS_LIST, normalizeTrackAutomation, upsertAutomationPoint, removeAutomationPoint } from "./studio/automation.js";
 import {
   clearLocalStudioData,
   deleteAudioBlob,
@@ -1238,6 +1239,12 @@ function renderMixerChannel(track, soloActive) {
   const meterLabel = meter.state === "clip" ? "CLIP" : meter.state === "muted" ? "Muted" : meter.state === "idle" ? "Idle" : "Signal";
   return `<div class="mixer-track${selected}" data-mixer-track="${escapeHtml(track.id)}" tabindex="0"><div class="mixer-track-title"><strong>${escapeHtml(track.name)}</strong><span>${escapeHtml(track.type)}</span></div><div class="mixer-channel-meter" data-mixer-meter="${escapeHtml(track.id)}" data-meter-state="${meter.state}" aria-label="Peak do canal ${escapeHtml(track.name)}: ${meter.peakDb.toFixed(1)} dBFS"><div class="mixer-meter-head"><span>Peak</span><output data-meter-peak="${escapeHtml(track.id)}">${meter.peakDb <= -59.9 ? "−∞" : meter.peakDb.toFixed(1)} dBFS</output></div><div class="mixer-meter-bar" role="meter" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="${meter.peakDb.toFixed(1)}" aria-label="Peak de ${escapeHtml(track.name)}"><span style="width:${meter.peakPercent.toFixed(1)}%"></span></div><small>${meterLabel} · RMS ${meter.rmsDb <= -59.9 ? "−∞" : meter.rmsDb.toFixed(1)} dBFS</small></div><label><span>Ganho <output data-mixer-output="volume">${formatGainDb(volume)}</output></span><span class="control-hint">−∞ a +6 dB</span><input type="range" min="-60" max="6" step="0.5" value="${Math.max(-60, Math.min(6, linearToDb(volume)))}" data-mixer-field="volume" aria-label="Ganho em decibéis de ${escapeHtml(track.name)}"></label><label><span>Pan <output data-mixer-output="pan">${Number(track.pan ?? 0).toFixed(2)}</output></span><span class="control-hint">L · C · R</span><input type="range" min="-1" max="1" step="0.01" value="${Number(track.pan ?? 0)}" data-mixer-field="pan" aria-label="Pan de ${escapeHtml(track.name)}"></label><label><span>Input</span><select data-mixer-field="input" aria-label="Input de ${escapeHtml(track.name)}"><option value="default" ${track.input === "default" || !track.input ? "selected" : ""}>Microfone predefinido</option><option value="mic-1" ${track.input === "mic-1" ? "selected" : ""}>Microfone 1</option><option value="line-in" ${track.input === "line-in" ? "selected" : ""}>Line In</option></select></label><div class="mixer-switches"><button class="mini-button ${track.muted ? "active" : ""}" type="button" data-mixer-field="muted">${track.muted ? "Unmute" : "Mute"}</button><button class="mini-button ${track.solo ? "active" : ""}" type="button" data-mixer-field="solo">${track.solo ? "Unsolo" : "Solo"}</button><button class="mini-button ${track.recordArmed ? "active" : ""}" type="button" data-mixer-field="recordArmed" aria-pressed="${track.recordArmed ? "true" : "false"}">${track.recordArmed ? "Armed" : "Arm REC"}</button></div></div>`;
 }
+function renderAutomationMarkup(track) {
+  const automation = normalizeTrackAutomation(track?.automation);
+  const lanes = automation.lanes || [];
+  const rows = lanes.flatMap((lane) => lane.points.map((point) => `<li><span>${escapeHtml(lane.target === "fx" ? `FX ${Number(lane.fxIndex) + 1}` : lane.target)} · ${point.time.toFixed(2)}s · ${lane.target === "volume" ? formatGainDb(point.value) : lane.target === "pan" ? point.value.toFixed(2) : `${Math.round(point.value * 100)}%`}</span><button class="mini-button danger" type="button" data-automation-remove data-automation-target="${lane.target}" data-automation-fx-index="${lane.fxIndex ?? 0}" data-automation-time="${point.time}">×</button></li>`)).join("");
+  return `<section class="mixer-automation" aria-label="Automação da faixa"><div class="mixer-fx-heading"><strong>Automação</strong><label><span>Alvo</span><select data-automation-field="target">${AUTOMATION_TARGETS_LIST.map((target) => `<option value="${target}">${target === "volume" ? "Volume" : target === "pan" ? "Pan" : "Intensidade FX"}</option>`).join("")}</select></label></div><div class="automation-inputs"><label><span>Tempo (s)</span><input type="number" min="0" step="0.01" value="0" data-automation-field="time" aria-label="Tempo do ponto de automação"></label><label><span>Valor</span><input type="number" min="0" max="2" step="0.01" value="1" data-automation-field="value" aria-label="Valor do ponto de automação"></label><label><span>FX</span><input type="number" min="1" step="1" value="1" data-automation-field="fx-index" aria-label="Número do FX para automação"></label><button class="mini-button primary" type="button" data-automation-add>Adicionar ponto</button></div><label class="automation-toggle"><input type="checkbox" data-automation-enabled ${automation.enabled ? "checked" : ""}> <span>Reproduzir lanes durante Mixdown</span></label>${rows ? `<ul class="automation-points">${rows}</ul>` : `<span class="empty">Sem pontos. Adicione volume, pan ou intensidade FX.</span>`}</section>`;
+}
 function renderMixer(project) {
   renderMasterControls(project);
   if (!mixerTracks) return;
@@ -1255,7 +1262,7 @@ function renderMixer(project) {
   const fxTypes = ["compressor", "limiter", "eq", "chorus", "flanger", "saturation", "de-esser", "gate"];
   const effects = Array.isArray(selected.effects) ? selected.effects : [];
   const fxMarkup = effects.length ? effects.map((effect, index) => `<div class="mixer-fx-row"><label><span>FX ${index + 1}</span><select data-mixer-fx-field="type" data-fx-index="${index}">${fxTypes.map((type) => `<option value="${type}" ${effect.type === type ? "selected" : ""}>${type}</option>`).join("")}</select></label><label><span>Intensidade <output data-fx-output="intensity" data-fx-index="${index}">${Math.round(Number(effect.intensity ?? 0.5) * 100)}%</output></span><input type="range" min="0" max="1" step="0.01" value="${Number(effect.intensity ?? 0.5)}" data-mixer-fx-field="intensity" data-fx-index="${index}" aria-label="Intensidade do FX ${index + 1}"></label><button class="mini-button ${effect.bypass ? "active" : ""}" type="button" data-mixer-fx-bypass="${index}" aria-pressed="${effect.bypass ? "true" : "false"}">${effect.bypass ? "Activar" : "Bypass"}</button><button class="mini-button" type="button" data-mixer-fx-remove="${index}">Remover</button></div>`).join("") : "<span class=\"empty\">Sem FX nesta faixa.</span>";
-  if (mixerInspector) mixerInspector.innerHTML = `<strong>${escapeHtml(selected.name)}</strong><span>${escapeHtml(selected.type)} · ${origin === "producer-plan" ? "Producer Plan" : "Manual"}</span><small>${selected.clips.length} clip${selected.clips.length === 1 ? "" : "s"} · ${effects.length} efeito${effects.length === 1 ? "" : "s"}</small><div class="mixer-inspector-clips">${selected.clips.length ? selected.clips.map((clip) => `<span>${escapeHtml(clip.name)} · ${Number(clip.duration || 0).toFixed(1)}s</span>`).join("") : "<span>Sem clips nesta faixa.</span>"}</div><section class="mixer-fx-rack" aria-label="Efeitos da faixa"><div class="mixer-fx-heading"><strong>Rack FX</strong><button class="mini-button primary" type="button" data-mixer-fx-add>＋ Adicionar FX</button></div>${fxMarkup}</section>`;
+  if (mixerInspector) mixerInspector.innerHTML = `<strong>${escapeHtml(selected.name)}</strong><span>${escapeHtml(selected.type)} · ${origin === "producer-plan" ? "Producer Plan" : "Manual"}</span><small>${selected.clips.length} clip${selected.clips.length === 1 ? "" : "s"} · ${effects.length} efeito${effects.length === 1 ? "" : "s"}</small><div class="mixer-inspector-clips">${selected.clips.length ? selected.clips.map((clip) => `<span>${escapeHtml(clip.name)} · ${Number(clip.duration || 0).toFixed(1)}s</span>`).join("") : "<span>Sem clips nesta faixa.</span>"}</div><section class="mixer-fx-rack" aria-label="Efeitos da faixa"><div class="mixer-fx-heading"><strong>Rack FX</strong><button class="mini-button primary" type="button" data-mixer-fx-add>＋ Adicionar FX</button></div>${fxMarkup}</section>${renderAutomationMarkup(selected)}`;
   const active = project.tracks.filter((track) => !track.muted);
   const estimatedPeak = active.reduce((sum, track) => sum + Number(track.volume ?? 1), 0);
   const headroomDb = estimatedPeak > 0 ? 20 * Math.log10(Math.max(0.0001, 0.98 / estimatedPeak)) : 0;
@@ -2488,6 +2495,32 @@ mixerInspector?.addEventListener("input", (event) => {
     if (output) output.textContent = `${Math.round(intensity * 100)}%`;
   }
   commitTimelineProject(updateTrack(timelineHistory.present, selectedMixerTrackId, { effects }));
+});
+mixerInspector?.addEventListener("click", (event) => {
+  if (!timelineHistory || !selectedMixerTrackId) return;
+  const remove = event.target.closest("[data-automation-remove]");
+  const add = event.target.closest("[data-automation-add]");
+  if (!remove && !add) return;
+  const track = timelineHistory.present.tracks.find((item) => item.id === selectedMixerTrackId);
+  if (!track) return;
+  if (remove) {
+    const nextAutomation = removeAutomationPoint(track.automation, remove.dataset.automationTarget, Number(remove.dataset.automationTime), Number(remove.dataset.automationFxIndex));
+    commitTimelineProject(updateTrack(timelineHistory.present, selectedMixerTrackId, { automation: nextAutomation }));
+    return;
+  }
+  const target = mixerInspector.querySelector('[data-automation-field="target"]')?.value || "volume";
+  const time = Number(mixerInspector.querySelector('[data-automation-field="time"]')?.value || 0);
+  const value = Number(mixerInspector.querySelector('[data-automation-field="value"]')?.value || 0);
+  const fxIndex = Math.max(0, Number(mixerInspector.querySelector('[data-automation-field="fx-index"]')?.value || 1) - 1);
+  const nextAutomation = upsertAutomationPoint(track.automation, target, { time, value }, fxIndex);
+  commitTimelineProject(updateTrack(timelineHistory.present, selectedMixerTrackId, { automation: nextAutomation }));
+});
+mixerInspector?.addEventListener("change", (event) => {
+  if (!timelineHistory || !selectedMixerTrackId || !event.target.matches("[data-automation-enabled]")) return;
+  const track = timelineHistory.present.tracks.find((item) => item.id === selectedMixerTrackId);
+  if (!track) return;
+  const automation = normalizeTrackAutomation(track.automation);
+  commitTimelineProject(updateTrack(timelineHistory.present, selectedMixerTrackId, { automation: { ...automation, enabled: event.target.checked } }));
 });
 
 timelineGrid?.addEventListener("keydown", (event) => {

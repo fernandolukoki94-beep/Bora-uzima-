@@ -3,6 +3,25 @@ const DEFAULT_TEMPO = 100;
 const DEFAULT_KEY = "C";
 const DEFAULT_TIME_SIGNATURE = "4/4";
 
+function normalizeAutomationPoint(point = {}, target = "volume") {
+  const time = Math.max(0, Number(point.time) || 0);
+  const raw = Number(point.value);
+  const value = target === "volume" ? Math.max(0, Math.min(2, Number.isFinite(raw) ? raw : 1)) : target === "pan" ? Math.max(-1, Math.min(1, Number.isFinite(raw) ? raw : 0)) : Math.max(0, Math.min(1, Number.isFinite(raw) ? raw : 0.5));
+  return { time: Number(time.toFixed(4)), value: Number(value.toFixed(4)) };
+}
+
+function normalizeTrackAutomation(automation = {}) {
+  const lanes = Array.isArray(automation?.lanes) ? automation.lanes : [];
+  return {
+    enabled: automation?.enabled !== false,
+    lanes: lanes.map((lane) => {
+      const target = ["volume", "pan", "fx"].includes(lane?.target) ? lane.target : "volume";
+      const points = (Array.isArray(lane?.points) ? lane.points : []).map((point) => normalizeAutomationPoint(point, target)).sort((a, b) => a.time - b.time);
+      return { target, fxIndex: target === "fx" ? Math.max(0, Math.floor(Number(lane?.fxIndex) || 0)) : null, enabled: lane?.enabled !== false, points };
+    }).filter((lane) => lane.points.length),
+  };
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -24,6 +43,7 @@ export function createTrack({ id = makeId("track"), name = "Lead Vocal", type = 
     solo: false,
     clips: [],
     effects: [],
+    automation: { enabled: true, lanes: [] },
   };
 }
 
@@ -104,11 +124,13 @@ export function normalizeProject(input = {}) {
         ...track,
         clips: Array.isArray(track.clips) ? track.clips.map((clip) => ({ ...createClip(clip), ...clip })) : [],
         effects: Array.isArray(track.effects) ? [...track.effects] : [],
+        automation: normalizeTrackAutomation(track.automation),
       }))
     : [
         {
           ...base.tracks[0],
           clips: legacyClip ? [legacyClip] : [],
+          automation: { enabled: true, lanes: [] },
         },
       ];
 

@@ -1,5 +1,6 @@
 import { audioBufferToWav } from "../effects.js";
 import { isInstrumentClip, renderInstrumentClip } from "./instrument-renderer.js";
+import { evaluateAutomationLane, normalizeTrackAutomation } from "./automation.js";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value) || 0));
@@ -30,11 +31,28 @@ function makeSaturationCurve(intensity) {
   return curve;
 }
 
-function connectTrackEffects(context, track, input, destination) {
+function scheduleAutomationParam(param, lane, startTime, duration, fallback, mapValue = (value) => value) {
+  if (!param || !lane?.points?.length) return;
+  const endTime = startTime + Math.max(0, duration);
+  const points = lane.points.filter((point) => point.time >= startTime && point.time <= endTime);
+  const initial = evaluateAutomationLane(lane, startTime, fallback);
+  param.setValueAtTime(mapValue(initial), startTime);
+  points.forEach((point) => {
+    const at = Math.max(startTime, Math.min(endTime, point.time));
+    param.linearRampToValueAtTime(mapValue(point.value), at);
+  });
+}
+
+function connectTrackEffects(context, track, input, destination, { startTime = 0, duration = 0 } = {}) {
+  const automation = normalizeTrackAutomation(track?.automation);
+  const fxLanes = automation.enabled ? automation.lanes.filter((lane) => lane.target === "fx") : [];
+  const effectLane = (index) => fxLanes.find((lane) => lane.fxIndex === index);
+
   let current = input;
-  normalizeTrackEffects(track?.effects).forEach((effect) => {
+  normalizeTrackEffects(track?.effects).forEach((effect, effectIndex) => {
     if (effect.bypass || effect.intensity <= 0) return;
     const intensity = effect.intensity;
+    const lane = effectLane(effectIndex);
     if (effect.type === "compressor" || effect.type === "gate" || effect.type === "de-esser") {
       if (effect.type === "de-esser") {
         const filter = context.createBiquadFilter();
@@ -48,6 +66,11 @@ function connectTrackEffects(context, track, input, destination) {
       compressor.ratio.value = effect.type === "gate" ? 12 + intensity * 8 : 1.5 + intensity * 8;
       compressor.attack.value = effect.type === "de-esser" ? 0.001 : 0.003;
       compressor.release.value = 0.08 + intensity * 0.2;
+      if (lane) {
+        scheduleAutomationParam(compressor.threshold, lane, startTime, duration, intensity, (value) => effect.type === "gate" ? -48 + value * 18 : -30 + value * 12);
+        scheduleAutomationParam(compressor.ratio, lane, startTime, duration, intensity, (value) => effect.type === "gate" ? 12 + value * 8 : 1.5 + value * 8);
+        scheduleAutomationParam(compressor.release, lane, startTime, duration, intensity, (value) => 0.08 + value * 0.2);
+      }
       current.connect(compressor);
       current = compressor;
       return;
@@ -59,6 +82,7 @@ function connectTrackEffects(context, track, input, destination) {
       limiter.ratio.value = 20;
       limiter.attack.value = 0.001;
       limiter.release.value = 0.08;
+      if (lane) scheduleAutomationParam(limiter.threshold, lane, startTime, duration, intensity, (value) => -2 - value * 10);
       current.connect(limiter);
       current = limiter;
       return;
@@ -69,6 +93,7 @@ function connectTrackEffects(context, track, input, destination) {
       eq.frequency.value = 1800;
       eq.Q.value = 0.8;
       eq.gain.value = -3 + intensity * 6;
+      if (lane) scheduleAutomationParam(eq.gain, lane, startTime, duration, intensity, (value) => -3 + value * 6);
       current.connect(eq);
       current = eq;
       return;
@@ -86,6 +111,7 @@ function connectTrackEffects(context, track, input, destination) {
       delay.delayTime.value = effect.type === "chorus" ? 0.018 : 0.004;
       const wet = context.createGain();
       wet.gain.value = 0.15 + intensity * 0.35;
+      if (lane) scheduleAutomationParam(wet.gain, lane, startTime, duration, intensity, (value) => 0.15 + value * 0.35);
       const lfo = context.createOscillator();
       const lfoGain = context.createGain();
       lfo.frequency.value = effect.type === "chorus" ? 0.8 : 0.25;
@@ -255,7 +281,10 @@ export async function renderTimelineToWav(project, blobByKey, options = {}) {
     const soloActive = (project.tracks || []).some((track) => track.solo);
     (project.tracks || []).forEach((track) => {
       if (track.muted || (soloActive && !track.solo)) return;
-      (track.clips || []).forEach((clip) => {
+      const trackAutomation = normalizeTrackAutomation(track.automation);
+    const volumeLane = trackAutomation.enabled ? trackAutomation.lanes.find((lane) => lane.target === "volume") : null;
+    const panLane = trackAutomation.enabled ? trackAutomation.lanes.find((lane) => lane.target === "pan") : null;
+    (track.clips || []).forEach((clip) => {
         let sourceBuffer = decoded.get(clip.blobKey) || decoded.get(clip.id);
         if (!sourceBuffer && isInstrumentClip(clip)) {
           const rendered = renderInstrumentClip(clip, { sampleRate, tempo: project.tempo });
@@ -272,18 +301,22 @@ export async function renderTimelineToWav(project, blobByKey, options = {}) {
         const start = Math.max(0, Number(clip.start || 0));
         const fadeIn = Math.min(Number(clip.fadeIn || 0), duration / 2);
         const fadeOut = Math.min(Number(clip.fadeOut || 0), duration / 2);
+        const automatedVolume = volumeLane ? evaluateAutomationLane(volumeLane, start, trackGain) : trackGain;
+        const automatedPan = panLane ? evaluateAutomationLane(panLane, start, Number(track.pan) || 0) : Number(track.pan) || 0;
         gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(trackGain * clipGain, start + fadeIn);
+        gain.gain.linearRampToValueAtTime(automatedVolume * clipGain, start + fadeIn);
         gain.gain.setValueAtTime(trackGain * clipGain, start + Math.max(fadeIn, duration - fadeOut));
         gain.gain.linearRampToValueAtTime(0, start + duration);
+        if (volumeLane) scheduleAutomationParam(gain.gain, volumeLane, start, duration, trackGain, (value) => value * clipGain);
         const stereo = offline.createStereoPanner ? offline.createStereoPanner() : null;
         const effectInput = source.connect(gain);
         if (stereo) {
-          stereo.pan.value = clamp(track.pan, -1, 1);
-          connectTrackEffects(offline, track, effectInput, stereo);
+          stereo.pan.value = clamp(automatedPan, -1, 1);
+          if (panLane) scheduleAutomationParam(stereo.pan, panLane, start, duration, Number(track.pan) || 0, (value) => clamp(value, -1, 1));
+          connectTrackEffects(offline, track, effectInput, stereo, { startTime: start, duration });
           stereo.connect(offline.destination);
         } else {
-          connectTrackEffects(offline, track, effectInput, offline.destination);
+          connectTrackEffects(offline, track, effectInput, offline.destination, { startTime: start, duration });
         }
         source.start(start, Math.max(0, Number(clip.sourceOffset || 0)), duration);
       });

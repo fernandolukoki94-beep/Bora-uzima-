@@ -163,7 +163,7 @@
 - [x] Validar criação de tracks com 155 testes aprovados
 - [ ] Implementar Record Arm e selecção de Input
 - [ ] Implementar routing Output entre tracks e buses
-- [ ] Implementar automação de volume, pan e parâmetros FX
+- [x] Implementar automação de volume, pan e parâmetros FX
 
 - [x] Record Arm persistente por track
 - [x] Selector de Input persistente por track
@@ -485,3 +485,9 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Implementar Mixer profissional com medidores de pico por canal, estado real e controlos clicáveis
 - [x] Testar meters, ganho, mute, solo, pan, persistência e acessibilidade do Mixer
 - [x] Confirmar deployment Vercel e presença funcional do Mixer em produção
+
+- [x] Auditar estado real dos providers AI Producer e Voice Character, incluindo fallback, quota e segurança
+- [x] Verificar plugins de áudio e integração publicada no último deployment Vercel
+- [x] Definir contrato de automação para volume, pan e parâmetros FX no Mix Session
+- [x] Implementar automação persistente e funcional com lanes/pontos editáveis
+- [x] Testar automação, plugins, exportação e presença no deployment de produção
