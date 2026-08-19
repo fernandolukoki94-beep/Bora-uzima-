@@ -7,10 +7,11 @@ import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
 import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitClip, trimClip } from "./studio/timeline.js";
-import { playChord, playDrumHit, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
+import { getAudioContext, playChord, playDrumHit, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
+import { createSamplerState, playSamplerVoice, updateSamplerState } from "./studio/sampler.js";
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
-import { SOUND_LIBRARY, getSoundLibraryItem, soundLibraryClip } from "./studio/sound-library.js";
+import { SOUND_LIBRARY, filterSoundLibrary, getSoundLibraryItem, soundLibraryClip } from "./studio/sound-library.js";
 import { isInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav, calculateLoudnessMetrics } from "./studio/mixdown.js";
 import { createProjectManifest, downloadBlob, exportVariantFilename, preferredExportVariant, projectManifestFilename } from "./export-audio.js";
@@ -21,6 +22,7 @@ import { requestProductionAdvice } from "./ai-producer-client.js";
 import { isFirebaseSignedIn, listCloudProjects, saveCloudProject, cloudProjectToLocal } from "./firebase-projects.js";
 import { adviceToProducerPlan } from "./ai-advice-to-plan.js";
 import { createImportedBeat, revokeImportedBeat } from "./beat-import.js";
+import { createLooperState, addLooperLayer, removeLastLooperLayer, toggleLooperLayerMute, materializeLooperClip, looperSummary } from "./studio/looper.js";
 import { loadEffectPresets, saveEffectPreset, deleteEffectPreset, isBuiltInEffectPreset } from "./effect-presets.js";
 import { beginProduction, cancelProduction, completeProduction, failProduction, setProductionPhase, isProductionActive, PRODUCTION_STATES } from "./production.js";
 import {
@@ -116,6 +118,26 @@ const keyboardSustain = document.getElementById("keyboard-sustain");
 const keyboardQuantize = document.getElementById("keyboard-quantize");
 const keyboardMidiRecord = document.getElementById("keyboard-midi-record");
 const keyboardMidiStatus = document.getElementById("keyboard-midi-status");
+const samplerSource = document.getElementById("sampler-source");
+const samplerStart = document.getElementById("sampler-start");
+const samplerStartValue = document.getElementById("sampler-start-value");
+const samplerEnd = document.getElementById("sampler-end");
+const samplerEndValue = document.getElementById("sampler-end-value");
+const samplerPitch = document.getElementById("sampler-pitch");
+const samplerPitchValue = document.getElementById("sampler-pitch-value");
+const samplerReverse = document.getElementById("sampler-reverse");
+const samplerLoop = document.getElementById("sampler-loop");
+const samplerFilter = document.getElementById("sampler-filter");
+const samplerPreview = document.getElementById("sampler-preview");
+const samplerStatus = document.getElementById("sampler-status");
+const looperDuration = document.getElementById("looper-duration");
+const looperQuantize = document.getElementById("looper-quantize");
+const looperOverdub = document.getElementById("looper-overdub");
+const looperAddLayer = document.getElementById("looper-add-layer");
+const looperUndoLayer = document.getElementById("looper-undo-layer");
+const looperMaterialize = document.getElementById("looper-materialize");
+const looperLayers = document.getElementById("looper-layers");
+const looperStatus = document.getElementById("looper-status");
 const chordSelect = document.getElementById("chord-select");
 const playChordButton = document.getElementById("play-chord");
 const patternSelect = document.getElementById("pattern-select");
@@ -129,6 +151,11 @@ const pianoRollStatus = document.getElementById("piano-roll-status");
 const beatGrid = document.getElementById("beat-grid");
 const soundLibraryGrid = document.getElementById("sound-library-grid");
 const soundLibraryStatus = document.getElementById("sound-library-status");
+const soundLibraryQuery = document.getElementById("sound-library-query");
+const soundLibraryCategory = document.getElementById("sound-library-category");
+const soundLibraryGenre = document.getElementById("sound-library-genre");
+const soundLibraryMood = document.getElementById("sound-library-mood");
+const soundLibraryFavoritesOnly = document.getElementById("sound-library-favorites-only");
 const beatPreset = document.getElementById("beat-preset");
 const applyBeatPreset = document.getElementById("apply-beat-preset");
 const playBeatSequence = document.getElementById("play-beat-sequence");
@@ -256,6 +283,9 @@ let activeTimelineId = null;
 let timelineHistory = null;
 let timelineClipboard = null;
 let keyboardMidiRecording = null;
+let samplerState = createSamplerState();
+let looperState = createLooperState();
+const samplerBuffers = new Map();
 let selectedMixerTrackId = null;
 let transportTimers = [];
 let transportFrame = null;
@@ -303,6 +333,37 @@ if (pianoRoll) {
 if (beatGrid) {
   const channels = ["kick", "snare", "clap", "hihat", "percussion", "bass"];
   beatGrid.innerHTML = channels.map((channel) => `<div class="beat-row"><span class="beat-label">${channel}</span>${Array.from({ length: 16 }, (_, step) => `<button class="beat-step" type="button" data-beat-channel="${channel}" data-beat-step="${step}" aria-label="${channel} passo ${step + 1}"></button>`).join("")}</div>`).join("");
+}
+function pianoRollStorageKey() { return `fernando-lucoco-music:piano-roll:${activeTimelineId || "draft"}`; }
+function savePianoRollEdits() {
+  if (!pianoRoll) return;
+  const notes = [...pianoRoll.querySelectorAll("[data-piano-note]")].map((button) => ({
+    step: Number(button.dataset.pianoStep || 0),
+    note: button.dataset.pianoNote,
+    velocity: Number(button.dataset.pianoVelocity || 0.82),
+    duration: Number(button.dataset.pianoDuration || 0.9),
+    active: button.classList.contains("is-active"),
+  }));
+  try { window.localStorage.setItem(pianoRollStorageKey(), JSON.stringify(notes)); } catch {}
+}
+function restorePianoRollEdits() {
+  if (!pianoRoll) return;
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(pianoRollStorageKey()) || "null");
+    if (!Array.isArray(saved)) return;
+    saved.forEach((item) => {
+      const button = pianoRoll.querySelector(`[data-piano-step="${Number(item.step) || 0}"]`);
+      if (!button) return;
+      if (item.note) {
+        button.dataset.pianoNote = String(item.note);
+        button.textContent = String(item.note).replace(/[0-9]/g, "");
+      }
+      button.dataset.pianoVelocity = Math.max(0.1, Math.min(1, Number(item.velocity) || 0.82)).toFixed(2);
+      button.dataset.pianoDuration = Math.max(0.25, Math.min(2, Number(item.duration) || 0.9)).toFixed(2);
+      button.classList.toggle("is-active", item.active !== false);
+      button.title = `${button.dataset.pianoNote} · velocity ${button.dataset.pianoVelocity} · duração ${button.dataset.pianoDuration}`;
+    });
+  } catch {}
 }
 
 function formatBytes(bytes) {
@@ -1004,6 +1065,7 @@ function syncTimelineHistory(project) {
     activeTimelineId = project.id;
     timelineHistory = createHistoryState(normalizeProject(project));
   }
+  restorePianoRollEdits();
 }
 function formatTransportTime(seconds) {
   const safe = Math.max(0, Number(seconds) || 0);
@@ -1081,6 +1143,7 @@ function refreshTransportProject() {
 }
 
 function renderTimeline() {
+  refreshSamplerSources();
   if (!timelineGrid) return;
   const project = currentTimelineProject();
   syncTimelineHistory(project);
@@ -1252,13 +1315,38 @@ function insertInstrumentClip({ name, type, duration = 4, metadata = {}, start =
   return true;
 }
 
+const SOUND_FAVORITES_KEY = "fernando-lucoco-sound-favorites-v1";
+let soundLibraryFavorites = new Set();
+let soundLibraryFilters = { query: "", category: "", genre: "", mood: "", favoritesOnly: false };
+function loadSoundLibraryFavorites() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SOUND_FAVORITES_KEY) || "[]");
+    soundLibraryFavorites = new Set(Array.isArray(raw) ? raw.filter((id) => getSoundLibraryItem(id)) : []);
+  } catch { soundLibraryFavorites = new Set(); }
+}
+function persistSoundLibraryFavorites() {
+  try { localStorage.setItem(SOUND_FAVORITES_KEY, JSON.stringify([...soundLibraryFavorites])); } catch { /* localStorage pode estar indisponível */ }
+}
+function toggleSoundLibraryFavorite(id) {
+  if (soundLibraryFavorites.has(id)) soundLibraryFavorites.delete(id);
+  else soundLibraryFavorites.add(id);
+  persistSoundLibraryFavorites();
+  renderSoundLibrary();
+}
 function renderSoundLibrary() {
   if (!soundLibraryGrid) return;
-  soundLibraryGrid.innerHTML = SOUND_LIBRARY.map((item) => `<article class="sound-library-card" draggable="true" data-sound-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.name)}">
-    <div class="sound-library-card-top"><span class="sound-library-swatch" style="background:${escapeHtml(item.color)}" aria-hidden="true"></span><span class="sound-library-type">${escapeHtml(item.type)}</span></div>
-    <strong>${escapeHtml(item.name)}</strong><small>${item.duration}s · local</small>
-    <div class="sound-library-actions"><button class="mini-button" type="button" data-sound-preview="${escapeHtml(item.id)}">▶ Ouvir</button><button class="mini-button primary" type="button" data-sound-add="${escapeHtml(item.id)}">＋ Timeline</button></div>
-  </article>`).join("");
+  const items = filterSoundLibrary(SOUND_LIBRARY, { ...soundLibraryFilters, favoriteIds: [...soundLibraryFavorites] });
+  soundLibraryFavoritesOnly?.setAttribute("aria-pressed", String(soundLibraryFilters.favoritesOnly));
+  soundLibraryFavoritesOnly?.classList.toggle("is-active", soundLibraryFilters.favoritesOnly);
+  soundLibraryGrid.innerHTML = items.length ? items.map((item) => {
+    const favorite = soundLibraryFavorites.has(item.id);
+    return `<article class="sound-library-card" draggable="true" data-sound-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.name)}">
+      <div class="sound-library-card-top"><span class="sound-library-swatch" style="background:${escapeHtml(item.color)}" aria-hidden="true"></span><span class="sound-library-type">${escapeHtml(item.category)} · ${escapeHtml(item.genre)}</span><button class="sound-library-favorite${favorite ? " is-active" : ""}" type="button" data-sound-favorite="${escapeHtml(item.id)}" aria-label="${favorite ? "Remover" : "Adicionar"} ${escapeHtml(item.name)} ${favorite ? "dos" : "aos"} favoritos" aria-pressed="${favorite}">${favorite ? "★" : "☆"}</button></div>
+      <strong>${escapeHtml(item.name)}</strong><small>${item.duration}s · ${item.bpm} BPM · ${escapeHtml(item.key)} · ${escapeHtml(item.mood)}</small>
+      <div class="sound-library-actions"><button class="mini-button" type="button" data-sound-preview="${escapeHtml(item.id)}">▶ Ouvir</button><button class="mini-button primary" type="button" data-sound-add="${escapeHtml(item.id)}">＋ Timeline</button></div>
+    </article>`;
+  }).join("") : `<div class="sound-library-empty">Nenhum som corresponde aos filtros. Ajusta a pesquisa ou cria um favorito a partir do catálogo base.</div>`;
+  if (soundLibraryStatus) soundLibraryStatus.textContent = `${items.length} ${items.length === 1 ? "som disponível" : "sons disponíveis"} · pré-escuta local e arrastar para a timeline.`;
 }
 
 async function previewSoundLibraryItem(item) {
@@ -1453,6 +1541,7 @@ async function createCompedVocal(groupId, container) {
   showToast(`“${comped.name}” criada a partir de ${projects.length} takes.`);
 }
 function renderProjects() {
+  loadSoundLibraryFavorites();
   renderSoundLibrary();
   const projects = readProjects();
   renderRecentProjects(projects);
@@ -2316,6 +2405,107 @@ transportPlay?.addEventListener("click", playTimeline);
 transportPause?.addEventListener("click", pauseTimeline);
 transportStop?.addEventListener("click", stopTimeline);
 const keyboardPhysicalMap = { a: "C", w: "C#", s: "D", e: "D#", d: "E", f: "F", t: "F#", g: "G", y: "G#", h: "A", u: "A#", j: "B" };
+async function refreshSamplerSources() {
+  if (!samplerSource || !activeTimelineId || !timelineHistory?.present) return;
+  const project = timelineHistory.present;
+  const variants = Object.keys(VOCAL_VARIANTS).filter((variant) => getVariantData(project, variant) || variant === "original");
+  const current = samplerSource.value;
+  samplerSource.innerHTML = `<option value="">Seleccionar áudio da sessão</option>${variants.map((variant) => `<option value="${variant}">${VOCAL_VARIANTS[variant].label}</option>`).join("")}`;
+  samplerSource.value = variants.includes(current) ? current : (variants.includes("mastered") ? "mastered" : "original");
+}
+async function loadSamplerBuffer(sourceId = samplerSource?.value) {
+  if (!sourceId || !activeTimelineId || !timelineHistory?.present) return null;
+  if (samplerBuffers.has(sourceId)) return samplerBuffers.get(sourceId);
+  const project = timelineHistory.present;
+  const variant = canonicalVariant(sourceId);
+  let blob = null;
+  try { if (await indexedDbAvailable()) blob = await getAudioBlob(activeTimelineId, blobKindForVariant(variant)); } catch {}
+  if (!blob) {
+    const data = getVariantData(project, variant);
+    if (data) blob = await dataUrlToBlob(data, getVariantMime(project, variant));
+  }
+  if (!blob) throw new Error("A fonte seleccionada ainda não tem áudio persistido.");
+  const buffer = await getAudioContext().decodeAudioData(await blob.arrayBuffer());
+  samplerBuffers.set(sourceId, buffer);
+  samplerState = updateSamplerState(samplerState, { sourceId, duration: buffer.duration, start: 0, end: buffer.duration, loopStart: 0, loopEnd: buffer.duration });
+  if (samplerStart) { samplerStart.max = String(buffer.duration); samplerStart.value = "0"; }
+  if (samplerEnd) { samplerEnd.max = String(buffer.duration); samplerEnd.value = String(buffer.duration); }
+  if (samplerStartValue) samplerStartValue.value = "0.00s";
+  if (samplerEndValue) samplerEndValue.value = `${buffer.duration.toFixed(2)}s`;
+  if (samplerStatus) samplerStatus.textContent = `${VOCAL_VARIANTS[variant]?.label || variant} · ${buffer.duration.toFixed(2)}s`;
+  return buffer;
+}
+function updateSamplerFromControls() {
+  const patch = {
+    sourceId: samplerSource?.value || null,
+    start: Number(samplerStart?.value || 0),
+    end: Number(samplerEnd?.value || samplerState.duration),
+    pitch: Number(samplerPitch?.value || 0),
+    reverse: Boolean(samplerReverse?.checked),
+    loop: Boolean(samplerLoop?.checked),
+    filterType: samplerFilter?.value || "lowpass",
+  };
+  if (patch.end < patch.start) patch.end = patch.start + 0.01;
+  samplerState = updateSamplerState(samplerState, patch);
+  if (samplerStartValue) samplerStartValue.value = `${samplerState.start.toFixed(2)}s`;
+  if (samplerEndValue) samplerEndValue.value = `${samplerState.end.toFixed(2)}s`;
+  if (samplerPitchValue) samplerPitchValue.value = `${samplerState.pitch > 0 ? "+" : ""}${samplerState.pitch} st`;
+}
+async function previewSampler(noteName = "C4") {
+  const buffer = await loadSamplerBuffer(samplerSource?.value);
+  if (!buffer) throw new Error("Selecciona uma fonte do Sampler.");
+  updateSamplerFromControls();
+  await playSamplerVoice(getAudioContext(), buffer, samplerState, { pitch: 0, velocity: Number(keyboardVelocity?.value || 0.82) });
+}
+function updateLooperFromControls() {
+  looperState = createLooperState({
+    ...looperState,
+    duration: Number(looperDuration?.value || looperState.duration),
+    quantize: looperQuantize?.value || looperState.quantize,
+    overdub: looperOverdub?.checked !== false,
+  });
+  if (looperDuration) looperDuration.value = String(looperState.duration);
+  return looperState;
+}
+function renderLooperLayers() {
+  if (!looperLayers) return;
+  const summary = looperSummary(looperState);
+  looperLayers.innerHTML = looperState.layers.length ? looperState.layers.map((layer) => `<div class="looper-layer ${layer.muted ? "is-muted" : ""}" data-looper-layer="${escapeHtml(layer.id)}"><span><strong>${escapeHtml(layer.name)}</strong><small>${layer.events.length} eventos · ganho ${Math.round(layer.gain * 100)}%</small></span><button type="button" class="mini-button" data-looper-mute="${escapeHtml(layer.id)}" aria-pressed="${layer.muted}">${layer.muted ? "Activar" : "Silenciar"}</button></div>`).join("") : `<span class="instrument-note">Nenhuma camada criada.</span>`;
+  if (looperStatus) looperStatus.textContent = `${summary.activeLayers}/${summary.layers} camadas activas · ${summary.duration.toFixed(2)}s · ${summary.quantize}`;
+}
+function createLooperLayerFromInput() {
+  updateLooperFromControls();
+  const events = keyboardMidiRecording?.events?.length ? keyboardMidiRecording.events.map((event) => ({ type: "midi", time: event.time, duration: event.duration, value: event.velocity })) : [];
+  if (!events.length && !samplerSource?.value) {
+    showToast("Grava notas no teclado ou selecciona uma fonte Sampler antes de adicionar uma camada.");
+    return;
+  }
+  const source = events.length ? "keyboard-midi" : samplerSource.value;
+  const layer = { name: `Layer ${looperState.layers.length + 1}`, source, events: events.length ? events : [{ type: "audio-source", time: 0, duration: looperState.duration, value: 1 }] };
+  looperState = addLooperLayer(looperState, layer);
+  renderLooperLayers();
+  showToast(`${layer.name} adicionada ao Looper.`);
+}
+function materializeLooperToTimeline() {
+  updateLooperFromControls();
+  if (!looperState.layers.length) return showToast("Adiciona pelo menos uma camada ao Looper.");
+  const clip = materializeLooperClip(looperState, { name: `Looper · ${looperState.layers.length} camadas` });
+  const added = insertInstrumentClip({ name: clip.name, type: "instrument", duration: clip.duration, metadata: clip.event });
+  if (added && looperStatus) looperStatus.textContent = "Looper materializado na timeline · clip reversível.";
+}
+looperDuration?.addEventListener("input", () => { updateLooperFromControls(); renderLooperLayers(); });
+looperQuantize?.addEventListener("change", () => { updateLooperFromControls(); renderLooperLayers(); });
+looperOverdub?.addEventListener("change", () => { updateLooperFromControls(); renderLooperLayers(); });
+looperAddLayer?.addEventListener("click", createLooperLayerFromInput);
+looperUndoLayer?.addEventListener("click", () => { looperState = removeLastLooperLayer(looperState); renderLooperLayers(); showToast("Última camada removida sem alterar as fontes."); });
+looperMaterialize?.addEventListener("click", materializeLooperToTimeline);
+looperLayers?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-looper-mute]");
+  if (!button) return;
+  looperState = toggleLooperLayerMute(looperState, button.dataset.looperMute);
+  renderLooperLayers();
+});
+renderLooperLayers();
 async function previewKeyboardNote(noteName) {
   const octave = Number(keyboardOctave?.value || 4);
   const velocity = Math.max(0.1, Math.min(1, Number(keyboardVelocity?.value || 0.82)));
@@ -2330,7 +2520,10 @@ async function previewKeyboardNote(noteName) {
     keyboardMidiRecording.events.push({ note, time, duration, velocity, instrument: "piano" });
     if (keyboardMidiStatus) keyboardMidiStatus.textContent = `${keyboardMidiRecording.events.length} notas gravadas · ${time.toFixed(2)}s`;
   }
-  try { await playNote(note, { duration, volume: velocity * 0.18 }); }
+  try {
+    if (samplerSource?.value) await previewSampler(note);
+    else await playNote(note, { duration, volume: velocity * 0.18 });
+  }
   catch (error) { showToast(error.message); }
   finally { window.setTimeout(() => button?.classList.remove("is-active"), duration * 1000); }
 }
@@ -2340,6 +2533,9 @@ keyboardNotes?.addEventListener("click", async (event) => {
   await previewKeyboardNote(button.dataset.noteName);
 });
 keyboardVelocity?.addEventListener("input", () => { if (keyboardVelocityValue) keyboardVelocityValue.value = `${Math.round(Number(keyboardVelocity.value) * 100)}%`; });
+[samplerSource, samplerStart, samplerEnd, samplerPitch, samplerReverse, samplerLoop, samplerFilter].forEach((control) => control?.addEventListener("input", updateSamplerFromControls));
+samplerSource?.addEventListener("change", async () => { samplerBuffers.delete(samplerSource.value); try { await loadSamplerBuffer(samplerSource.value); } catch (error) { if (samplerStatus) samplerStatus.textContent = error.message; } });
+samplerPreview?.addEventListener("click", async () => { try { await previewSampler("C4"); } catch (error) { if (samplerStatus) samplerStatus.textContent = error.message; } });
 keyboardQuantize?.addEventListener("change", () => showToast(`Quantização do teclado: ${keyboardQuantize.value}.`));
 keyboardMidiRecord?.addEventListener("click", () => {
   if (!keyboardMidiRecording) {
@@ -2490,6 +2686,7 @@ pianoRoll?.addEventListener("click", async (event) => {
     button.classList.toggle("is-active");
   }
   flashControl(button);
+  savePianoRollEdits();
   if (pianoRollStatus) pianoRollStatus.textContent = `${pianoRollEvents().length} passos activos · ${button.dataset.pianoNote} · velocity ${button.dataset.pianoVelocity} · duração ${button.dataset.pianoDuration}`;
   try { await playNote(button.dataset.pianoNote, { type: "triangle", duration: 0.28, volume: Number(button.dataset.pianoVelocity) * 0.14 }); } catch (error) { showToast(error.message); }
 });
@@ -2500,11 +2697,14 @@ pianoRoll?.addEventListener("dblclick", (event) => {
   button.dataset.pianoNote = pianoEditableNotes[(current + 1) % pianoEditableNotes.length];
   button.textContent = button.dataset.pianoNote.replace(/[0-9]/g, "");
   button.title = `${button.dataset.pianoNote} · duplo clique para mudar altura`;
+  savePianoRollEdits();
   if (pianoRollStatus) pianoRollStatus.textContent = `Nota editada: ${button.dataset.pianoNote}.`;
 });
 playPianoSequence?.addEventListener("click", previewPianoRollSequence);
 addPianoTimeline?.addEventListener("click", addPianoRollToTimeline);
 soundLibraryGrid?.addEventListener("click", async (event) => {
+  const favorite = event.target.closest("[data-sound-favorite]");
+  if (favorite) { toggleSoundLibraryFavorite(favorite.dataset.soundFavorite); return; }
   const preview = event.target.closest("[data-sound-preview]");
   const add = event.target.closest("[data-sound-add]");
   if (!preview && !add) return;
@@ -2512,6 +2712,13 @@ soundLibraryGrid?.addEventListener("click", async (event) => {
   if (preview) await previewSoundLibraryItem(item);
   else addSoundLibraryItem(item);
 });
+function syncSoundLibraryFilters() {
+  soundLibraryFilters = { query: soundLibraryQuery?.value || "", category: soundLibraryCategory?.value || "", genre: soundLibraryGenre?.value || "", mood: soundLibraryMood?.value || "", favoritesOnly: Boolean(soundLibraryFavoritesOnly?.getAttribute("aria-pressed") === "true") };
+  renderSoundLibrary();
+}
+[soundLibraryQuery, soundLibraryCategory, soundLibraryGenre, soundLibraryMood].forEach((control) => control?.addEventListener("input", syncSoundLibraryFilters));
+[soundLibraryCategory, soundLibraryGenre, soundLibraryMood].forEach((control) => control?.addEventListener("change", syncSoundLibraryFilters));
+soundLibraryFavoritesOnly?.addEventListener("click", () => { soundLibraryFavoritesOnly.setAttribute("aria-pressed", String(soundLibraryFavoritesOnly.getAttribute("aria-pressed") !== "true")); syncSoundLibraryFilters(); });
 soundLibraryGrid?.addEventListener("keydown", async (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
   const card = event.target.closest("[data-sound-id]");

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addLooperLayer, createLooperState, flattenLooperEvents, removeLastLooperLayer, toggleLooperLayerMute, updateLooperLayer } from "../src/js/studio/looper.js";
+import { addLooperLayer, createLooperState, flattenLooperEvents, materializeLooperClip, removeLastLooperLayer, toggleLooperLayerMute, updateLooperLayer } from "../src/js/studio/looper.js";
 
 test("Looper cria estado seguro e adiciona camadas independentes", () => {
   const initial = createLooperState({ duration: 8, quantize: "1/16" });
@@ -20,6 +20,17 @@ test("Looper suporta overdub e flatten apenas de camadas activas", () => {
   assert.equal(state.overdub, true);
   assert.equal(flattenLooperEvents(state).length, 1);
   assert.equal(flattenLooperEvents(state)[0].layerId, "loop-layer-2");
+});
+
+test("Looper materializa camadas activas num clip persistível", () => {
+  let state = addLooperLayer(createLooperState({ duration: 6 }), { name: "A", events: [{ type: "audio", time: 0, duration: 2 }] });
+  state = addLooperLayer(state, { name: "B", events: [{ type: "audio", time: 2, duration: 2 }] });
+  state = toggleLooperLayerMute(state, "loop-layer-1");
+  const clip = materializeLooperClip(state, { id: "clip-loop" });
+  assert.equal(clip.id, "clip-loop");
+  assert.equal(clip.duration, 6);
+  assert.equal(clip.event.kind, "looper");
+  assert.deepEqual(clip.event.layers.map((layer) => layer.name), ["B"]);
 });
 
 test("Looper actualiza ganho e faz undo apenas da última camada", () => {

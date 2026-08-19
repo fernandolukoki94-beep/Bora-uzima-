@@ -67,4 +67,16 @@ export function looperSummary(state) {
   return { layers: current.layers.length, activeLayers: current.layers.filter((layer) => !layer.muted).length, duration: current.duration, overdub: current.overdub, quantize: current.quantize };
 }
 
+export function materializeLooperClip(state, { id = `looper-${Date.now()}`, name = "Looper take" } = {}) {
+  const current = createLooperState(state);
+  return {
+    id: String(id),
+    type: "audio",
+    name: String(name),
+    duration: current.duration,
+    source: "looper",
+    event: { kind: "looper", layers: current.layers.filter((layer) => !layer.muted).map((layer) => ({ ...layer, events: layer.events.map((event) => ({ ...event })) })) },
+  };
+}
+
 export { MAX_LAYERS };

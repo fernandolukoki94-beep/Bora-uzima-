@@ -300,7 +300,7 @@
 
 ## Próxima fase de implementação — lacunas do pasted_content.txt
 
-- [ ] Confirmar associação do repositório web Fernando Lucoco Music e preview correcto
+- [x] Confirmar associação do repositório web Fernando Lucoco Music e preview correcto (Vercel READY, commit 0b289d1)
 - [x] Implementar medição LUFS integrada e short-term no Mastering
 - [x] Ligar exportação final e partilha preferencial à variante Mastered
 - [x] Completar FX modular: EQ, compressor, limiter, chorus, flanger, saturation, de-esser e gate
@@ -314,13 +314,16 @@
 - [x] Ligar controlos visuais de kit, swing, velocity e loop ao painel Beat Maker
 - [ ] Implementar Looper com camadas e undo de camadas
 - [x] Criar modelo de camadas, overdub, mute, flatten e undo do Looper
+- [x] Materializar camadas activas do Looper num clip persistível da timeline
 - [ ] Ligar captura/preview do Looper à interface e à timeline
 - [ ] Implementar Sampler com corte, mapeamento, pitch, reverse, loop, ADSR e filtro
 - [x] Criar modelo de região, playback rate, reverse, loop, ADSR e filtro do Sampler
 - [x] Renderizar voz do Sampler em OfflineAudioContext sem mutar a fonte
-- [ ] Ligar Sampler a fonte de áudio, teclado e interface
+- [x] Reproduzir voz do Sampler em AudioContext com pitch, reverse, loop, envelope e filtro
+- [x] Ligar Sampler a fonte de áudio persistida, teclado e interface
 - [x] Expandir contrato MIDI/Piano Roll para edição de notas, duração, velocity, snapping 1/16, triplet e transposição
-- [ ] Ligar edição visual completa do Piano Roll ao estado persistido
+- [x] Ligar edição visual do Piano Roll ao estado local persistido por projecto
+- [ ] Sincronizar edições do Piano Roll com IndexedDB/Firestore dedicado
 - [ ] Implementar provider IA real para Producer, Music AI, Voice AI e FX Preset Generator
 - [ ] Implementar Harmony e Voice Character avançados
 - [ ] Implementar Sounds/My Sounds com pesquisa, filtros, tags e armazenamento
@@ -329,3 +332,27 @@
 - [ ] Implementar Distribution, Artist Services, Marketplace, Subscriptions e Notifications
 - [ ] Consolidar segurança, acessibilidade, estados offline e responsividade dedicada
 - [ ] Executar QA desktop, Chrome Android/Samsung Galaxy A06 e Safari iPhone
+
+## Estado actualizado — Looper e Sampler
+
+- [x] Looper: painel visual com duração, quantização, overdub, adicionar camada, undo, mute e materialização
+- [x] Looper: camada derivada de eventos do teclado ou fonte Sampler seleccionada
+- [x] Looper: clip persistível criado na timeline sem incluir camadas silenciadas
+- [x] Sampler: fonte de variante IndexedDB, teclado virtual, reverse, pitch, loop, ADSR e filtro
+- [x] Validação após integração: 169 testes aprovados, 0 falhas; `node --check src/js/app.js` aprovado
+
+## Marco seguinte — Sound Library funcional
+
+- [x] Enriquecer o catálogo local com categoria, género, BPM, tonalidade e mood
+- [x] Implementar pesquisa combinável e filtros de categoria, género e mood
+- [x] Implementar favoritos persistentes no navegador e filtro de favoritos
+- [x] Preservar pré-escuta local, drag-and-drop e materialização na timeline
+- [x] Validar Sound Library com 4 testes dedicados e suite Node limpa com 169 testes aprovados
+- [ ] Migrar My Sounds para upload real com IndexedDB dedicado e organização por pastas/tags
+- [ ] Sincronizar biblioteca pessoal com Firebase Storage/Firestore após definir regras de autorização
+- [ ] Implementar feed, perfis, follows, comentários, mensagens, stories e colaboração com dados reais
+- [ ] Implementar Audio-to-MIDI e Stem Splitter como jobs reais, não apenas estados locais
+
+## Estado de validação deste marco
+
+A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de secrets; os testes Vitest de Gemini e Supabase também passaram. A execução indiscriminada de `node --test tests/*.mjs` continua incompatível com esses dois módulos Vitest e não representa uma falha funcional do Sound Library.

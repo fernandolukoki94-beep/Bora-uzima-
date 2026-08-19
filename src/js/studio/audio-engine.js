@@ -8,6 +8,10 @@ function getContext() {
   return getContext.instance;
 }
 
+export function getAudioContext() {
+  return getContext();
+}
+
 export async function playNote(note, { duration = 0.35, type = "triangle", volume = 0.16, instrument = "piano" } = {}) {
   const context = getContext();
   if (context.state === "suspended") await context.resume();
