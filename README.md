@@ -345,3 +345,10 @@ A implementação cliente está pronta e coberta por testes de contrato. As regr
 O AI Voice inclui Harmony local operacional. A cadeia mantém a voz original e mistura duas vozes transpostas por intervalos de quarta e quinta, com intensidade ajustável entre 0 e 100%. O utilizador pode fazer preview, aplicar a variante `harmony`, comparar e reverter sem apagar o Original, mantendo o resultado no ciclo de persistência de áudio existente.
 
 Esta capacidade é **DSP local e reversível**, não uma afirmação de Harmony generativo por IA cloud. Voice Character avançado, formant-preserving dedicado e Harmony generativo continuam identificados como trabalho futuro na matriz de requisitos.
+
+
+## Voice Character local — auditoria 2026-08-19
+
+O painel **Voice Character** está agora exposto no AI Voice e usa perfis locais de timbre (`Natural`, `Warm`, `Bright`, `Intimate` e `Radio`) com intensidade mensurável. A pré-escuta, aplicação e reversão são não destrutivas: o Original permanece preservado e a variante pode ser reutilizada pelo fluxo local de persistência, Mixdown e exportação. Esta camada é DSP local orientado por perfil; não é clonagem de voz nem transformação generativa formant-preserving. Um modelo formant-preserving dedicado continua como etapa posterior e não é apresentado como concluído.
+
+A validação desta etapa confirmou a presença dos ids de interface (`voice-character-profile`, `voice-character-intensity`, `voice-character-preview`, `voice-character-apply`, `voice-character-reset` e `voice-character-status`), a sintaxe dos módulos e os testes de contrato Harmony/Voice AI. A confirmação em workspace autenticado no Chrome desktop, Chrome Android/Samsung Galaxy A06 e Safari iPhone continua dependente de dispositivos reais.

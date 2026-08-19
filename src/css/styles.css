@@ -1001,3 +1001,37 @@ body.studio-ready .studio-focus-mode .studio-main-column > .shell {
     scroll-behavior: auto;
   }
 }
+
+/* Stability pass: onboarding must scroll as one predictable surface on short screens. */
+.onboarding-shell {
+  min-height: 100dvh;
+  height: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.onboarding-card {
+  min-height: max(100dvh, 100%);
+  max-height: none;
+  overflow: visible;
+  align-content: center;
+}
+@media (max-height: 760px) and (min-width: 761px) {
+  .onboarding-card {
+    justify-content: flex-start;
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+}
+@media (max-width: 760px) {
+  .onboarding-shell {
+    align-items: stretch;
+  }
+  .onboarding-card {
+    min-height: 100dvh;
+    overflow: visible;
+    justify-content: flex-start;
+    padding-top: max(72px, env(safe-area-inset-top) + 32px);
+    padding-bottom: max(40px, env(safe-area-inset-bottom) + 28px);
+  }
+}

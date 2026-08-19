@@ -304,6 +304,71 @@ export function applyHarmonyLocal(blob, { intensity = 0.35 } = {}) {
   });
 }
 
+/**
+ * Voice Character local: perfis de timbre controláveis e reversíveis.
+ * Não é clonagem nem geração vocal; combina filtros, saturação suave,
+ * presença e compressão para alterar o carácter percebido da gravação.
+ */
+export const VOICE_CHARACTER_PROFILES = {
+  natural: { presenceDb: 1.2, warmthDb: 0.8, airDb: 1.5, drive: 0.02, outputGain: 1 },
+  intimate: { presenceDb: 2.8, warmthDb: 1.8, airDb: 0.4, drive: 0.035, outputGain: 0.98 },
+  powerful: { presenceDb: 3.8, warmthDb: 0.2, airDb: 2.4, drive: 0.06, outputGain: 0.94 },
+  radio: { presenceDb: 4.5, warmthDb: -0.8, airDb: 3.2, drive: 0.045, outputGain: 0.92 },
+};
+
+export function voiceCharacterParameters(character = "natural", intensity = 0.65) {
+  const profile = VOICE_CHARACTER_PROFILES[character] || VOICE_CHARACTER_PROFILES.natural;
+  const amount = Math.max(0, Math.min(1, Number(intensity) || 0));
+  return {
+    character: VOICE_CHARACTER_PROFILES[character] ? character : "natural",
+    intensity: amount,
+    presenceDb: Number((profile.presenceDb * amount).toFixed(3)),
+    warmthDb: Number((profile.warmthDb * amount).toFixed(3)),
+    airDb: Number((profile.airDb * amount).toFixed(3)),
+    drive: Number((profile.drive * amount).toFixed(4)),
+    outputGain: Number((1 + ((profile.outputGain - 1) * amount)).toFixed(4)),
+    reversible: true,
+  };
+}
+
+export function applyVoiceCharacterLocal(blob, { character = "natural", intensity = 0.65 } = {}) {
+  const parameters = voiceCharacterParameters(character, intensity);
+  return withDecodedAudio(blob, ({ offline, source }) => {
+    const highPass = offline.createBiquadFilter();
+    highPass.type = "highpass";
+    highPass.frequency.value = 75;
+    highPass.Q.value = 0.707;
+
+    const warmth = offline.createBiquadFilter();
+    warmth.type = "peaking";
+    warmth.frequency.value = 180;
+    warmth.Q.value = 0.75;
+    warmth.gain.value = parameters.warmthDb;
+
+    const presence = offline.createBiquadFilter();
+    presence.type = "peaking";
+    presence.frequency.value = 2800;
+    presence.Q.value = 0.85;
+    presence.gain.value = parameters.presenceDb;
+
+    const air = offline.createBiquadFilter();
+    air.type = "highshelf";
+    air.frequency.value = 8500;
+    air.gain.value = parameters.airDb;
+
+    const compressor = offline.createDynamicsCompressor();
+    compressor.threshold.value = -24;
+    compressor.knee.value = 16;
+    compressor.ratio.value = 2.4;
+    compressor.attack.value = 0.012;
+    compressor.release.value = 0.16;
+
+    const output = offline.createGain();
+    output.gain.value = parameters.outputGain;
+    source.connect(highPass).connect(warmth).connect(presence).connect(air).connect(compressor).connect(output).connect(offline.destination);
+  });
+}
+
 export function applyVocalEnhancement(blob, { presenceDb = 2.5, outputGain = 1.05 } = {}) {
   return withDecodedAudio(blob, ({ offline, source }) => {
     const highPass = offline.createBiquadFilter();

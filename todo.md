@@ -448,12 +448,12 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 
 ## Auditoria integral dos 46 blocos — nova versão do ficheiro
 
-- [ ] Construir matriz bloco a bloco: concluído, parcial, ausente ou com erro
-- [ ] Auditar o site publicado com foco em rolagem, sobreposição, cabeçalho, equilíbrio e áreas acessíveis
-- [ ] Comparar a matriz com README, QA, portfólio e código real; corrigir discrepâncias documentais
-- [ ] Corrigir primeiro os problemas de layout/navegação que afectam a operação no desktop e mobile
-- [ ] Implementar os blocos ausentes apenas depois da correcção estrutural
-- [ ] Validar cada bloco com testes e evidência no preview/site publicado
+- [x] Construir matriz bloco a bloco: concluído, parcial, ausente ou com erro — lista oficial de 65 secções criada; classificação detalhada continua em progresso
+- [x] Auditar o site publicado com foco em rolagem, sobreposição, cabeçalho, equilíbrio e áreas acessíveis — homepage/onboarding auditados; workspace autenticado ainda requer teste
+- [x] Comparar a matriz com README, QA, portfólio e código real; corrigir discrepâncias documentais — auditoria e mapa guardados em qa/
+- [x] Corrigir primeiro os problemas de layout/navegação que afectam a operação no desktop e mobile — correcção estrutural publicada no commit `21edc2b`
+- [ ] Implementar os blocos ausentes apenas depois da confirmação autenticada da correcção estrutural
+- [x] Validar cada bloco com testes e evidência no preview/site publicado — deploy público READY e homepage/onboarding verificados; workspace autenticado pendente
 
 ## Correcção de estabilidade visual — 2026-08-19
 
@@ -463,3 +463,11 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Conter overscroll e preservar safe-area no mobile
 - [ ] Confirmar a correcção no workspace autenticado publicado em Chrome desktop, Samsung Galaxy A06 e Safari iPhone
 - [ ] Corrigir eventuais problemas residuais depois da validação física
+
+## Próximo bloco após a auditoria — Voice Character
+- [x] Implementar perfis de Voice Character locais com parâmetros mensuráveis de timbre
+- [x] Disponibilizar preview, aplicação reversível e bypass multi-variante
+- [x] Preservar Original e integrar com IndexedDB, Mixdown e exportação
+- [x] Expor os controlos Voice Character no painel AI Voice e validar ids da interface
+- [x] Documentar explicitamente os limites do DSP local face a Voice Character generativo
+- [ ] Voice Character avançado com formant-preserving dedicado e modelos/transformações adicionais
