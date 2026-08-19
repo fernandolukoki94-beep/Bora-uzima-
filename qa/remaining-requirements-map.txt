@@ -1,0 +1,155 @@
+--- TODO PENDENTES ---
+3:- [ ] Redesenhar a navegação para um workspace funcional de estúdio, substituindo a experiência longa e textual por áreas/sessões accionáveis
+4:- [ ] Definir e documentar a arquitectura de contas, perfil, feed, partilha de música/vídeo, stories e mensagens entre utilizadores
+5:- [ ] Definir limites de segurança e privacidade para uploads, conteúdo publicado, moderação e credenciais de IA
+6:- [ ] Implementar o primeiro corte funcional do novo workspace depois da auditoria e validação do fluxo IA
+8:- [ ] Migrar a aplicação web estática para uma fundação full-stack sem perder o motor Web Audio local
+9:- [ ] Definir autenticação real, sessões, autorização e recuperação de conta
+10:- [ ] Definir schema de base de dados para utilizadores, perfis, projectos, media, feed e mensagens
+11:- [ ] Integrar storage seguro para áudio, vídeo, imagens e exportações com limites de upload
+12:- [ ] Criar API tipada para contas, projectos, publicação, feed, comentários, follows e mensagens
+13:- [ ] Migrar o Studio existente para o novo shell full-stack mantendo os fluxos locais e IndexedDB
+15:- [ ] Executar testes de segurança, autorização, uploads, regressão de áudio e QA de produção para 1000+ utilizadores
+21:- [ ] Testar segurança, persistência e fluxos de utilizador da migração full-stack
+23:- [ ] Criar schema inicial Supabase para perfis, projectos e manifestos do Studio
+24:- [ ] Definir políticas RLS para isolamento por utilizador e leitura pública controlada
+25:- [ ] Criar contrato server-side para criar, listar, guardar e reabrir projectos
+26:- [ ] Validar o fluxo conta → projecto → manifesto → reload sem afectar o Studio local
+28:- [ ] Congelar a tentativa Supabase sem aplicar migrações remotas
+29:- [ ] Criar projecto Firebase para Fernando Lucoco Music
+30:- [ ] Activar Firebase Authentication, Cloud Firestore e Firebase Storage
+31:- [ ] Definir regras Firestore e Storage para isolamento por utilizador
+32:- [ ] Integrar Firebase no site web sem expor credenciais administrativas
+33:- [ ] Migrar a persistência de projectos e perfis para Firebase
+35:- [ ] Cancelar a alternativa Firebase neste projecto e manter Supabase como único backend
+36:- [ ] Executar a migração SQL Supabase no projecto fernando-lucoco-music
+38:- [ ] Pausar a aplicação da migração SQL Supabase devido ao bloqueio do editor móvel
+39:- [ ] Retomar a configuração Firebase como backend escolhido para este projecto
+41:- [ ] Registar que a execução Supabase foi bloqueada por erro de extensão do navegador
+42:- [ ] Abandonar a execução da migração SQL Supabase neste projecto
+62:- [ ] Criar checkpoint do projecto web correcto, separado de bora-uzima-mobile
+64:- [ ] Definir direcção visual premium própria, inspirada na organização de DAWs modernas sem copiar identidade alheia
+65:- [ ] Transformar o Studio num fluxo DAW por ecrãs: Home, Criar, Sons, Producer, Timeline, Mix e Exportar
+66:- [ ] Melhorar waveform, teclado/piano roll, mixer, medidores, transições e feedback de interacção
+67:- [ ] Criar sistema visual de identidade Fernando Lucoco Music com tokens, tipografia, estados e componentes reutilizáveis
+68:- [ ] Preparar SEO técnico, sitemap, robots, Open Graph e ligação do domínio personalizado
+69:- [ ] Definir base de PWA e plano de empacotamento para aplicação móvel
+70:- [ ] Validar o novo design em desktop e mobile antes de avançar para funcionalidades sociais
+76:- [ ] Recriar o Studio inspirado na organização BandLab: transporte, timeline, tracks, instrumentos, mixer e inspector
+80:- [ ] Implementar barra de transporte persistente com BPM, compasso, tonalidade, play, stop, record, undo/redo, guardar e publicar
+81:- [ ] Implementar área de faixas com ícones, cores, mute/solo, FX e botão Add Track
+82:- [ ] Implementar vista de instrumento com teclado físico/touch, oitava, sustain, escala, smart keys e inspector lateral
+83:- [ ] Implementar navegação entre Arrangement, Instrument, FX, MIDI Editor, Lyrics/Notes e Sounds
+88:- [ ] Auditar o ficheiro de requisitos linha a linha contra o site publicado
+89:- [ ] Produzir matriz de cobertura: implementado, parcial, ausente e bloqueado
+90:- [ ] Reconstruir a experiência DAW em vez de continuar com ajustes cosméticos
+91:- [ ] Validar cada requisito do ficheiro com evidência no preview antes de o considerar concluído
+96:- [ ] Ficheiro 02 — concluir cadastro, login Google/e-mail e onboarding obrigatório
+98:- [ ] Ficheiro 04 — reconstruir Studio DAW fullscreen com transporte, tracks, timeline e inspector
+99:- [ ] Ficheiro 05 — implementar gravação, importação de beat, instrumentos, beatmaker e piano roll funcionais
+100:- [ ] Ficheiro 06 — ligar AI Producer real a arranjo, instrumentalização, Auto-Tune, mixagem e masterização
+101:- [ ] Ficheiro 07 — concluir exportação, partilha, cloud projects e reload entre sessões
+102:- [ ] Ficheiro 08 — implementar perfis, feed, mensagens, stories e colaboração
+103:- [ ] Ficheiro 09 — preparar SEO, domínio, PWA, mobile e Play Store
+104:- [ ] Ficheiro 10 — executar QA requisito a requisito e só então marcar o lançamento
+114:- [ ] Repetir o ciclo até cobrir todos os blocos funcionais possíveis no escopo actual
+115:- [ ] Fazer verificação final do fluxo público, autenticação e Studio
+116:- [ ] Guardar checkpoint depois de os itens desta fase estarem validados
+125:- [ ] Criar rota/superfície Projects independente
+126:- [ ] Implementar renomear, duplicar, arquivar, restaurar e capas
+127:- [ ] Implementar versões e estados de sincronização por projecto
+145:- [ ] Permitir upload/escolha de capa de projecto
+146:- [ ] Sincronizar artwork e versões entre dispositivos
+152:- [ ] Recuperar e restaurar uma versão completa anterior
+153:- [ ] Resolver conflitos de edição entre dispositivos
+154:- [ ] Validar sincronização end-to-end em dois dispositivos autenticados
+159:- [ ] Testar partilha e download em Chrome Android e Safari iPhone
+164:- [ ] Implementar Record Arm e selecção de Input
+165:- [ ] Implementar routing Output entre tracks e buses
+166:- [ ] Implementar automação de volume, pan e parâmetros FX
+171:- [ ] Ligar o Input seleccionado à cadeia de gravação real
+181:- [ ] Implementar monitorização de entrada com mute/volume separado
+182:- [ ] Validar múltiplos microfones em Chrome Android e Safari iPhone
+188:- [ ] Testar monitorização com auscultadores em Chrome Android e Safari iPhone
+198:- [ ] Montar áudio real por regiões com crossfades
+199:- [ ] Validar o fluxo de comping num dispositivo móvel
+208:- [ ] Silêncio não destrutivo no clip
+209:- [ ] Reverse de áudio com processamento local
+210:- [ ] Stretch/tempo com processamento local
+211:- [ ] Transpose de áudio com processamento local
+223:- [ ] Gravar notas do teclado como eventos MIDI na timeline
+224:- [ ] Mover e redimensionar notas no Piano Roll
+225:- [ ] Apagar e duplicar notas individualmente
+226:- [ ] Quantizar notas existentes e editar velocity/duração
+237:- [ ] Editar notas MIDI já materializadas fora da grelha de 16 passos
+249:- [ ] Melhorar DeReverb com um modelo DSP dedicado e comparação A/B específica
+259:- [ ] Voice Changer com processamento formant-preserving dedicado
+260:- [ ] Harmony local com vozes adicionais
+261:- [ ] Voice Character avançado e preview A/B multi-variante
+270:- [ ] AutoMix IA com provider real e plano contextual
+272:- [ ] Automação editável de volume, pan e parâmetros FX
+283:- [ ] Medir LUFS integrado/short-term real no output
+284:- [ ] Ligar exportação final preferencial à variante Mastered
+288:- [ ] Identificar e confirmar o repositório web Fernando Lucoco Music activo
+289:- [ ] Separar a associação WebDev do projecto mobile `bora-uzima-mobile`
+290:- [ ] Gerar preview correcto sem referências a MemoryOS
+291:- [ ] Validar identidade visual, título e rota inicial do site no preview
+308:- [ ] Completar Mixer profissional por canais, master, VU/peak e routing
+312:- [ ] Implementar automação editável de volume, pan e parâmetros FX
+315:- [ ] Implementar Looper com camadas e undo de camadas
+318:- [ ] Ligar captura/preview do Looper à interface e à timeline
+319:- [ ] Implementar Sampler com corte, mapeamento, pitch, reverse, loop, ADSR e filtro
+326:- [ ] Sincronizar edições do Piano Roll com IndexedDB/Firestore dedicado
+327:- [ ] Implementar provider IA real para Producer, Music AI, Voice AI e FX Preset Generator
+328:- [ ] Implementar Harmony e Voice Character avançados
+329:- [ ] Implementar Sounds/My Sounds com pesquisa, filtros, tags e armazenamento
+330:- [ ] Implementar Audio-to-MIDI e Stem Splitter como jobs reais
+331:- [ ] Implementar Community, Profiles, Followers, Likes, Comments e Collaboration
+332:- [ ] Implementar Distribution, Artist Services, Marketplace, Subscriptions e Notifications
+333:- [ ] Consolidar segurança, acessibilidade, estados offline e responsividade dedicada
+334:- [ ] Executar QA desktop, Chrome Android/Samsung Galaxy A06 e Safari iPhone
+351:- [ ] Migrar My Sounds para upload real com IndexedDB dedicado e organização por pastas/tags
+353:- [ ] Implementar feed, perfis, follows, comentários, mensagens, stories e colaboração com dados reais
+354:- [ ] Implementar Audio-to-MIDI e Stem Splitter como jobs reais, não apenas estados locais
+377:- [ ] Materializar reprodução dos blobs My Sounds directamente no mixdown/export final
+381:- [ ] Auditar README, pasted_content.txt e estrutura actual apenas para identificar o próximo requisito ainda ausente
+382:- [ ] Não repetir deploy, configuração Firebase, autenticação, base de dados, domínio ou shell do Studio já concluídos
+383:- [ ] Implementar o próximo módulo real da especificação sobre a base existente, preservando funcionalidades anteriores
+384:- [ ] Validar o avanço com testes, documentação e verificação do site sem o apresentar como protótipo
+425:- [ ] Mapear todos os blocos restantes do ficheiro contra README, QA, portfólio e código actual
+426:- [ ] Ordenar as lacunas por dependência funcional e risco operacional
+427:- [ ] Implementar cada lacuna real sem repetir módulos já concluídos
+428:- [ ] Validar cada módulo com testes determinísticos e integração Firebase/Firestore/Storage quando aplicável
+429:- [ ] Actualizar README, matriz, auditoria QA e TODO a cada etapa
+430:- [ ] Repetir o ciclo até não restarem requisitos implementáveis no escopo actual
+431:- [ ] Manter bloqueios externos explicitamente documentados, incluindo regras remotas e QA físico
+--- REQUISITOS SOCIAIS/JOBS/MIXER/VOICE ---
+324:Exportar
+378:- exportar.
+416:Bus Track
+456:Peak meter
+892:Harmony
+902:Voice Character.
+980:27. AUDIO-TO-MIDI
+1018:28. STEM SPLITTER
+1042:Exportar cada stem.
+1156:VU meters.
+1158:Peak meters.
+1290:36. EXPORTAÇÃO
+1328:Exporting
+1583:- exportação concluída;
+1666:Storage permissions
+1694:Object Storage.
+1750:notifications
+1762:exports.
+1854:exportar.
+1894:"Exporte."
+2204:Audio-to-MIDI;
+2206:Stem Splitter;
+2212:Export;
+2216:Collaboration;
+2222:Notifications;
+2256:Exportação.
+2284:Stem Splitter
+2286:Audio-to-MIDI.
+2300:Collaboration.
