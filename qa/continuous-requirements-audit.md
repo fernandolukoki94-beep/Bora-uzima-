@@ -57,3 +57,12 @@ O upload não é automático e não substitui o fallback offline. A segurança e
 ### Próxima lacuna
 
 Message Storage continua como próximo bloco social possível, seguido de stories, notificações e colaboração. A sincronização cloud não foi declarada como concluída para mensagens.
+
+
+## Marco executado — Message Storage
+
+A auditoria do `pasted_content.txt` indicou Message Storage como a etapa seguinte após Firebase Storage para media. Foi implementado o contrato Firestore privado em `conversations/{conversationId}` com subcolecção `messages`, ID determinístico para o par de utilizadores, mensagens limitadas a 2.000 caracteres, até 50 conversas/mensagens carregadas, validação do destinatário e isolamento por participantes.
+
+A interface autenticada Messages inclui lista de conversas, thread privada, composer, estados vazio/sincronização/erro e entrada directa a partir do botão **Mensagem** nos resultados de descoberta da Community. O feed público não consulta conversas. Foram validados `firebase-messages.js`, `messages-ui.js`, `community-ui.js` e `firebase-community.js` com `node --check`; os contratos seleccionados terminaram com **13 testes aprovados e 0 falhas**.
+
+A implementação cliente não substitui as regras remotas: o Firebase Console ainda deve confirmar regras Firestore que permitam leitura/escrita apenas aos dois participantes da conversa. Anexos, notificações, stories e colaboração continuam pendentes e não foram declarados como concluídos.

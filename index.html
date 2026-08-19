@@ -305,6 +305,13 @@
           <div class="panel-heading"><div><div class="section-kicker">Profile · identidade artística</div><h3>O teu perfil</h3><p>Define como outros artistas te encontram na comunidade.</p></div><span class="pill" id="profile-status">Perfil carregado</span></div>
           <form id="community-profile-form" class="profile-form"><label>Nome artístico<input id="profile-artist-name" maxlength="80" required /></label><label>Username<input id="profile-username" maxlength="32" placeholder="@artista" /></label><label>Bio<textarea id="profile-bio" maxlength="240" rows="3"></textarea></label><label>Géneros<input id="profile-genres" maxlength="160" placeholder="Afrobeats, R&B" /></label><label>Localização<input id="profile-location" maxlength="80" /></label><button class="button button-primary" type="submit">Guardar perfil</button></form>
         </section>
+        <section class="messages-panel" id="messages-panel" aria-label="Mensagens privadas">
+          <div class="panel-heading"><div><div class="section-kicker">Messages · privado</div><h3>Conversa directamente com outros artistas</h3><p>As mensagens ficam numa conversa privada no Firestore e não aparecem no feed público.</p></div><span class="pill" id="messages-status">A sincronizar</span></div>
+          <div class="messages-layout">
+            <aside class="messages-list" id="messages-conversations"><div class="empty">Ainda não tens conversas.</div></aside>
+            <section class="messages-thread" aria-live="polite"><div class="messages-thread-head" id="messages-thread-title">Selecciona uma conversa</div><div class="messages-items" id="messages-items"><div class="empty">Escolhe uma conversa para ver as mensagens.</div></div><form id="messages-form" class="messages-composer"><input id="messages-input" maxlength="2000" placeholder="Escreve uma mensagem privada…" disabled required /><button class="button button-primary" type="submit" disabled>Enviar</button></form></section>
+          </div>
+        </section>
         </div>
           </div>
         </div>
@@ -325,5 +332,6 @@
   <script type="module" src="src/js/app.js"></script>
   <script type="module" src="src/js/studio-shell.js"></script>
   <script type="module" src="src/js/community-ui.js"></script>
+  <script type="module" src="src/js/messages-ui.js"></script>
 </body>
 </html>

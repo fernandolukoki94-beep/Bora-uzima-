@@ -394,7 +394,7 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Validar o avanço com 173 testes Node aprovados, 0 falhas, sintaxe e diff limpos
 - [x] Implementar follows e descoberta de perfis com contadores base
 - [x] Implementar upload real de áudio/vídeo/imagem no Firebase Storage com validação, limite de 80 MB e path privado por utilizador
-- [ ] Implementar mensagens privadas, stories, notificações e colaboração
+- [x] Implementar mensagens privadas; stories, notificações e colaboração continuam pendentes
 
 ## Auditoria contínua solicitada
 
@@ -410,3 +410,12 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Escolher formalmente o próximo módulo com base na matriz, sem duplicar Community/Profile ou Firebase já concluídos — Firebase Storage para media
 - [x] Implementar regras de autorização, persistência e UI operacional do módulo escolhido — cliente, persistência e UI concluídos; regras finais do projecto requerem confirmação
 - [x] Testar no runner correcto, actualizar README/QA/TODO e validar o deployment local; confirmação do deployment automático permanece pendente
+
+## Próxima etapa — Message Storage
+
+- [x] Auditar no pasted_content.txt os requisitos de mensagens privadas, conversas, permissões e estados
+- [x] Confirmar contratos Firebase/Firestore existentes e evitar backend paralelo
+- [x] Implementar conversas privadas e mensagens persistentes por utilizador
+- [x] Integrar a área Messages no shell autenticado com estados vazios, erro e sincronização
+- [x] Definir contrato de privacidade por participantes e não expor conversas no feed público; regras finais Firestore requerem confirmação no Console
+- [x] Testar contratos, sintaxe e actualizar TODO/README; QA e confirmação de deployment ficam para o fecho desta etapa

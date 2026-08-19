@@ -9,6 +9,7 @@ import {
   saveCommunityProfile,
   toggleCommunityLike,
 } from "./firebase-community.js";
+import { startConversation } from "./firebase-messages.js";
 
 const $ = (id) => document.getElementById(id);
 const state = { mode: "new", type: "all", posts: [], profiles: [], following: new Set() };
@@ -62,7 +63,7 @@ function renderProfiles() {
   }
   els.profileResults.innerHTML = state.profiles.map((profile) => {
     const following = state.following.has(profile.uid);
-    return `<article class="community-profile-result"><div><strong>${escapeHtml(profile.displayName)}</strong><span>@${escapeHtml(profile.username)}</span><small>${escapeHtml(profile.genres.join(" · ") || "Artista")}</small></div><button class="mini-button" type="button" data-profile-follow="${escapeHtml(profile.uid)}" data-following="${following ? "true" : "false"}">${following ? "A seguir" : "Seguir"}</button></article>`;
+    return `<article class="community-profile-result"><div><strong>${escapeHtml(profile.displayName)}</strong><span>@${escapeHtml(profile.username)}</span><small>${escapeHtml(profile.genres.join(" · ") || "Artista")}</small></div><div class="community-profile-actions"><button class="mini-button" type="button" data-profile-message="${escapeHtml(profile.uid)}">Mensagem</button><button class="mini-button" type="button" data-profile-follow="${escapeHtml(profile.uid)}" data-following="${following ? "true" : "false"}">${following ? "A seguir" : "Seguir"}</button></div></article>`;
   }).join("");
 }
 
@@ -147,6 +148,18 @@ els.profileForm?.addEventListener("submit", async (event) => {
 els.typeFilter?.addEventListener("change", () => { state.type = els.typeFilter.value; loadFeed(); });
 els.profileSearch?.addEventListener("input", () => loadProfiles());
 els.profileResults?.addEventListener("click", async (event) => {
+  const messageButton = event.target.closest("[data-profile-message]");
+  if (messageButton) {
+    const profile = state.profiles.find((item) => item.uid === messageButton.dataset.profileMessage);
+    if (!profile) return;
+    messageButton.disabled = true;
+    try {
+      await startConversation(profile.uid, { displayName: profile.displayName || "Artista", username: profile.username || "" });
+      document.querySelector('[data-studio-area="messages-panel"]')?.click();
+      window.dispatchEvent(new CustomEvent("messages-refresh"));
+    } catch (error) { setStatus(els.status, error.message, "error"); } finally { messageButton.disabled = false; }
+    return;
+  }
   const button = event.target.closest("[data-profile-follow]");
   if (!button) return;
   button.disabled = true;

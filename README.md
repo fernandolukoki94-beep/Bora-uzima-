@@ -331,3 +331,10 @@ Onboarding → Firebase Auth → perfil/preferences
 ```
 
 A sincronização está coberta por validação de sintaxe e a suite determinística actual tem **154 testes aprovados e 0 falhas**. Ainda falta executar QA real de autorização, reload entre dispositivos e regras Firestore com contas de teste antes de declarar a migração cloud pronta para produção.
+
+
+### Message Storage
+
+A área **Messages** está integrada no Firebase/Firestore existente e só funciona em sessão autenticada. As conversas privadas ficam em `conversations/{conversationId}`, com mensagens em `conversations/{conversationId}/messages`; o identificador é determinístico para o par de utilizadores. O cliente valida o destinatário, limita cada mensagem a 2.000 caracteres, mostra lista de conversas, thread, composer, estados vazios, erro e sincronização. O feed público não consulta nem expõe conversas privadas.
+
+A implementação cliente está pronta e coberta por testes de contrato. As regras remotas do Firestore devem confirmar que apenas os dois participantes podem ler e escrever cada conversa. Anexos em mensagens, notificações, stories e colaboração continuam pendentes.
