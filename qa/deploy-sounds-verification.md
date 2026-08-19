@@ -19,3 +19,7 @@ Ao abrir `Começar`, surgiu onboarding obrigatório em quatro passos com nome, u
 ## Resultado
 
 A alteração da Sound Library está efectivamente integrada no deployment de produção correspondente ao último commit. A verificação pública confirmada até aqui cobre homepage e onboarding; a área protegida Sounds ainda requer sessão autenticada para validação interactiva completa.
+
+## Verificação do deployment My Sounds — 19-08-2026
+
+O projecto Vercel `fernando-lucoco-music` (`prj_hrW8bT8iuvBGAjI3pT1ga3rh8Jr4`) recebeu o commit `7306204e75cb2d3d034605ad0f6f33f1c34034e5` do repositório `fernandolukoki94-beep/Bora-uzima-`. O deployment de produção `dpl_BPv1wwd3SbzSWpqhZnwLrvsTGaxG` está em estado `READY`, com URL `https://fernando-lucoco-music-kpqpyj6wf-fernandolukoki94-beeps-projects.vercel.app` e resposta HTTP 200. A resposta pública confirma `lang="pt-PT"`, título e identidade Fernando Lucoco Music, onboarding e autenticação antes do workspace. A superfície My Sounds fica disponível depois da sessão autenticada; a verificação pública confirma o shell e o deploy, mas não simula login nem upload de ficheiros pessoais.

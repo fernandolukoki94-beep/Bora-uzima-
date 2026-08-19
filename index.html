@@ -118,6 +118,8 @@
             <a href="#producer-studio" class="studio-app-nav-item"><span class="studio-nav-icon">✦</span><span><strong>AI Producer</strong><small>Arranjo</small></span></a>
             <a href="#timeline" class="studio-app-nav-item"><span class="studio-nav-icon">▤</span><span><strong>Studio</strong><small>Timeline</small></span></a>
             <a href="#mixer-panel" class="studio-app-nav-item"><span class="studio-nav-icon">≋</span><span><strong>Mix</strong><small>FX & níveis</small></span></a>
+            <a href="#community-panel" class="studio-app-nav-item" data-studio-area="community-panel"><span class="studio-nav-icon">◎</span><span><strong>Community</strong><small>Feed & artistas</small></span></a>
+            <a href="#profile-panel" class="studio-app-nav-item" data-studio-area="profile-panel"><span class="studio-nav-icon">◌</span><span><strong>Profile</strong><small>Identidade artística</small></span></a>
           </nav>
           <div class="studio-sidebar-spacer"></div>
           <a href="#timeline-mixdown" class="studio-sidebar-export"><span>↓</span><span><strong>Exportar</strong><small>WAV / projecto</small></span></a>
@@ -283,6 +285,26 @@
           <div class="timeline-ruler" aria-hidden="true"><span>00:00</span><span>00:10</span><span>00:20</span><span>00:30</span><span>00:40</span></div>
           <div class="timeline-stage"><div class="timeline-playhead" id="timeline-playhead" aria-hidden="true"></div><div id="timeline-grid" class="timeline-grid"><div class="empty">Grava uma take para abrir a timeline da sessão.</div></div></div>
           <div class="mixer-panel" id="mixer-panel" aria-label="Mixer local"><div class="panel-heading"><div><div class="section-kicker">Mixer local</div><h3>Equilibra a sessão</h3><p>Controlos não destrutivos por track. O áudio permanece neste navegador.</p></div><span class="pill" id="mixer-headroom">Headroom 0 dB</span></div><section class="mixer-master-strip" id="mixer-master-strip" aria-label="Master channel"><div class="mixer-master-heading"><strong>Master</strong><span id="mixer-master-peak">Peak −∞ dB</span></div><label>Ganho <output id="mixer-master-gain-value">0.0 dB</output><input id="mixer-master-gain" type="range" min="-24" max="6" step="0.5" value="0" aria-label="Ganho do Master"></label><label>Pan <output id="mixer-master-pan-value">0.00</output><input id="mixer-master-pan" type="range" min="-1" max="1" step="0.01" value="0" aria-label="Pan do Master"></label><label>Limiter <output id="mixer-master-limiter-value">100%</output><input id="mixer-master-limiter" type="range" min="0.1" max="1" step="0.01" value="1" aria-label="Limite do Master"></label><button class="mini-button" id="mixer-master-bypass" type="button" aria-pressed="false">Bypass Master</button></section><aside id="mixer-inspector" class="mixer-inspector" aria-live="polite"><strong>Inspector de track</strong><span>Selecciona uma faixa para ver os seus clips e origem.</span></aside><div id="mixer-tracks" class="mixer-tracks"><div class="empty">Abre uma sessão para ver as tracks.</div></div></div>
+        <section class="community-panel" id="community-panel" aria-label="Community musical">
+          <div class="panel-heading"><div><div class="section-kicker">Community · sessão autenticada</div><h3>Descobre artistas e partilha música</h3><p>Publica uma ideia, acompanha a comunidade e mantém o controlo sobre a visibilidade.</p></div><span class="pill" id="community-status">A sincronizar</span></div>
+          <div class="community-layout">
+            <div class="community-main">
+              <form id="community-post-form" class="community-composer">
+                <div class="community-composer-head"><strong>Partilhar uma ideia</strong><select id="community-post-type" aria-label="Tipo de publicação"><option value="song">Song</option><option value="project">Project</option><option value="beat">Beat</option><option value="video">Video</option><option value="clip">Short clip</option></select></div>
+                <input id="community-post-title" maxlength="120" placeholder="Título da publicação" required />
+                <textarea id="community-post-body" maxlength="500" rows="3" placeholder="O que estás a criar?" required></textarea>
+                <div class="community-composer-foot"><select id="community-post-visibility" aria-label="Visibilidade"><option value="public">Público</option><option value="unlisted">Não listado</option></select><button class="button button-primary" type="submit">Publicar</button></div>
+              </form>
+              <div class="community-feed-toolbar"><div class="segmented-control" role="tablist" aria-label="Ordenar feed"><button type="button" class="is-active" data-community-mode="new">Novo</button><button type="button" data-community-mode="trending">Trending</button></div><select id="community-type-filter" aria-label="Filtrar publicações"><option value="all">Tudo</option><option value="song">Songs</option><option value="project">Projects</option><option value="beat">Beats</option><option value="video">Videos</option><option value="clip">Short clips</option></select></div>
+              <div id="community-feed" class="community-feed"><div class="empty">A carregar o feed da comunidade…</div></div>
+            </div>
+            <aside class="community-sidebar"><div class="community-card"><span class="section-kicker">A seguir</span><h4>Encontra a tua comunidade</h4><p>Perfis e relações são guardados no Firebase com autorização por utilizador.</p><button class="mini-button" type="button" data-studio-area="profile-panel">Editar perfil →</button></div><div class="community-card"><span class="section-kicker">Privacidade</span><p>O áudio continua local no dispositivo. Esta primeira camada partilha apenas texto e referências de projecto.</p></div></aside>
+          </div>
+        </section>
+        <section class="profile-panel" id="profile-panel" aria-label="Perfil do artista">
+          <div class="panel-heading"><div><div class="section-kicker">Profile · identidade artística</div><h3>O teu perfil</h3><p>Define como outros artistas te encontram na comunidade.</p></div><span class="pill" id="profile-status">Perfil carregado</span></div>
+          <form id="community-profile-form" class="profile-form"><label>Nome artístico<input id="profile-artist-name" maxlength="80" required /></label><label>Username<input id="profile-username" maxlength="32" placeholder="@artista" /></label><label>Bio<textarea id="profile-bio" maxlength="240" rows="3"></textarea></label><label>Géneros<input id="profile-genres" maxlength="160" placeholder="Afrobeats, R&B" /></label><label>Localização<input id="profile-location" maxlength="80" /></label><button class="button button-primary" type="submit">Guardar perfil</button></form>
+        </section>
         </div>
           </div>
         </div>
@@ -302,5 +324,6 @@
   <script type="module" src="src/js/onboarding.js"></script>
   <script type="module" src="src/js/app.js"></script>
   <script type="module" src="src/js/studio-shell.js"></script>
+  <script type="module" src="src/js/community-ui.js"></script>
 </body>
 </html>

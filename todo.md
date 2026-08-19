@@ -361,8 +361,8 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 
 - [x] Confirmar que o deploy público está ligado ao commit `cb1e6b4` do repositório Fernando Lucoco Music
 - [x] Verificar visualmente no preview a homepage, onboarding, identidade e bloqueio público; Sounds autenticado permanece pendente
-- [ ] Corrigir qualquer divergência entre o código publicado e o site visível
-- [ ] Seleccionar e implementar o próximo requisito ausente do pasted_content.txt depois da verificação
+- [x] Corrigir qualquer divergência entre o código publicado e o site visível — não foi detectada divergência de identidade; o novo commit foi publicado
+- [x] Seleccionar e implementar o próximo requisito ausente do pasted_content.txt depois da verificação — My Sounds local
 
 ## Marco My Sounds — biblioteca privada local
 
@@ -375,3 +375,23 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Cobrir contrato com 3 testes dedicados; sintaxe e diff limpos
 - [ ] Sincronizar My Sounds com Firebase Storage/Firestore com regras por utilizador
 - [ ] Materializar reprodução dos blobs My Sounds directamente no mixdown/export final
+
+## Correcção de rumo — continuidade sem regressão
+
+- [ ] Auditar README, pasted_content.txt e estrutura actual apenas para identificar o próximo requisito ainda ausente
+- [ ] Não repetir deploy, configuração Firebase, autenticação, base de dados, domínio ou shell do Studio já concluídos
+- [ ] Implementar o próximo módulo real da especificação sobre a base existente, preservando funcionalidades anteriores
+- [ ] Validar o avanço com testes, documentação e verificação do site sem o apresentar como protótipo
+
+## Continuação exacta do ficheiro — Community/Profile
+
+- [x] Adicionar Community e Profile como áreas autenticadas próprias no shell existente
+- [x] Reutilizar o Firebase/Auth/Firestore já concluído, sem criar backend paralelo
+- [x] Criar feed real de posts por tipo: song, project, beat, video e clip
+- [x] Implementar ordenação Novo/Trending, filtro por tipo, likes, comentários e partilha
+- [x] Guardar perfil artístico com nome, username, bio, géneros e localização
+- [x] Mostrar estados de sincronização, erro, sessão obrigatória e privacidade
+- [x] Validar o avanço com 173 testes Node aprovados, 0 falhas, sintaxe e diff limpos
+- [ ] Implementar follows e descoberta de perfis com contadores
+- [ ] Implementar upload real de áudio/vídeo/imagem no Firebase Storage
+- [ ] Implementar mensagens privadas, stories, notificações e colaboração

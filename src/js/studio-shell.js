@@ -13,7 +13,7 @@ function focusArea(targetId, source) {
   if (!target) return;
   document.body.classList.add("studio-focus-mode");
   document.body.dataset.studioView = targetId;
-  const viewIds = ["studio-home", "recording-workspace", "instrument-lab", "producer-studio", "sound-library", "beat-maker", "timeline", "mixer-panel"];
+  const viewIds = ["studio-home", "recording-workspace", "instrument-lab", "producer-studio", "sound-library", "beat-maker", "timeline", "mixer-panel", "community-panel", "profile-panel"];
   viewIds.forEach((id) => {
     const view = document.getElementById(id);
     if (!view) return;
