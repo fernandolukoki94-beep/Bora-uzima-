@@ -34,3 +34,9 @@ O Mix Session expõe alvo, tempo, valor, índice FX, adição de pontos, remoç�
 ## Próximas lacunas
 
 As próximas prioridades são routing por buses, lanes gráficas sobre a timeline, automação de parâmetros adicionais de FX, mastering com LUFS mensurável, jobs reais de Audio-to-MIDI/Stem Splitter, Stories, notificações e colaboração. A activação de um provider real do AI Producer em produção deve ser verificada por resposta `status=ready` e `provider=gemini` ou `provider=openai`, nunca por aparência da interface.
+
+## Verificação de produção após automação — deployment fa201d2
+
+O Vercel criou o deployment `dpl_Ee78LKKzA7MdRRyMr3HaM7BTd7o5` a partir do commit `fa201d2b028a4f31e15060d8d37280df4423dd3a`, com target `production` e estado `READY`. O URL imutável é `https://fernando-lucoco-music-k5nnhpr5t-fernandolukoki94-beeps-projects.vercel.app`.
+
+A verificação HTTP directa devolveu 200 para HTML, `app.js`, `automation.js`, `mixdown.js` e `effects.js`. Os bundles publicados contêm 52 referências de automação e 2 selectors de meter em `app.js`, 35 referências no módulo `automation.js` e 27 no `mixdown.js`. `app.js` mantém referências a Voice Character e aos estados de fallback do provider. Isto confirma que a implementação não ficou apenas no repositório local: os módulos essenciais estão a ser servidos pelo deployment de produção.
