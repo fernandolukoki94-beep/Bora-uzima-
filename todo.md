@@ -545,8 +545,8 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 
 ## Próxima etapa sequencial — gravação ligada ao input real
 
-- [ ] Auditar Record Arm, selector de Input, `getUserMedia` e MediaRecorder no fluxo real.
-- [ ] Ligar o dispositivo seleccionado à cadeia efectiva de captura, sem cair no microfone por defeito silenciosamente.
-- [ ] Preservar estados de permissão, erro, gravação, chunks, take persistida e track criada.
-- [ ] Validar monitorização separada e libertação dos recursos de áudio ao parar.
-- [ ] Testar a take real no playback, autosave e exportação Mixed WAV.
+- [x] Auditar Record Arm, selector de Input, `getUserMedia` e MediaRecorder no fluxo real.
+- [x] Ligar o dispositivo seleccionado à cadeia efectiva de captura, sem cair no microfone por defeito silenciosamente.
+- [x] Preservar estados de permissão, erro, gravação, chunks, take persistida e track criada.
+- [x] Validar monitorização separada e libertação dos recursos de áudio ao parar; QA físico de latência continua pendente.
+- [ ] Testar a take real no playback, autosave e exportação Mixed WAV no Samsung Galaxy A06.

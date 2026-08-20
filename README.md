@@ -395,3 +395,12 @@ A gravação vocal da sessão activa usa o `deviceId` seleccionado no selector d
 Quando IndexedDB não está disponível ou falha durante a persistência, o clip recebe `audioData` inline com a Data URL original. Esse fallback é consumido pelo transporte directo e pelo mixdown local, evitando que uma take apareça na sessão mas fique silenciosa. A variante persistida continua a ser o caminho principal; o fallback não substitui nem inventa uma sincronização cloud.
 
 A regressão é coberta por um teste de contrato dedicado. A suite do clone Git terminou esta iteração com **195 testes aprovados e 0 falhas**. Continua pendente a validação física de permissões, múltiplos microfones, monitorização com auscultadores e exportação no Samsung Galaxy A06, Chrome Android e Safari iPhone.
+
+
+## V2.11 — monitorização real e recuperação segura do recorder
+
+A cadeia de gravação foi reforçada para ambientes Chromium Android e Safari/WebKit. O recorder selecciona o `deviceId` persistido, cria o analisador de entrada a partir do stream real e agora usa `AudioContext` ou `webkitAudioContext`, retomando o contexto após a permissão do microfone para que a monitorização não fique silenciosa por permanecer em estado `suspended`.
+
+A monitorização continua separada da captura: o ganho, o filtro de presença, o compressor local, o delay e a ambiência são encaminhados apenas quando o monitor está activo. Ao parar, todos os nós, o `requestAnimationFrame`, o medidor e o contexto de áudio são desligados. Se `saveRecording` falhar, o recorder limpa sempre o seu estado e apresenta erro explícito, em vez de ficar preso em `recording`.
+
+Esta etapa foi validada com **197 testes aprovados, 0 falhas**, incluindo contratos determinísticos para suporte WebKit, retomada do contexto e limpeza garantida após falha de persistência. A confirmação física do microfone, da latência percebida e da monitorização com auscultadores no Samsung Galaxy A06 continua pendente.

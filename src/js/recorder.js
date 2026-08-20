@@ -55,9 +55,11 @@ export function createRecorderController({ onStateChange, onComplete, onMetrics,
   }
 
   function startMetering() {
-    if (!stream || !window.AudioContext) return;
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!stream || !AudioContextCtor) return;
     try {
-      audioContext = new AudioContext();
+      audioContext = new AudioContextCtor();
+      void audioContext.resume?.().catch?.(() => {});
       const source = audioContext.createMediaStreamSource(stream);
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 1024;
@@ -176,11 +178,16 @@ export function createRecorderController({ onStateChange, onComplete, onMetrics,
     const mimeType = recordingMimeType || recorder?.mimeType || "audio/webm";
     const blob = new Blob(chunks, { type: mimeType });
     const seconds = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
-    await onComplete({ blob, mimeType, seconds });
-    recorder = null;
-    chunks = [];
-    stopMetering();
-    recordingMimeType = "";
+    try {
+      await onComplete({ blob, mimeType, seconds });
+    } catch (error) {
+      showToast(error?.message || "A take foi gravada, mas não foi possível guardá-la na sessão.");
+    } finally {
+      recorder = null;
+      chunks = [];
+      stopMetering();
+      recordingMimeType = "";
+    }
   }
 
   function toggle() {
