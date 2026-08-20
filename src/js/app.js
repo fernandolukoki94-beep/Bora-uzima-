@@ -19,6 +19,7 @@ import { createProjectManifest, downloadBlob, exportVariantFilename, preferredEx
 import { deriveProducerStudioState } from "./producer-studio-flow.js";
 import { ACTION_FEEDBACK_STATES, actionFeedbackLabel, transitionActionFeedback } from "./action-feedback.js";
 import { materializeProducerPlan, trackOrigin } from "./producer-arrangement.js";
+import { buildProducerActionPlan, producerActionLabel } from "./producer-actions.js";
 import { requestProductionAdvice } from "./ai-producer-client.js";
 import { isFirebaseSignedIn, listCloudProjects, saveCloudProject, cloudProjectToLocal } from "./firebase-projects.js";
 import { uploadUserMedia } from "./firebase-media.js";
@@ -278,6 +279,8 @@ const masteringAfter = document.getElementById("mastering-after");
 const producerExport = document.getElementById("producer-export");
 const producerExportProject = document.getElementById("producer-export-project");
 const producerActionFeedback = document.getElementById("producer-action-feedback");
+const producerCommandStatus = document.getElementById("producer-command-status");
+const producerActionButtons = [...document.querySelectorAll("[data-producer-action]")];
 const producerBeatFile = document.getElementById("producer-beat-file");
 const producerBeatPreview = document.getElementById("producer-beat-preview");
 const producerVocalBeatMix = document.getElementById("producer-vocal-beat-mix");
@@ -1751,6 +1754,58 @@ async function runProducerPlan(id, { planOverride = null, sourceLabel = "local" 
   }
 }
 
+async function executeProducerAction(action) {
+  const project = currentTimelineProject();
+  if (!project) throw new Error("Abre ou cria uma sessão antes de usar o AI Producer.");
+  const label = producerActionLabel(action);
+  if (producerCommandStatus) producerCommandStatus.textContent = `${label}: a preparar…`;
+  const sourceData = getVariantData(project, "original");
+  if (["analyze-vocal", "mix-vocals", "master-track"].includes(action) && !sourceData && !project.tracks?.some((track) => track.type === "vocal" && track.clips?.length)) {
+    throw new Error(`${label} precisa de uma gravação vocal real na sessão.`);
+  }
+  if (action === "analyze-vocal") {
+    if (!sourceData) throw new Error("Não encontrei o áudio vocal original para analisar.");
+    const analysis = await analyzeAudioDataUrl(sourceData);
+    const updated = readProjects().map((item) => item.id === project.id ? { ...item, analysis, status: "Vocal analisado pelo AI Producer" } : item);
+    saveProjects(updated);
+    try { if (await indexedDbAvailable()) await putProject(updated.find((item) => item.id === project.id)); } catch {}
+    renderProjects();
+    if (producerCommandStatus) producerCommandStatus.textContent = `Analyze vocal concluído · ${analysis.bpm || "BPM não detectado"} BPM · confiança ${Math.round((analysis.confidence || 0) * 100)}%.`;
+    return;
+  }
+  if (["generate-drums", "create-bassline", "improve-arrangement"].includes(action)) {
+    const basePlan = buildProducerPlan({ genre: project.genre || "Afrobeat", tempo: project.tempo || 100, key: project.key || "C", duration: getTimelineDuration(project), brief: project.productionBrief || label, analysis: project.analysis || null, preferAnalysis: Boolean(project.analysis?.hasAudio) });
+    const actionPlan = buildProducerActionPlan(basePlan, action);
+    await runProducerPlan(project.id, { planOverride: actionPlan, sourceLabel: label });
+    if (producerCommandStatus) producerCommandStatus.textContent = `${label} concluído · clips instrumentais reais materializados na timeline.`;
+    return;
+  }
+  if (action === "mix-vocals") {
+    await mixdownActiveTimeline();
+    if (producerCommandStatus) producerCommandStatus.textContent = "Mix vocals concluído · Mixed WAV real guardado na sessão.";
+    return;
+  }
+  if (action === "master-track") {
+    const latest = currentTimelineProject();
+    if (!getVariantData(latest, "mixed")) throw new Error("Cria primeiro o Mixed WAV com Mix vocals.");
+    await applyMasteringFromUi();
+    if (producerCommandStatus) producerCommandStatus.textContent = "Master track concluído · variante Mastered real guardada.";
+  }
+}
+function bindProducerActionButtons() {
+  producerActionButtons.forEach((button) => button.addEventListener("click", async () => {
+    const action = button.dataset.producerAction;
+    if (!action) return;
+    producerActionButtons.forEach((item) => { item.disabled = true; item.setAttribute("aria-busy", "true"); });
+    try { await executeProducerAction(action); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "A acção do AI Producer falhou.";
+      if (producerCommandStatus) producerCommandStatus.textContent = `${producerActionLabel(action)}: ${message}`;
+      showToast(message);
+    }
+    finally { producerActionButtons.forEach((item) => { item.disabled = false; item.removeAttribute("aria-busy"); }); }
+  }));
+}
 function cancelProducerPlan(id) {
   cancelProduction(id, renderProjects, showToast);
 }
@@ -3260,6 +3315,7 @@ migrateLocalStorageProjects().then((result) => {
   if (result.migrated) refreshStorageStatus();
 }).catch(() => {});
 
+bindProducerActionButtons();
 const aiTaskStation = document.querySelector(".ai-task-station");
 const aiTaskStatus = document.querySelector("#ai-task-status");
 aiTaskStation?.addEventListener("click", (event) => {

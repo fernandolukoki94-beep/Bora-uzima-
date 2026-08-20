@@ -611,5 +611,18 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Tornar topbar, ferramentas, timeline, tracks e mixer uma superfície contínua de DAW.
 - [x] Fazer da timeline e dos clips/waveforms o centro visual do Studio.
 - [x] Reduzir texto explicativo dentro do espaço de produção e melhorar a hierarquia Arrange/Mix/FX/MIDI/AI.
-- [ ] Apresentar o AI Producer como ferramenta operacional com acções ligadas ao projecto real.
+- [x] Apresentar o AI Producer como ferramenta operacional com acções ligadas ao projecto real.
 - [x] Validar a reconstrução visual sem quebrar gravação, timeline, mixer, My Sounds, AI Producer e exportação (202 testes aprovados).
+
+
+## AI Producer — acções reais sem simulação
+
+- [x] Auditar contratos e handlers actuais do AI Producer contra os módulos de análise, instrumentos, timeline, DSP e mixdown.
+- [x] Implementar `Analyze vocal` com análise real da take e persistência do resultado no projecto.
+- [x] Implementar `Generate drums` com eventos/clip instrumental reais na timeline e áudio materializável.
+- [x] Implementar `Create bassline` com eventos/clip instrumental reais na timeline e áudio materializável.
+- [x] Implementar `Improve arrangement` alterando o arranjo real sem remover a origem vocal ou clips manuais.
+- [x] Implementar `Mix vocals` através da cadeia vocal local reversível e variante Mixed verificável.
+- [x] Implementar `Master track` como preparação local mensurável de headroom, sem alegar mastering externo.
+- [x] Ligar estados, erros, cancelamento e reexecução à UI do AI Producer sem botões fictícios.
+- [ ] Executar suite completa, actualizar README/TODO e publicar apenas após validação.

@@ -235,6 +235,18 @@
                 <button class="ai-task-card" type="button" data-studio-target="timeline" role="listitem"><span class="ai-task-number">04</span><strong>Mix + Master</strong><small>Timeline, headroom e exportação</small><span class="ai-task-action">Abrir Studio →</span></button>
               </div>
               <div class="ai-task-status" id="ai-task-status" role="status" aria-live="polite">Aguardando take ou beat para materializar o plano.</div>
+              <div class="producer-command-station" aria-label="Comandos reais do AI Producer">
+                <div class="section-kicker">Comandos de produção</div>
+                <div class="producer-command-grid">
+                  <button class="mini-button" type="button" data-producer-action="analyze-vocal">Analyze vocal</button>
+                  <button class="mini-button" type="button" data-producer-action="generate-drums">Generate drums</button>
+                  <button class="mini-button" type="button" data-producer-action="create-bassline">Create bassline</button>
+                  <button class="mini-button" type="button" data-producer-action="improve-arrangement">Improve arrangement</button>
+                  <button class="mini-button" type="button" data-producer-action="mix-vocals">Mix vocals</button>
+                  <button class="mini-button" type="button" data-producer-action="master-track">Master track</button>
+                </div>
+                <span id="producer-command-status" class="action-feedback" role="status" aria-live="polite">Nenhuma acção executada.</span>
+              </div>
             </section>
             <section class="producer-beat-panel" aria-labelledby="producer-beat-title">
               <div class="panel-heading compact"><div><div class="section-kicker">Instrumental externo</div><h4 id="producer-beat-title">Juntar um beat teu</h4><p>O ficheiro fica local no dispositivo e o original vocal nunca é substituído.</p></div></div>

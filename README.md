@@ -447,3 +447,12 @@ A interface do Studio foi reconstruída de acordo com a direcção visual defini
 A timeline passou a ocupar o centro da experiência, com lanes mais altas, labels de tracks integradas, ruler persistente, clips destacados e mixer tratado como continuação da sessão. O texto explicativo foi reduzido dentro do espaço de produção; a área de trabalho passa a privilegiar tracks, waveforms, timeline, mixer e controlos.
 
 A alteração é visual e não remove os fluxos funcionais existentes. A suite determinística continua com 202 testes aprovados e 0 falhas. O commit `525e9e6` foi publicado no Vercel com estado READY. O AI Producer continua a ser tratado como uma lacuna funcional separada: os controlos locais existentes executam operações reais, mas a apresentação completa de acções `Analyze vocal`, `Generate drums`, `Create bassline`, `Improve arrangement`, `Mix vocals` e `Master track` ainda deve ser concluída em sequência, sem criar botões fictícios.
+
+
+## V2.17 — AI Producer com acções reais
+
+O Producer Studio passou a expor uma estação de comandos operacional, sem botões de fachada. `Analyze vocal` analisa uma fonte de áudio real e guarda pico, RMS, duração e confiança no estado do projecto. `Generate drums`, `Create bassline` e `Improve arrangement` constroem Producer Plans locais com instrumentos virtuais materializáveis, preservando a origem e os clips existentes.
+
+`Mix vocals` executa o Mixdown WAV real da timeline activa e persiste a variante Mixed. `Master track` só fica disponível quando existe uma variante Mixed real e aplica a preparação local mensurável de headroom; não é apresentado como mastering externo por IA. Fontes ausentes, falhas de persistência e estados de execução são mostrados explicitamente na interface.
+
+A cobertura determinística do marco inclui contrato do módulo, contrato HTML/app contra botões fictícios e regressão da suite completa: **206 testes aprovados, 0 falhas**.
