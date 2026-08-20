@@ -1,57 +1,54 @@
-# Relatório final — Auditoria e refinamento do Bora Uzima
+# Relatório final — Auditoria funcional e redesign do Bora Uzima
 
-Data: 20 de agosto de 2026
+**Data:** 20 de agosto de 2026  
+**Projecto:** Fernando Lucoco Music / Bora Uzima  
+**Produção:** [fernando-lucoco-music.vercel.app](https://fernando-lucoco-music.vercel.app/)  
+**Commit publicado:** `e839581e7e933ae9ceb21eada5929334558c5151`
 
 ## Resultado executivo
 
-O site real foi auditado no repositório `fernandolukoki94-beep/Bora-uzima-`, testado localmente e verificado no domínio Vercel. Foi aplicado um refinamento visual localizado à landing pública, integrado no `main` e publicado em produção através do commit `ff2cba3`.
+O Studio foi reorganizado e verificado como uma superfície de produção musical local-first, com a hierarquia visual de uma DAW: sidebar de áreas, barra de sessão, toolbar de edição, transporte, Control Room, tracks, timeline, Signal Chain e mixer. A nova camada visual foi deliberadamente contida: grafite, cinza técnico, âmbar discreto para acções e medidores de sinal, sem gradientes neon, fundos ornamentais ou cartões que façam o produto parecer uma demonstração gerada automaticamente.
 
-A melhoria não substituiu o Studio, não removeu funcionalidades e não criou processamento fictício. O novo passe concentra-se na identidade pública, na legibilidade do cabeçalho, na força da CTA e na comunicação de capacidades já existentes.
+As correcções funcionais atacaram duas falhas reproduzidas no browser. Primeiro, os WAVs inline dos clips instrumentais eram persistidos repetidamente no localStorage até a quota ser excedida. A persistência agora guarda esses binários no IndexedDB quando disponível e mantém no localStorage um manifesto leve, preservando o fallback inline quando o IndexedDB falha. Segundo, as ferramentas de pitch e Voice Cleaner assumiam que todo o áudio vocal existia em `originalAudioData`; sessões criadas a partir de My Sounds guardam o vocal num clip local. O Studio agora resolve essa fonte real através do clip, do My Sounds Blob ou da chave IndexedDB.
 
-## Alterações realizadas
+## Alterações principais
 
-| Área | Alteração | Estado |
+| Área | Implementação | Estado verificado |
 |---|---|---|
-| Logotipo | O símbolo `FL` recebeu gradiente, contorno interno, detalhe inspirado em waveform e melhor presença em desktop/mobile. | Implementado |
-| Cabeçalho | A marca passou a mostrar `Fernando Lucoco Music` e `Vocal studio · local-first`; navegação e CTA receberam melhor hierarquia e contraste. | Implementado |
-| Hero | Foram melhorados textura, iluminação, espaçamento, profundidade do cartão e tratamento visual do título. | Implementado |
-| Prova de capacidades | Foi adicionada a linha `Local-first · Original preservado · Export WAV`, baseada em capacidades documentadas e sem simular operações. | Implementado |
-| Onboarding | Nenhum selector ou handler foi removido. O fluxo continuou a abrir e avançar depois do redesign. | Preservado e verificado |
-| Studio | As alterações remotas `V2.16` recebidas durante o trabalho foram integradas através de rebase sem serem descartadas. | Preservado |
-| Documentação | A decisão visual e os limites de validação foram registados em `docs/visual-refinement-2026-08-20.md`. | Implementado |
+| Organização DAW | Control Room contínua com tracks, transporte, timeline, Signal Chain e mixer integrado. | **Real** |
+| Design profissional | Superfície graphite, sidebar técnica, divisões por linhas, acento âmbar e responsividade móvel; sem fundo visual decorativo no Studio autenticado. | **Real** |
+| Instrumentos e Beat Maker | Teclado/MIDI, Piano Roll, acordes, guitarra e Beat Maker materializam clips WAV locais; callers aguardam a persistência assíncrona. | **Real** |
+| Producer Plan | Arranjo local determinístico e re-aplicável; clips do plano não se acumulam como dados inline. | **Real** |
+| Persistência | Clips instrumentais são compactados no manifesto e escritos em IndexedDB quando disponível; fallback inline permanece em caso de indisponibilidade. | **Real** |
+| Pitch | Fonte vocal resolvida de `originalAudioData` ou de clips de áudio/My Sounds; QA detectou 85 notas, -4 cents médios e 90% de confiança. | **Real** |
+| Voice Cleaner | Análise local concluída em 2,00 s com pico/RMS derivados de `analysis.vocal`; processamento continua reversível. | **Real** |
+| AutoMix | Ajuste reversível de volumes e panorama verificado no browser. | **Real** |
+| Mixdown e Mastering | Mixed WAV e Mastered WAV persistidos localmente; Mastering passou depois da compactação. | **Real** |
+| AI Producer | Endpoint server-side continua roteado, mas sem provider configurado devolve estado honesto; fallback local prepara um plano reversível sem fingir uma resposta generativa. | **Fallback real / provider bloqueado** |
+| Exportação | Exportação WAV local e variante Mixed/Mastered implementadas; a capacidade física de download depende do browser/dispositivo. | **Real local / dispositivo pendente** |
 
-## Verificações executadas
+## Evidência de persistência
 
-A suite oficial executou **202 testes**, com **201 aprovados**. O único teste falhado é `tests/openai-secret.test.mjs`, que recebe HTTP 401 do provider OpenAI; o mesmo bloqueio já existia antes das alterações visuais e não foi mascarado como sucesso.
+Na sessão QA, o manifesto passou de **4.426.667** para **1.189.166** caracteres depois de uma nova materialização do Producer Plan. Os clips mantiveram as respectivas chaves locais e continuaram disponíveis para a timeline e mixdown. Depois disso, o Mastering criou a variante reversível `Mastered WAV disponível` sem exceder a quota.
 
-Todos os módulos JavaScript passaram `node --check`. `git diff --check` não encontrou problemas de whitespace. A landing local foi aberta em desktop e numa captura Chromium real de 390×844. O fluxo `Começar a criar` foi percorrido com dados sintéticos até ao Passo 4 de 4 e encaminhado para o formulário Firebase sem introduzir credenciais.
+> O áudio permanece no navegador. O servidor do AI Producer recebe apenas metadados quando essa acção é solicitada; o material áudio continua no fluxo local-first.
 
-No domínio de produção, a CTA principal abriu novamente o Passo 1 de 4 do onboarding. A consola do navegador local não apresentou erros após o rebase.
+## Testes
 
-## Deployment
+A suite terminou com **212 testes**, dos quais **211 passaram**. A única falha é `tests/openai-secret.test.mjs`: a chave disponibilizada ao runner é rejeitada pelo provider remoto com HTTP 401. Esse teste externo não valida o núcleo local do Studio e não foi mascarado como sucesso. O `git diff --check` passou, os testes de estrutura do shell passaram e a verificação live confirmou a presença da Control Room e da nova superfície DAW.
 
-O commit foi integrado na branch `main` e enviado para o GitHub. O Vercel criou o deployment de produção `dpl_9r8Csaf9QrhUG7KaUQXCgshfdWYJ`, associado ao commit `ff2cba34282309f64f736b168c0ab164dcb7011b`, com estado **READY**.
+## Deployment e verificação live
 
-## Classificação honesta das áreas ainda não totalmente validadas
+O commit `e839581` foi enviado para `main` no GitHub e para o branch de trabalho `feature/functional-studio-core`. O Vercel criou uma deployment de produção **READY** para esse SHA; a página pública respondeu correctamente em [fernando-lucoco-music.vercel.app](https://fernando-lucoco-music.vercel.app/). No domínio live, a shell autenticada de QA exibiu `188px` de sidebar, Control Room presente, fundo do Studio sem imagem ornamental e superfície de Control Room em `rgb(24, 25, 26)`.
 
-| Área | Classificação | Motivo |
-|---|---|---|
-| Landing pública | REAL | Servida no Vercel e verificada visualmente após deployment. |
-| Onboarding público | REAL/PARTIAL | Transições verificadas; conclusão real depende de autenticação autorizada. |
-| Studio e timeline | PARTIAL | Núcleo coberto pela suite; sessão autenticada e fluxo completo de browser ainda requerem credenciais autorizadas. |
-| Gravação física | PARTIAL | Implementação e testes de contrato existem; microfone em dispositivo físico não foi declarado como validado nesta unidade. |
-| Exportação e áudio físico | PARTIAL | Mixdown/export cobertos localmente; download e percepção acústica em dispositivos reais continuam pendentes. |
-| AI Provider externo | BLOCKED | Provider OpenAI respondeu HTTP 401 no teste de segredo. O fallback local não é apresentado como provider externo funcional. |
-| Build/lint/E2E oficiais | MISSING | O `package.json` actual só expõe `test`; não foram inventados resultados de scripts inexistentes. |
+## Limitações honestas
 
-## Próximos passos recomendados
-
-A próxima unidade deve validar o Studio autenticado com uma conta de teste autorizada, incluindo gravação real, reload, persistência, Mixdown, exportação, ownership e estados de erro. Depois disso, convém criar scripts oficiais mínimos para build/check/E2E adequados à arquitectura actual, sem introduzir uma camada de tooling desnecessária.
-
-A decisão de trocar a marca textual pública de `Fernando Lucoco Music` para `Bora Uzima` deve ser tomada explicitamente como decisão de produto. Neste ciclo, o símbolo e a apresentação foram melhorados, mas a identidade textual activa foi preservada para não criar uma alteração de naming não autorizada.
+A gravação física com microfone não foi declarada como validada porque requer autorização e um dispositivo real. A recomendação generativa depende de `GEMINI_API_KEY`, `AI_PROVIDER_KEY` ou `OPENAI_API_KEY` válido no ambiente Vercel; sem essa variável, o site aplica apenas o Producer Plan local e informa explicitamente a indisponibilidade do provider. A análise, Beat Maker, timeline, mixer, mixdown e mastering locais não dependem dessa chave.
 
 ## Referências
 
 [1]: https://github.com/fernandolukoki94-beep/Bora-uzima- "Repositório Bora Uzima"
+
 [2]: https://fernando-lucoco-music.vercel.app/ "Site público Fernando Lucoco Music"
-[3]: https://github.com/fernandolukoki94-beep/Bora-uzima-/commit/ff2cba34282309f64f736b168c0ab164dcb7011b "Commit de refinamento visual publicado"
+
+[3]: https://github.com/fernandolukoki94-beep/Bora-uzima-/commit/e839581e7e933ae9ceb21eada5929334558c5151 "Commit de produção do redesign e persistência local"
