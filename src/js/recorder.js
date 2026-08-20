@@ -16,6 +16,12 @@ export function createRecorderController({ onStateChange, onComplete, onMetrics,
   let monitorEnabled = false;
   let monitorVolume = 0.35;
   let monitorGain = null;
+  let monitorFilter = null;
+  let monitorCompressor = null;
+  let monitorDelay = null;
+  let monitorDelayFeedback = null;
+  let monitorFxGain = null;
+  let monitorFx = { tone: 0.55, delay: 0, ambience: 0 };
 
   function updateTimer() {
     const seconds = Math.floor((Date.now() - startedAt) / 1000);
@@ -31,8 +37,18 @@ export function createRecorderController({ onStateChange, onComplete, onMetrics,
     meterFrame = null;
     analyser?.disconnect();
     monitorGain?.disconnect();
+    monitorFilter?.disconnect();
+    monitorCompressor?.disconnect();
+    monitorDelay?.disconnect();
+    monitorDelayFeedback?.disconnect();
+    monitorFxGain?.disconnect();
     analyser = null;
     monitorGain = null;
+    monitorFilter = null;
+    monitorCompressor = null;
+    monitorDelay = null;
+    monitorDelayFeedback = null;
+    monitorFxGain = null;
     audioContext?.close?.().catch(() => {});
     audioContext = null;
     onMetrics?.({ inputDb: -Infinity, peakDb: -Infinity, latencyMs: null, active: false });
@@ -49,8 +65,32 @@ export function createRecorderController({ onStateChange, onComplete, onMetrics,
       if (monitorEnabled) {
         monitorGain = audioContext.createGain();
         monitorGain.gain.value = monitorVolume;
-        source.connect(monitorGain);
+        monitorFilter = audioContext.createBiquadFilter();
+        monitorFilter.type = "peaking";
+        monitorFilter.frequency.value = 2600;
+        monitorFilter.Q.value = 0.8;
+        monitorFilter.gain.value = (Number(monitorFx.tone) - 0.5) * 8;
+        monitorCompressor = audioContext.createDynamicsCompressor();
+        monitorCompressor.threshold.value = -20;
+        monitorCompressor.knee.value = 18;
+        monitorCompressor.ratio.value = 3;
+        monitorCompressor.attack.value = 0.006;
+        monitorCompressor.release.value = 0.14;
+        monitorDelay = audioContext.createDelay(0.6);
+        monitorDelay.delayTime.value = 0.18;
+        monitorDelayFeedback = audioContext.createGain();
+        monitorDelayFeedback.gain.value = Math.min(0.55, Number(monitorFx.delay) * 0.55);
+        monitorFxGain = audioContext.createGain();
+        monitorFxGain.gain.value = Math.min(0.6, Number(monitorFx.ambience) * 0.6 + Number(monitorFx.delay) * 0.35);
+        source.connect(monitorFilter);
+        monitorFilter.connect(monitorCompressor);
+        monitorCompressor.connect(monitorGain);
         monitorGain.connect(audioContext.destination);
+        monitorCompressor.connect(monitorDelay);
+        monitorDelay.connect(monitorDelayFeedback);
+        monitorDelayFeedback.connect(monitorDelay);
+        monitorDelay.connect(monitorFxGain);
+        monitorFxGain.connect(audioContext.destination);
       }
       const samples = new Float32Array(analyser.fftSize);
       const tick = () => {
@@ -107,10 +147,18 @@ export function createRecorderController({ onStateChange, onComplete, onMetrics,
     }
   }
 
-  function setMonitoring({ enabled = monitorEnabled, volume = monitorVolume } = {}) {
+  function setMonitoring({ enabled = monitorEnabled, volume = monitorVolume, tone = monitorFx.tone, delay = monitorFx.delay, ambience = monitorFx.ambience } = {}) {
     monitorEnabled = Boolean(enabled);
     monitorVolume = Math.max(0, Math.min(1, Number(volume) || 0));
+    monitorFx = {
+      tone: Math.max(0, Math.min(1, Number(tone) || 0)),
+      delay: Math.max(0, Math.min(1, Number(delay) || 0)),
+      ambience: Math.max(0, Math.min(1, Number(ambience) || 0)),
+    };
     if (monitorGain) monitorGain.gain.value = monitorEnabled ? monitorVolume : 0;
+    if (monitorFilter) monitorFilter.gain.value = (monitorFx.tone - 0.5) * 8;
+    if (monitorDelayFeedback) monitorDelayFeedback.gain.value = monitorFx.delay * 0.55;
+    if (monitorFxGain) monitorFxGain.gain.value = Math.min(0.6, monitorFx.ambience * 0.6 + monitorFx.delay * 0.35);
   }
 
   function stop() {

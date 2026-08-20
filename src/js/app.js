@@ -4,7 +4,7 @@ import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./pr
 import { analyzeAudioDataUrl } from "./audio-analysis.js";
 import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyVoiceCleanerLocal, applyVoiceChangerLocal, applyHarmonyLocal, applyVoiceCharacterLocal, voiceCharacterParameters, harmonyParameters, applyMasteringLocal, applyReverbLocal, applyDelayLocal, spatialEffectParameters } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
-import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
+import { addClip, addTrack, createProject, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
 import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitClip, trimClip } from "./studio/timeline.js";
 import { ensureAudioContextRunning, getAudioContext, playChord, playDrumHit, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
@@ -638,6 +638,23 @@ function currentTimelineProject() {
   const projects = readProjects();
   return projects.find((project) => project.id === activeTimelineId) || projects[0] || null;
 }
+function ensureProductionSession(name = "Nova sessão de produção") {
+  if (activeTimelineId && timelineHistory) {
+    const active = currentTimelineProject();
+    if (active) return active;
+  }
+  const existing = readProjects()[0];
+  if (existing) {
+    syncTimelineHistory(existing);
+    return existing;
+  }
+  const created = normalizeProject(createProject({ name }));
+  saveProjects([created]);
+  syncTimelineHistory(created);
+  renderProjects();
+  showToast("Sessão de produção criada. Já podes adicionar instrumental ou áudio.");
+  return created;
+}
 async function resolveBeatBlob(project) {
   const beat = project?.importedBeat;
   if (!beat) return null;
@@ -722,8 +739,7 @@ async function updateProducerBeatControls(project = currentTimelineProject()) {
   await drawBlobWaveform(getVariantData(project, "original") ? await dataUrlToBlob(getVariantData(project, "original")) : null, producerVocalWaveform, producerVocalWaveformStatus, "#f06aa8");
 }
 async function importProducerBeat(file) {
-  const project = currentTimelineProject();
-  if (!project) { showToast("Grava primeiro uma take para importar um beat."); return; }
+  const project = ensureProductionSession("Beat Studio");
   try {
     const beat = createImportedBeat(file);
     beat.storageKey = beat.id;
@@ -1780,53 +1796,76 @@ function renderProjects() {
 }
 async function saveRecording({ blob, mimeType, seconds }) {
   const name = nameInput.value.trim() || `Take ${String(readProjects().length + 1).padStart(2, "0")}`;
+  const activeSession = currentTimelineProject();
   const originalAudioData = await blobToDataUrl(blob);
-  const projectId = makeProjectId();
-  const takeGroupId = `takes-${name.toLocaleLowerCase("pt-PT").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || projectId}`;
-  const takeNumber = readProjects().filter((item) => item.takeGroupId === takeGroupId || (!item.takeGroupId && item.name === name)).length + 1;
-  const project = normalizeProject({
-    id: projectId,
-    name,
-    takeGroupId,
-    takeNumber,
-    takeLabel: `Take ${takeNumber}`,
-    tempo: 100,
-    key: "C",
-    preset: presetInput.value,
-    genre: genreInput.value,
-    productionBrief: productionBriefInput?.value.trim() || "",
-    duration: seconds,
-    durationLabel: `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`,
-    status: "Guardada localmente",
-    createdAt: new Date().toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" }),
-    bytes: blob.size,
-    mimeType,
-    originalMimeType: mimeType,
-    originalAudioData,
-    processedAudioData: null,
-    processedMimeType: null,
-    audioVariants: {},
-  });
+  const now = Date.now();
+  const clipKind = `recording-${now}`;
+  const clipKey = `${activeSession?.id || "new"}:${clipKind}`;
+
   try {
-    const projects = readProjects();
-    projects.unshift(project);
-    saveProjects(projects);
-    try {
-      if (await indexedDbAvailable()) {
-        await Promise.all([
-          putProject({ ...project, storageVersion: "indexeddb-v2" }),
-          putTake({ id: project.id, projectId: project.id, originalAudioData: true, processedAudioData: false }),
-          putAudioBlob(project.id, "original", blob),
-        ]);
+    if (activeSession && timelineHistory?.present?.id === activeSession.id) {
+      const project = normalizeProject(activeSession);
+      const vocalTrack = project.tracks.find((track) => track.type === "audio" && /vocal|voz|take/i.test(track.name))
+        || project.tracks.find((track) => track.type === "audio")
+        || null;
+      let nextProject = project;
+      let trackId = vocalTrack?.id;
+      if (!trackId) {
+        nextProject = addTrack(nextProject, { name: "Lead Vocal", type: "audio", color: "#f06aa8" });
+        trackId = nextProject.tracks[nextProject.tracks.length - 1].id;
       }
-    } catch {
-      showToast("A take foi guardada no fallback local; IndexedDB não esteve disponível.");
+      const start = nextProject.tracks.find((track) => track.id === trackId)?.clips.reduce((end, clip) => Math.max(end, Number(clip.start || 0) + Number(clip.duration || 0)), 0) || 0;
+      nextProject = addClip(nextProject, trackId, {
+        id: `${project.id}-recording-${now}`,
+        blobKey: clipKey,
+        start,
+        duration: Number(seconds || 0),
+        sourceOffset: 0,
+        name,
+        mimeType,
+        gain: 1,
+      });
+      nextProject = normalizeProject({
+        ...nextProject,
+        status: "Vocal gravado na sessão",
+        duration: Math.max(Number(project.duration || 0), start + Number(seconds || 0)),
+        bytes: Number(project.bytes || 0) + Number(blob.size || 0),
+        updatedAt: new Date().toISOString(),
+      });
+      await commitTimelineProject(nextProject);
+      try {
+        if (await indexedDbAvailable()) {
+          await Promise.all([
+            putAudioBlob(project.id, clipKind, blob),
+            putTake({ id: `${project.id}:${clipKind}`, projectId: project.id, audioBlobKind: clipKind, originalAudioData: true, processedAudioData: false }),
+          ]);
+        }
+      } catch {
+        showToast("A gravação entrou na sessão, mas o blob IndexedDB falhou; o fallback local permanece disponível.");
+      }
+      activeTimelineId = project.id;
+      timelineHistory = createHistoryState(normalizeProject(nextProject));
+      renderTimeline();
+      renderMixer();
+      renderProjects();
+      await refreshStorageStatus();
+      showToast(`“${name}” foi adicionada à Audio Track da sessão.`);
+    } else {
+      const projectId = makeProjectId();
+      const takeGroupId = `takes-${name.toLocaleLowerCase("pt-PT").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || projectId}`;
+      const takeNumber = readProjects().filter((item) => item.takeGroupId === takeGroupId || (!item.takeGroupId && item.name === name)).length + 1;
+      const project = normalizeProject({ id: projectId, name, takeGroupId, takeNumber, takeLabel: `Take ${takeNumber}`, tempo: 100, key: "C", preset: presetInput.value, genre: genreInput.value, productionBrief: productionBriefInput?.value.trim() || "", duration: seconds, durationLabel: `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`, status: "Guardada localmente", createdAt: new Date().toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" }), bytes: blob.size, mimeType, originalMimeType: mimeType, originalAudioData, processedAudioData: null, processedMimeType: null, audioVariants: {} });
+      const projects = readProjects();
+      projects.unshift(project);
+      saveProjects(projects);
+      if (await indexedDbAvailable()) await Promise.all([putProject({ ...project, storageVersion: "indexeddb-v2" }), putTake({ id: project.id, projectId: project.id, originalAudioData: true, processedAudioData: false }), putAudioBlob(project.id, "original", blob)]);
+      renderProjects();
+      await refreshStorageStatus();
+      showToast(`“${name}” foi guardada como nova sessão.`);
     }
-    renderProjects();
-    await refreshStorageStatus();
-    showToast(`“${name}” foi guardada e o original está disponível.`);
-  } catch {
-    showToast("Não foi possível guardar esta take. Liberta espaço do navegador e tenta novamente.");
+  } catch (error) {
+    console.error("Gravação não foi integrada na sessão", error);
+    showToast(error instanceof Error ? `Não foi possível guardar a gravação: ${error.message}` : "Não foi possível guardar a gravação.");
   }
   nameInput.value = "";
   if (productionBriefInput) productionBriefInput.value = "";
@@ -2629,8 +2668,8 @@ timelineShareButton?.addEventListener("click", () => { shareFinalTrack(); });
 timelineExportButton?.addEventListener("click", () => { const project = currentTimelineProject(); if (project) exportMixedVersion(project.id); else showToast("Abre ou grava uma sessão antes de exportar."); });
 
 addTrackButton?.addEventListener("click", () => {
-  const project = currentTimelineProject();
-  if (!project || !timelineHistory) return showToast("Grava primeiro uma take para criar tracks.");
+  const project = ensureProductionSession("Nova sessão de produção");
+  if (!project || !timelineHistory) return showToast("Não foi possível abrir a sessão de produção.");
   const type = addTrackType?.value || "audio";
   const labels = { audio: "Audio", midi: "MIDI", instrument: "Instrument", drums: "Drum", vocal: "Vocal", bus: "Bus", fx: "FX" };
   const colors = { audio: "#62d6c7", midi: "#9c8cff", instrument: "#9c8cff", drums: "#f4b860", vocal: "#f06aa8", bus: "#6ea8fe", fx: "#d68cff" };
