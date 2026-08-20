@@ -584,3 +584,13 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Cobrir a integração My Sounds → timeline → mixdown com teste determinístico de contrato; suite actual: 201 testes aprovados, 0 falhas.
 - [ ] Executar QA física em Samsung Galaxy A06: permissões de microfone, latência de gravação, playback de My Sounds e exportação Mixed WAV.
 - [ ] Validar provider externo do AI Producer quando quota/conectividade estiver disponível.
+
+
+## Próximo ciclo sequencial — requisito funcional seguinte
+
+- [x] Auditar o próximo bloco pendente do Master Specification contra o código publicado e o README.
+- [x] Implementar a próxima funcionalidade operacional escolhida pela matriz de conformidade, sem estado simulado.
+- [x] Criar testes determinísticos para o novo fluxo e executar a suite completa.
+- [x] Actualizar README, matriz de conformidade e evidência no TODO após validação.
+- [ ] Sincronizar o commit validado com GitHub/Vercel e confirmar o estado READY em produção.
+- [x] Permitir editar nome, pasta e tags de um som privado já guardado, com persistência IndexedDB e feedback real de sucesso/erro.

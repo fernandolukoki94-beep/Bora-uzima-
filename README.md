@@ -422,3 +422,10 @@ A biblioteca privada **My Sounds** está agora ligada ao fluxo de produção sem
 Durante o Mixdown, o resolvedor reconhece clips com origem My Sounds e procura primeiro o Blob original através do `mySoundId`. A cópia inline permanece como fallback de recuperação para playback e exportação quando o IndexedDB não puder ser lido. O áudio privado continua local ao dispositivo; não é publicado nem enviado automaticamente para a cloud.
 
 A integração foi coberta por teste determinístico de contrato e a suite oficial terminou esta iteração com **201 testes aprovados, 0 falhas e 0 ignorados**. Este resultado não substitui a validação física: continuam pendentes a verificação no Samsung Galaxy A06 de permissões de microfone, latência, playback da biblioteca e exportação do Mixed WAV, assim como a prova do provider externo do AI Producer quando houver quota e conectividade.
+
+
+## V2.14 — Edição persistente da biblioteca My Sounds
+
+A biblioteca privada agora permite editar **nome, pasta e tags** de qualquer som já guardado. A acção `Editar` lê os metadados actualmente persistidos, aceita a alteração do utilizador e chama `updateMySound` no IndexedDB. O Blob de áudio não é regravado nem substituído: apenas os metadados são actualizados, e a grelha é recarregada a partir da store para que pesquisa, filtro por pasta e favoritos reflictam os dados reais.
+
+O fluxo mantém feedback explícito para cancelamento, som inexistente e falhas de persistência. A validação determinística passou com **202 testes aprovados, 0 falhas e 0 ignorados**, incluindo o contrato de presença da edição e a preservação do caminho de áudio privado.

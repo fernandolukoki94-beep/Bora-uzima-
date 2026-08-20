@@ -33,3 +33,10 @@ test("My Sounds filtra por pesquisa, pasta e favoritos", () => {
   assert.deepEqual(filterMySounds(items, { folder: "Loops" }).map((item) => item.id), ["b"]);
   assert.deepEqual(filterMySounds(items, { favoritesOnly: true }).map((item) => item.id), ["a"]);
 });
+
+test("My Sounds expõe edição persistente de metadados sem substituir o blob", () => {
+  const appSource = fs.readFileSync(new URL("../src/js/app.js", import.meta.url), "utf8");
+  assert.match(appSource, /data-my-sound-edit/);
+  assert.match(appSource, /async function editMySoundMetadata\(id\)/);
+  assert.match(appSource, /await updateMySound\(id, \{ name, folder, tags \}\)/);
+});

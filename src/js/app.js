@@ -1529,7 +1529,7 @@ let mySoundsItems = [];
 let mySoundsFilters = { query: "", folder: "", favoritesOnly: false };
 function mySoundCard(item) {
   const favorite = Boolean(item.favorite);
-  return `<article class="sound-library-card" data-my-sound-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.name)}"><div class="sound-library-card-top"><span class="sound-library-swatch" style="background:#ff765c" aria-hidden="true"></span><span class="sound-library-type">${escapeHtml(item.folder)} · ${escapeHtml(item.mimeType.replace("audio/", ""))}</span><button class="sound-library-favorite${favorite ? " is-active" : ""}" type="button" data-my-sound-favorite="${escapeHtml(item.id)}" aria-label="${favorite ? "Remover" : "Adicionar"} ${escapeHtml(item.name)} ${favorite ? "dos" : "aos"} favoritos" aria-pressed="${favorite}">${favorite ? "★" : "☆"}</button></div><strong>${escapeHtml(item.name)}</strong><small>${(item.size / 1048576).toFixed(2)} MB · ${escapeHtml((item.tags || []).join(" · ") || "sem tags")}</small><div class="sound-library-actions"><button class="mini-button" type="button" data-my-sound-preview="${escapeHtml(item.id)}">▶ Ouvir</button><button class="mini-button primary" type="button" data-my-sound-add="${escapeHtml(item.id)}">＋ Timeline</button><button class="mini-button danger" type="button" data-my-sound-delete="${escapeHtml(item.id)}">Apagar</button></div></article>`;
+  return `<article class="sound-library-card" data-my-sound-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.name)}"><div class="sound-library-card-top"><span class="sound-library-swatch" style="background:#ff765c" aria-hidden="true"></span><span class="sound-library-type">${escapeHtml(item.folder)} · ${escapeHtml(item.mimeType.replace("audio/", ""))}</span><button class="sound-library-favorite${favorite ? " is-active" : ""}" type="button" data-my-sound-favorite="${escapeHtml(item.id)}" aria-label="${favorite ? "Remover" : "Adicionar"} ${escapeHtml(item.name)} ${favorite ? "dos" : "aos"} favoritos" aria-pressed="${favorite}">${favorite ? "★" : "☆"}</button></div><strong>${escapeHtml(item.name)}</strong><small>${(item.size / 1048576).toFixed(2)} MB · ${escapeHtml((item.tags || []).join(" · ") || "sem tags")}</small><div class="sound-library-actions"><button class="mini-button" type="button" data-my-sound-preview="${escapeHtml(item.id)}">▶ Ouvir</button><button class="mini-button primary" type="button" data-my-sound-add="${escapeHtml(item.id)}">＋ Timeline</button><button class="mini-button" type="button" data-my-sound-edit="${escapeHtml(item.id)}">Editar</button><button class="mini-button danger" type="button" data-my-sound-delete="${escapeHtml(item.id)}">Apagar</button></div></article>`;
 }
 function renderMySounds() {
   if (!mySoundsGrid) return;
@@ -1546,6 +1546,19 @@ function renderMySounds() {
 async function refreshMySounds() {
   try { mySoundsItems = await listMySounds(); renderMySounds(); }
   catch (error) { if (mySoundsStatus) mySoundsStatus.textContent = error instanceof Error ? error.message : "My Sounds indisponível neste navegador."; }
+}
+async function editMySoundMetadata(id) {
+  const item = mySoundsItems.find((candidate) => candidate.id === id);
+  if (!item) throw new Error("Som não encontrado na biblioteca local.");
+  const name = globalThis.prompt?.("Nome do som", item.name);
+  if (name === null || name === undefined) return;
+  const folder = globalThis.prompt?.("Pasta", item.folder || "Raiz");
+  if (folder === null || folder === undefined) return;
+  const tags = globalThis.prompt?.("Tags separadas por vírgulas", (item.tags || []).join(", "));
+  if (tags === null || tags === undefined) return;
+  await updateMySound(id, { name, folder, tags });
+  await refreshMySounds();
+  if (mySoundsStatus) mySoundsStatus.textContent = `${String(name).trim() || item.name}: metadados actualizados localmente.`;
 }
 async function previewMySound(id) {
   const blob = await getMySoundBlob(id);
@@ -1609,6 +1622,7 @@ mySoundsGrid?.addEventListener("click", async (event) => {
   if (!id) return;
   try {
     if (event.target.closest("[data-my-sound-favorite]")) { const next = await updateMySound(id, { favorite: !mySoundsItems.find((item) => item.id === id)?.favorite }); await refreshMySounds(); return next; }
+    if (event.target.closest("[data-my-sound-edit]")) { await editMySoundMetadata(id); return; }
     if (event.target.closest("[data-my-sound-delete]")) { await deleteMySound(id); await refreshMySounds(); return; }
     if (event.target.closest("[data-my-sound-preview]")) { await previewMySound(id); return; }
     if (event.target.closest("[data-my-sound-add]")) addMySoundToTimeline(id);
