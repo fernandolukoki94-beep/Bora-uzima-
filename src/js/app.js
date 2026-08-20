@@ -1077,18 +1077,19 @@ async function resetMastering() {
 async function mixImportedBeatWithVocal() {
   const project = currentTimelineProject();
   const beat = project?.importedBeat;
-  const vocalData = getVariantData(project, "pitchCorrected") || getVariantData(project, "enhanced") || getVariantData(project, "original");
+  const vocalVariant = getVariantData(project, "harmony") ? "harmony" : (getVariantData(project, "pitchCorrected") ? "pitchCorrected" : (getVariantData(project, "enhanced") ? "enhanced" : "original"));
+  const vocalData = getVariantData(project, vocalVariant);
   const beatBlob = project ? await resolveBeatBlob(project) : null;
   if (!project || !beatBlob || !vocalData) return showToast("Precisas de uma take vocal e de um beat importado.");
   producerVocalBeatMix.disabled = true;
   producerBeatStatus.textContent = "A preparar Vocal + beat local…";
   try {
-    const vocalKey = `${project.id}:pitch-corrected`;
+    const vocalKey = `${project.id}:${vocalVariant === "harmony" ? "harmony" : vocalVariant === "pitchCorrected" ? "pitch-corrected" : vocalVariant}`;
     const beatKey = `${project.id}:imported-beat`;
     let arrangement = normalizeProject({ ...project, tracks: [] });
     arrangement = addTrack(arrangement, { id: `${project.id}-vocal`, name: "Vocal processado", type: "audio", color: "#f06aa8" });
     arrangement = addTrack(arrangement, { id: `${project.id}-beat`, name: `Beat · ${beat.name}`, type: "audio", color: "#62d6c7" });
-    arrangement = addClip(arrangement, `${project.id}-vocal`, { id: `${project.id}-vocal-clip`, blobKey: vocalKey, name: "Vocal processado", duration: Number(project.duration || 0), mimeType: "audio/wav", gain: 1 });
+    arrangement = addClip(arrangement, `${project.id}-vocal`, { id: `${project.id}-vocal-clip`, blobKey: vocalKey, name: `Vocal · ${vocalVariant === "harmony" ? "Harmony" : vocalVariant}`, duration: Number(project.duration || 0), mimeType: "audio/wav", gain: 1 });
     arrangement = addClip(arrangement, `${project.id}-beat`, { id: `${project.id}-beat-clip`, blobKey: beatKey, name: beat.name, duration: Number(project.duration || 0), mimeType: beat.type, gain: 1.15 });
     const sources = new Map([[vocalKey, await dataUrlToBlob(vocalData)], [beatKey, beatBlob]]);
     const wav = await renderTimelineToWav(arrangement, sources, { headroom: 0.86 });
@@ -1107,7 +1108,7 @@ async function mixImportedBeatWithVocal() {
     renderProjects();
     await refreshStorageStatus();
     if (producerFinalStatus) producerFinalStatus.textContent = "Faixa final Vocal + beat pronta para exportar em WAV.";
-    showToast("Vocal + beat misturados localmente. A faixa final está pronta para exportar; Original, Enhanced e Pitch Corrected continuam reversíveis.");
+    showToast(`Vocal ${vocalVariant === "harmony" ? "Harmony" : vocalVariant} + beat misturados localmente. A faixa final está pronta para exportar; Original e variantes continuam reversíveis.`);
   } catch (error) {
     console.error("Vocal + beat falhou", error);
     producerBeatStatus.textContent = error instanceof Error ? error.message : "Não foi possível criar o Mixed.";

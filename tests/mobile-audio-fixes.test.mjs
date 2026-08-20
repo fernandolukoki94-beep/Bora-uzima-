@@ -98,3 +98,10 @@ test("Producer Studio expõe bypass A/B sem substituir variantes", () => {
   assert.match(app, /Bypass activo: Original/);
   assert.match(app, /playProducerPreview\(producerBypassActive \? "original" : "mixed"\)/);
 });
+
+
+test("Mixed Vocal + beat escolhe Harmony quando a variante está activa", () => {
+  assert.match(app, /getVariantData\(project, "harmony"\) \? "harmony"/);
+  assert.match(app, /vocalVariant === "harmony" \? "harmony"/);
+  assert.match(app, /Vocal · \$\{vocalVariant === "harmony" \? "Harmony"/);
+});

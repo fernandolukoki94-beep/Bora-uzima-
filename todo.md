@@ -561,3 +561,12 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Validar suite após a correcção: 199 testes aprovados, 0 falhas.
 - [ ] Confirmar provider AI externo com resposta real e quota disponível.
 - [ ] Validar fisicamente Mixed WAV, playback e gravação no Samsung Galaxy A06.
+
+
+## Próximo módulo — Harmony vocal local
+
+- [x] Auditar os modelos de voz, variantes, DSP e painel AI Voice existentes.
+- [x] Implementar duas vozes Harmony locais com deslocamento de pitch e mistura controlável.
+- [x] Adicionar intensidade ajustável, preview, bypass e aplicação como variante sem substituir Original.
+- [x] Persistir a variante Harmony e incluí-la no Mixed WAV/exportação quando activa.
+- [x] Cobrir o processamento com testes determinísticos, documentar e publicar; suite com 200 testes aprovados e 0 falhas.
