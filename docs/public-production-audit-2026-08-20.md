@@ -34,3 +34,8 @@ A gravação vocal física através do microfone e a exportação no Samsung Gal
 ## V2.10 — publicação da gravação real
 
 O commit `6ad845b96a4ddc3009b44278580c2987fd4e3db5` foi confirmado pela Vercel como deployment de produção `READY`. O domínio principal abre a autenticação Firebase antes de expor o Studio; a gravação não fica acessível anonimamente. A validação pública autenticada da captura física continua pendente porque requer uma conta/sessão e permissão de microfone no dispositivo real.
+
+
+## V2.12 — resiliência do AI Producer
+
+O commit `64a55b73169a23d5b73b36f75924b9e488d54f1f` (`fix: preserve producer audio when indexeddb write fails`) foi confirmado pela Vercel como deployment de produção `READY`. O fluxo do AI Producer mantém o WAV PCM inline e prossegue quando uma escrita na store IndexedDB falha, em vez de rejeitar o arranjo inteiro. A suite determinística desta etapa terminou com 199 testes aprovados e 0 falhas. A validação de provider externo e o teste físico no Samsung Galaxy A06 continuam pendentes.
