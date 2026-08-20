@@ -531,3 +531,11 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Reproduzir no site público a criação de sessão e aplicação do Producer Plan/AI Producer; playback/exportação vocal física continuam pendentes.
 - [x] Confirmar que não existe discrepância no bundle publicado para a materialização instrumental: o domínio executa e persiste as novas tracks.
 - [x] Confirmar publicamente que o instrumental aparece como Audio Track, altera a duração, persiste em IndexedDB e entra no Producer Plan local.
+
+
+## Discrepância reportada no URL público `#instrument-lab`
+
+- [ ] Reproduzir o URL exacto fornecido pelo utilizador e guardar a evidência da versão renderizada.
+- [ ] Comparar o alias principal com o deployment `fa1bdcc` e verificar se existe cache/alias a servir um deployment anterior.
+- [ ] Corrigir o alias ou a publicação se o domínio principal não estiver a apontar para a versão funcional.
+- [ ] Confirmar novamente no mesmo URL que o Instrument Lab e o Control Room mostram as alterações actuais.

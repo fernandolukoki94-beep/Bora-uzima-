@@ -90,6 +90,8 @@ const saveCloudProjectButton = document.getElementById("save-cloud-project");
 const cloudSyncStatus = document.getElementById("cloud-sync-status");
 const timelineGrid = document.getElementById("timeline-grid");
 const controlRoomTrackList = document.getElementById("control-room-track-list");
+const instrumentSessionSummary = document.getElementById("instrument-session-summary");
+const instrumentSessionTracks = document.getElementById("instrument-session-tracks");
 const mixerTracks = document.getElementById("mixer-tracks");
 const mixerInspector = document.getElementById("mixer-inspector");
 const mixerHeadroom = document.getElementById("mixer-headroom");
@@ -1200,7 +1202,12 @@ function refreshTransportProject() {
 
 function renderControlRoomTracks(project) {
   if (!controlRoomTrackList) return;
-  if (!project?.tracks?.length) {
+  const tracks = Array.isArray(project?.tracks) ? project.tracks : [];
+  const clipCount = tracks.reduce((total, track) => total + (Array.isArray(track.clips) ? track.clips.length : 0), 0);
+  const duration = getTimelineDuration(project);
+  if (instrumentSessionSummary) instrumentSessionSummary.textContent = project ? `${tracks.length} Audio Track${tracks.length === 1 ? "" : "s"} · ${clipCount} clip${clipCount === 1 ? "" : "s"} · ${duration.toFixed(1)}s · persistência local activa.` : "Abre uma sessão para materializar sons.";
+  if (instrumentSessionTracks) instrumentSessionTracks.textContent = tracks.length ? tracks.map((track) => track.name || "Track").join(" · ") : "Ainda sem Audio Tracks.";
+  if (!tracks.length) {
     controlRoomTrackList.innerHTML = '<div class="control-room-track-row"><div class="track-identity"><span class="track-color fx"></span><div><strong>Sessão sem tracks</strong><small>Cria um instrumental ou grava uma take</small></div></div><div class="track-lane track-lane-fx"><span>O áudio materializado aparecerá aqui.</span></div><div class="track-actions"><button class="mini-button" type="button" data-studio-area="instrument-lab">Abrir Sons</button></div></div>';
     return;
   }
