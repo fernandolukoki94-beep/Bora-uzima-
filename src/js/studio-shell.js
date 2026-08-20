@@ -29,14 +29,48 @@ const VIEW_GROUPS = {
   "instrument-lab": ["instrument-lab", "sound-library", "my-sounds", "beat-maker"],
   "beat-maker": ["instrument-lab", "sound-library", "my-sounds", "beat-maker"],
   "producer-studio": ["producer-studio"],
-  timeline: ["control-room", "timeline", "mixer-panel"],
-  "mixer-panel": ["control-room", "timeline", "mixer-panel"],
+  timeline: ["timeline", "mixer-panel", "instrument-lab", "sound-library", "my-sounds", "beat-maker"],
+  "mixer-panel": ["timeline", "mixer-panel", "instrument-lab", "sound-library", "my-sounds", "beat-maker"],
   "community-panel": ["community-panel"],
   "profile-panel": ["profile-panel"],
   "messages-panel": ["messages-panel"],
 };
 
+function mountDawWorkspace() {
+  if (document.getElementById("daw-workspace")) return;
+  const shell = document.querySelector(".studio-main-column > .shell");
+  const timeline = document.getElementById("timeline");
+  const mixer = document.getElementById("mixer-panel");
+  const instrument = document.getElementById("instrument-lab");
+  const soundLibrary = document.getElementById("sound-library");
+  const mySounds = document.getElementById("my-sounds");
+  const beatMaker = document.getElementById("beat-maker");
+  if (!shell || !timeline || !mixer || !instrument) return;
+  const workspace = document.createElement("section");
+  workspace.id = "daw-workspace";
+  workspace.className = "daw-workspace";
+  workspace.setAttribute("aria-label", "DAW Studio workspace");
+  const browser = document.createElement("aside");
+  browser.id = "daw-browser-dock";
+  browser.className = "daw-browser-dock";
+  browser.setAttribute("aria-label", "Browser de sons e instrumentos");
+  const editor = document.createElement("main");
+  editor.id = "daw-editor-dock";
+  editor.className = "daw-editor-dock";
+  editor.setAttribute("aria-label", "Arrangement e MIDI editor");
+  const mixerDock = document.createElement("aside");
+  mixerDock.id = "daw-mixer-dock";
+  mixerDock.className = "daw-mixer-dock";
+  mixerDock.setAttribute("aria-label", "Mixer vertical da sessão");
+  workspace.append(browser, editor, mixerDock);
+  shell.insertBefore(workspace, shell.firstChild);
+  [soundLibrary, mySounds, beatMaker].filter(Boolean).forEach((node) => browser.appendChild(node));
+  editor.append(timeline, instrument);
+  mixerDock.appendChild(mixer);
+}
+
 function focusArea(targetId, source) {
+  mountDawWorkspace();
   const target = document.getElementById(targetId);
   if (!target) return;
   const keep = new Set(VIEW_GROUPS[targetId] || [targetId]);
@@ -72,6 +106,7 @@ function focusArea(targetId, source) {
 }
 
 function initStudioShell() {
+  mountDawWorkspace();
   const editorTargets = { arrangement: "timeline", instrument: "instrument-lab", fx: "mixer-panel", midi: "instrument-lab", lyrics: "lyrics-panel" };
   const notes = document.getElementById("session-notes");
   const notesSave = document.getElementById("session-notes-save");
@@ -128,9 +163,9 @@ function initStudioShell() {
   window.addEventListener("fernando-authenticated", () => {
     document.body.classList.add("studio-ready");
     document.body.classList.remove("public-landing");
-    if (!window.location.hash || window.location.hash === "#top" || window.location.hash === "#estudio") {
-      window.history.replaceState(null, "", "#studio-home");
-      focusArea("studio-home");
+    if (!window.location.hash || window.location.hash === "#top" || window.location.hash === "#estudio" || window.location.hash === "#studio-home") {
+      window.history.replaceState(null, "", "#timeline");
+      focusArea("timeline");
     } else {
       const targetId = window.location.hash.replace(/^#/, "");
       if (document.getElementById(targetId)) focusArea(targetId);

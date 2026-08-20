@@ -2169,3 +2169,165 @@ body.studio-ready .toast { border: 1px solid var(--daw-amber); border-radius: 3p
   body.studio-ready .studio-control-room { padding: 9px; }
   body.studio-ready .producer-command-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+
+/* 2026-08 — DAW reference composition
+   The authenticated Studio opens as a working desk, not a marketing dashboard. */
+body.studio-ready .studio-main-column > .shell { max-width: none; padding: 0; }
+body.studio-ready .studio-main-column > .shell > .section-head,
+body.studio-ready .studio-main-column > .shell > .studio-flow,
+body.studio-ready .studio-main-column > .shell > .studio-transport-bar,
+body.studio-ready .studio-main-column > .shell > #studio-help-strip,
+body.studio-ready .studio-main-column > .shell > #control-room,
+body.studio-ready .studio-main-column > .shell > #recording-workspace,
+body.studio-ready .studio-main-column > .shell > #producer-studio,
+body.studio-ready .studio-main-column > .shell > .studio-module-head { display: none; }
+body.studio-ready .daw-workspace {
+  display: grid;
+  grid-template-columns: 218px minmax(0, 1fr) 308px;
+  min-height: calc(100vh - 87px);
+  border-top: 1px solid var(--daw-line);
+  background: #111213;
+}
+body.studio-ready .daw-browser-dock,
+body.studio-ready .daw-editor-dock,
+body.studio-ready .daw-mixer-dock { min-width: 0; min-height: 0; }
+body.studio-ready .daw-browser-dock {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: auto;
+  border-right: 1px solid var(--daw-line);
+  background: #151617;
+}
+body.studio-ready .daw-editor-dock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  padding: 10px;
+  background: #111213;
+}
+body.studio-ready .daw-mixer-dock {
+  overflow: auto;
+  border-left: 1px solid var(--daw-line);
+  background: #151617;
+}
+body.studio-ready .daw-browser-dock > .sound-library,
+body.studio-ready .daw-browser-dock > .my-sounds,
+body.studio-ready .daw-browser-dock > .beat-panel {
+  display: block;
+  margin: 0;
+  padding: 11px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--daw-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.studio-ready .daw-browser-dock > .sound-library:first-child { min-height: 255px; }
+body.studio-ready .daw-browser-dock > .my-sounds { min-height: 190px; }
+body.studio-ready .daw-browser-dock > .beat-panel { min-height: 270px; }
+body.studio-ready .daw-browser-dock .panel-heading { display: block; margin: 0 0 8px; padding: 0 0 8px; border-bottom: 1px solid var(--daw-line-soft); }
+body.studio-ready .daw-browser-dock .panel-heading h3 { margin: 2px 0; color: var(--daw-text); font-size: .78rem; }
+body.studio-ready .daw-browser-dock .panel-heading p,
+body.studio-ready .daw-browser-dock .panel-heading .pill { display: none; }
+body.studio-ready .daw-browser-dock .section-kicker { font-size: .56rem; }
+body.studio-ready .daw-browser-dock .sound-library-toolbar { display: grid; grid-template-columns: 1fr; gap: 5px; margin: 0 0 8px; }
+body.studio-ready .daw-browser-dock .sound-library-toolbar input,
+body.studio-ready .daw-browser-dock .sound-library-toolbar select { min-height: 27px; padding: 5px 7px; font-size: .65rem; }
+body.studio-ready .daw-browser-dock .sound-library-grid { display: grid; gap: 3px; }
+body.studio-ready .daw-browser-dock .sound-library-card,
+body.studio-ready .daw-browser-dock .my-sounds-card { min-height: 34px; padding: 6px 7px; border: 1px solid var(--daw-line-soft); border-radius: 2px; background: #1b1c1d; }
+body.studio-ready .daw-browser-dock .sound-library-card p,
+body.studio-ready .daw-browser-dock .sound-library-card .sound-library-card-meta,
+body.studio-ready .daw-browser-dock .my-sounds-card p { display: none; }
+body.studio-ready .daw-browser-dock .sound-library-card h4,
+body.studio-ready .daw-browser-dock .my-sounds-card h4 { margin: 0; color: var(--daw-text); font-size: .68rem; }
+body.studio-ready .daw-browser-dock .sound-library-card-actions { gap: 3px; }
+body.studio-ready .daw-browser-dock .sound-library-card-actions .mini-button { min-height: 23px; padding: 3px 5px; font-size: .58rem; }
+body.studio-ready .daw-browser-dock .beat-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+body.studio-ready .daw-browser-dock .beat-toolbar label { min-width: 0; color: var(--daw-muted); font-size: .62rem; }
+body.studio-ready .daw-browser-dock .beat-toolbar select,
+body.studio-ready .daw-browser-dock .beat-toolbar input { width: 100%; min-height: 25px; font-size: .62rem; }
+body.studio-ready .daw-browser-dock .beat-toolbar button { min-height: 27px; padding: 4px 5px; font-size: .6rem; }
+body.studio-ready .daw-browser-dock .beat-toolbar button:nth-last-child(-n+3) { grid-column: 1 / -1; }
+body.studio-ready .daw-browser-dock .beat-grid { display: grid; gap: 2px; margin-top: 9px; padding: 5px; border: 1px solid var(--daw-line); background: #101112; }
+body.studio-ready .daw-browser-dock .beat-row { gap: 2px; }
+body.studio-ready .daw-browser-dock .beat-label { width: 48px; font-size: .56rem; }
+body.studio-ready .daw-browser-dock .beat-step { min-width: 7px; height: 16px; border-radius: 1px; }
+body.studio-ready .daw-editor-dock > #timeline { display: flex; flex: 1 0 420px; flex-direction: column; min-height: 420px; margin: 0; border: 1px solid var(--daw-line); border-radius: 3px; background: #171819; box-shadow: none; }
+body.studio-ready .daw-editor-dock > #timeline > .panel-heading { flex: 0 0 auto; padding: 8px 10px; background: #1d1e1f; }
+body.studio-ready .daw-editor-dock > #timeline > .panel-heading h3 { font-size: .82rem; }
+body.studio-ready .daw-editor-dock > #timeline > .panel-heading p { display: none; }
+body.studio-ready .daw-editor-dock > #timeline > .panel-heading .timeline-actions { gap: 3px; }
+body.studio-ready .daw-editor-dock > #timeline > .panel-heading .timeline-actions > * { min-height: 25px; padding: 3px 6px; font-size: .59rem; }
+body.studio-ready .daw-editor-dock > #timeline > .transport { flex: 0 0 auto; position: static; min-height: 32px; padding: 4px 7px; overflow: hidden; }
+body.studio-ready .daw-editor-dock > #timeline > .transport .mini-button { min-height: 24px; padding: 3px 6px; font-size: .6rem; }
+body.studio-ready .daw-editor-dock > #timeline > .transport label { font-size: .58rem; }
+body.studio-ready .daw-editor-dock > #timeline > .transport input,
+body.studio-ready .daw-editor-dock > #timeline > .transport select { min-height: 24px; padding: 2px 4px; font-size: .6rem; }
+body.studio-ready .daw-editor-dock > #timeline > .timeline-ruler { flex: 0 0 22px; min-height: 22px; padding-left: 8.2rem; font-size: .56rem; }
+body.studio-ready .daw-editor-dock > #timeline > .timeline-stage { flex: 1 1 auto; min-height: 270px; overflow: auto; }
+body.studio-ready .daw-editor-dock > #timeline > .timeline-stage .timeline-grid { min-width: 680px; }
+body.studio-ready .daw-editor-dock > #timeline > .timeline-stage .timeline-track { min-height: 54px; }
+body.studio-ready .daw-editor-dock > #timeline > .timeline-stage .timeline-lane { min-height: 54px; }
+body.studio-ready .daw-editor-dock > #instrument-lab { flex: 0 0 auto; margin: 0; padding: 10px; border: 1px solid var(--daw-line); border-radius: 3px; background: #171819; box-shadow: none; }
+body.studio-ready .daw-editor-dock > #instrument-lab > .panel-heading { margin-bottom: 7px; padding-bottom: 7px; }
+body.studio-ready .daw-editor-dock > #instrument-lab > .panel-heading h3 { font-size: .82rem; }
+body.studio-ready .daw-editor-dock > #instrument-lab > .panel-heading p { display: none; }
+body.studio-ready .daw-editor-dock > #instrument-lab .instrument-session-output { display: none; }
+body.studio-ready .daw-editor-dock > #instrument-lab .instrument-row:first-of-type { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 10px; }
+body.studio-ready .daw-editor-dock > #instrument-lab .keyboard-toolbar { display: flex; flex-wrap: wrap; gap: 4px; }
+body.studio-ready .daw-editor-dock > #instrument-lab .keyboard-toolbar label { font-size: .58rem; }
+body.studio-ready .daw-editor-dock > #instrument-lab .keyboard { min-height: 68px; }
+body.studio-ready .daw-editor-dock > #instrument-lab .keyboard .key { min-height: 52px; font-size: .54rem; }
+body.studio-ready .daw-editor-dock > #instrument-lab .instrument-controls { display: flex; flex-wrap: wrap; gap: 4px; align-items: end; }
+body.studio-ready .daw-editor-dock > #instrument-lab .instrument-controls label { font-size: .59rem; }
+body.studio-ready .daw-editor-dock > #instrument-lab .instrument-controls .mini-button { min-height: 25px; padding: 3px 6px; font-size: .59rem; }
+body.studio-ready .daw-editor-dock > #instrument-lab .instrument-secondary { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--daw-line-soft); }
+body.studio-ready .daw-editor-dock > #instrument-lab .piano-roll { min-height: 145px; }
+body.studio-ready .daw-editor-dock > #instrument-lab .piano-step { min-height: 24px; font-size: .58rem; }
+body.studio-ready .daw-mixer-dock > #mixer-panel { display: flex; flex-direction: column; min-height: calc(100vh - 87px); margin: 0; padding: 10px; border: 0; border-radius: 0; background: #151617; box-shadow: none; }
+body.studio-ready .daw-mixer-dock > #mixer-panel > .panel-heading { flex: 0 0 auto; padding: 0 0 9px; }
+body.studio-ready .daw-mixer-dock > #mixer-panel > .panel-heading h3 { font-size: .84rem; }
+body.studio-ready .daw-mixer-dock > #mixer-panel > .panel-heading p { display: none; }
+body.studio-ready .daw-mixer-dock .mixer-master-strip { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 8px; border-radius: 2px; }
+body.studio-ready .daw-mixer-dock .mixer-master-heading { padding-bottom: 5px; border-bottom: 1px solid var(--daw-line-soft); }
+body.studio-ready .daw-mixer-dock .mixer-master-strip label { font-size: .59rem; }
+body.studio-ready .daw-mixer-dock .mixer-master-strip input { width: 100%; }
+body.studio-ready .daw-mixer-dock .mixer-inspector { flex: 0 0 auto; margin: 8px 0; padding: 8px; border-radius: 2px; font-size: .64rem; }
+body.studio-ready .daw-mixer-dock .mixer-tracks { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); align-content: start; gap: 5px; min-height: 0; overflow: auto; }
+body.studio-ready .daw-mixer-dock .mixer-channel { min-height: 280px; padding: 7px 5px; border-radius: 2px; }
+body.studio-ready .daw-mixer-dock .mixer-channel h4 { font-size: .62rem; }
+body.studio-ready .daw-mixer-dock .mixer-channel label { font-size: .56rem; }
+body.studio-ready .daw-mixer-dock .mixer-channel input[type="range"] { writing-mode: vertical-lr; direction: rtl; width: 17px; height: 106px; margin: 7px auto; }
+body.studio-ready .daw-mixer-dock .mixer-channel .meter { min-height: 125px; }
+body.studio-ready .daw-mixer-dock .mixer-channel .channel-actions { gap: 2px; }
+body.studio-ready .daw-mixer-dock .mixer-channel .mini-button { min-height: 22px; padding: 2px 4px; font-size: .54rem; }
+body.studio-ready .studio-view-hidden { display: none !important; }
+@media (max-width: 1100px) and (min-width: 821px) {
+  body.studio-ready .daw-workspace { grid-template-columns: 178px minmax(0, 1fr) 250px; }
+  body.studio-ready .daw-editor-dock > #instrument-lab .instrument-row:first-of-type { grid-template-columns: 1fr; }
+}
+@media (max-width: 820px) {
+  body.studio-ready .daw-workspace { display: flex; flex-direction: column; min-height: auto; }
+  body.studio-ready .daw-browser-dock { order: 2; max-height: 360px; border-top: 1px solid var(--daw-line); border-right: 0; }
+  body.studio-ready .daw-editor-dock { order: 1; padding: 7px; }
+  body.studio-ready .daw-mixer-dock { order: 3; max-height: 460px; border-top: 1px solid var(--daw-line); border-left: 0; }
+  body.studio-ready .daw-mixer-dock > #mixer-panel { min-height: 420px; }
+  body.studio-ready .daw-editor-dock > #timeline { flex-basis: 430px; }
+  body.studio-ready .daw-editor-dock > #instrument-lab .instrument-row:first-of-type,
+  body.studio-ready .daw-editor-dock > #instrument-lab .instrument-secondary { grid-template-columns: 1fr; }
+  body.studio-ready .daw-editor-dock > #instrument-lab .keyboard { overflow-x: auto; }
+}
+
+
+/* View exceptions: the DAW desk is the main editor, while specialist views remain reachable. */
+body.studio-ready[data-studio-view="producer-studio"] .daw-workspace,
+body.studio-ready[data-studio-view="recording-workspace"] .daw-workspace { display: none; }
+body.studio-ready[data-studio-view="producer-studio"] .studio-main-column > .shell > #producer-studio,
+body.studio-ready[data-studio-view="recording-workspace"] .studio-main-column > .shell > #recording-workspace { display: block; margin: 12px 14px 32px; }
+body.studio-ready[data-studio-view="producer-studio"] .studio-main-column > .shell > #producer-studio { min-height: calc(100vh - 120px); }
+body.studio-ready[data-studio-view="recording-workspace"] .studio-main-column > .shell > #recording-workspace { display: grid; }
+body.studio-ready[data-studio-view="producer-studio"] .studio-main-column > .shell > #producer-studio .producer-studio-head { display: flex; }

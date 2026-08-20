@@ -199,6 +199,7 @@ const beatVelocityValue = document.getElementById("beat-velocity-value");
 const beatLoop = document.getElementById("beat-loop");
 const beatLoopCount = document.getElementById("beat-loop-count");
 const producerStudioEmpty = document.getElementById("producer-studio-empty");
+const producerCreateSession = document.getElementById("producer-create-session");
 const producerStudioContent = document.getElementById("producer-studio-content");
 const producerAnalysisTitle = document.getElementById("producer-analysis-title");
 const producerBpm = document.getElementById("producer-bpm");
@@ -351,11 +352,29 @@ const VOCAL_VARIANTS = {
 function canonicalVariant(variant) {
   return variant === "pitch-corrected" ? "pitchCorrected" : variant;
 }
+const variantDataCache = new Map();
+function variantCacheKey(project, variant) { return `${project?.id || "unknown"}:${canonicalVariant(variant)}`; }
 function getVariantData(project, variant) {
   if (!project) return "";
   const key = canonicalVariant(variant);
   if (key === "original") return project.originalAudioData || (!project.processedAudioData ? project.audioData : "") || "";
-  return project.audioVariants?.[key]?.data || (key === "processed" ? project.processedAudioData || ((project.effectApplied || project.fadeApplied) ? project.audioData : "") : "") || "";
+  return project.audioVariants?.[key]?.data || variantDataCache.get(variantCacheKey(project, key)) || (key === "processed" ? project.processedAudioData || ((project.effectApplied || project.fadeApplied) ? project.audioData : "") : "") || "";
+}
+async function hydrateProjectVariants(project) {
+  if (!project?.id) return;
+  let available = false;
+  try { available = await indexedDbAvailable(); } catch { return; }
+  if (!available) return;
+  for (const variant of Object.keys(project.audioVariants || {})) {
+    if (getVariantData(project, variant)) continue;
+    try {
+      const blob = await getAudioBlob(project.id, blobKindForVariant(variant));
+      if (blob) variantDataCache.set(variantCacheKey(project, variant), await blobToDataUrl(blob));
+    } catch (error) { console.warn("Variante local ainda não hidratada", variant, error); }
+  }
+}
+function cacheVariantData(project, variant, data) {
+  if (project?.id && data) variantDataCache.set(variantCacheKey(project, variant), data);
 }
 
 async function resolveVocalSourceBlob(project) {
@@ -1026,6 +1045,34 @@ function formatMasteringLufs(metrics) {
   return `LUFS integrado ${metrics.integratedLufs.toFixed(1)} · short-term ${metrics.shortTermLufs.toFixed(1)}`;
 }
 
+async function persistAudioVariant(project, variant, blob, metadata = {}) {
+  const data = await blobToDataUrl(blob);
+  cacheVariantData(project, variant, data);
+  let useIndexedDb = false;
+  try { useIndexedDb = await indexedDbAvailable(); } catch { useIndexedDb = false; }
+  const buildUpdated = (inlineData) => readProjects().map((item) => item.id === project.id ? {
+    ...item,
+    audioVariants: { ...(item.audioVariants || {}), [variant]: { ...metadata, data: inlineData, mimeType: metadata.mimeType || blob.type || "audio/wav", bytes: blob.size, storage: useIndexedDb && !inlineData ? "indexeddb" : "localStorage", updatedAt: new Date().toISOString() } },
+  } : item);
+  if (!useIndexedDb) {
+    const updated = buildUpdated(data);
+    saveProjects(updated);
+    return updated;
+  }
+  const compactUpdated = buildUpdated("");
+  try {
+    await putAudioBlob(project.id, blobKindForVariant(variant), blob);
+    saveProjects(compactUpdated);
+    await putProject(compactUpdated.find((item) => item.id === project.id));
+    return compactUpdated;
+  } catch (error) {
+    const fallbackUpdated = buildUpdated(data);
+    saveProjects(fallbackUpdated);
+    console.warn("Variante voltou para fallback inline após falha IndexedDB", variant, error);
+    return fallbackUpdated;
+  }
+}
+
 async function previewMastering() {
   const project = currentTimelineProject();
   if (!project || !getVariantData(project, "mixed")) {
@@ -1065,20 +1112,15 @@ async function applyMasteringFromUi() {
     const mixedBlob = await dataUrlToBlob(getVariantData(project, "mixed"));
     const blob = await createMasteredBlob(project);
     const [beforeMetrics, afterMetrics] = await Promise.all([measureLufsFromBlob(mixedBlob), measureLufsFromBlob(blob)]);
-    const data = await blobToDataUrl(blob);
-    const updated = readProjects().map((item) => item.id === project.id ? {
-      ...item,
-      audioVariants: { ...(item.audioVariants || {}), mastered: { data, mimeType: "audio/wav", bytes: blob.size, source: "local-mastering", parameters, sourceVariant: "mixed", updatedAt: new Date().toISOString() } },
-      masteringApplied: true,
-      masteringParameters: parameters,
-      status: "Mastered WAV disponível",
-    } : item);
-    saveProjects(updated);
-    if (await indexedDbAvailable()) await Promise.all([
-      putAudioBlob(project.id, "mastered", blob),
-      putEffect({ id: `${project.id}:mastering`, projectId: project.id, type: "mastering-local", parameters, createdAt: new Date().toISOString() }),
-      putProject(updated.find((item) => item.id === project.id)),
-    ]);
+    const updated = await persistAudioVariant(project, "mastered", blob, { source: "local-mastering", parameters, sourceVariant: "mixed" });
+    const statusUpdated = updated.map((item) => item.id === project.id ? { ...item, masteringApplied: true, masteringParameters: parameters, status: "Mastered WAV disponível" } : item);
+    saveProjects(statusUpdated);
+    try {
+      if (await indexedDbAvailable()) await Promise.all([
+        putEffect({ id: `${project.id}:mastering`, projectId: project.id, type: "mastering-local", parameters, createdAt: new Date().toISOString() }),
+        putProject(statusUpdated.find((item) => item.id === project.id)),
+      ]);
+    } catch {}
     masteringBefore.textContent = `Before · Mixed · ${formatMasteringLufs(beforeMetrics)}`;
     masteringAfter.textContent = `After · ${parameters.preset} aplicado · ${formatMasteringLufs(afterMetrics)}`;
     if (masteringStatus) masteringStatus.textContent = "Mastering aplicado · variante reversível guardada localmente.";
@@ -1164,6 +1206,13 @@ function syncTimelineHistory(project) {
     activeTimelineId = project.id;
     timelineHistory = createHistoryState(normalizeProject(project));
   }
+  void hydrateProjectVariants(project).then(() => {
+    if (activeTimelineId !== project.id) return;
+    renderProducerStudio();
+    updateProducerBeatControls(project);
+    refreshSamplerSources();
+    updateABMeters(project);
+  });
   restorePianoRollEdits();
 }
 function formatTransportTime(seconds) {
@@ -1450,16 +1499,10 @@ async function mixdownActiveTimeline() {
     link.download = `${project.name || "sessao"}-mixdown.wav`;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    const mixedAudioData = await blobToDataUrl(wav);
-    const updated = readProjects().map((item) => item.id === project.id ? {
-      ...item,
-      audioVariants: { ...(item.audioVariants || {}), mixed: { data: mixedAudioData, mimeType: "audio/wav", bytes: wav.size, source: "timeline-mixdown", updatedAt: new Date().toISOString() } },
-      status: "Mixdown local disponível",
-    } : item);
-    saveProjects(updated);
-    try {
-      if (await indexedDbAvailable()) await Promise.all([putAudioBlob(project.id, "mixed", wav), putProject(updated.find((item) => item.id === project.id))]);
-    } catch { showToast("O Mixed foi guardado localmente; a cópia IndexedDB será tentada novamente."); }
+    const updated = await persistAudioVariant(project, "mixed", wav, { source: "timeline-mixdown" });
+    const statusUpdated = updated.map((item) => item.id === project.id ? { ...item, status: "Mixdown local disponível" } : item);
+    saveProjects(statusUpdated);
+    try { if (await indexedDbAvailable()) await putProject(statusUpdated.find((item) => item.id === project.id)); } catch { showToast("O Mixed foi guardado localmente; a cópia IndexedDB será tentada novamente."); }
     renderProjects();
     await refreshStorageStatus();
     showToast("Mixdown WAV exportado localmente com headroom e guardado como Mixed.");
@@ -2472,6 +2515,14 @@ producerSaveAnalysis?.addEventListener("click", () => {
   timelineHistory = createHistoryState(normalizeProject(updated.find((item) => item.id === project.id)));
   renderProjects();
   showToast(`Análise guardada: ${bpm} BPM · ${key}.`);
+});
+producerCreateSession?.addEventListener("click", () => {
+  const project = ensureProductionSession("AI Producer · nova sessão");
+  if (!project) return;
+  renderProjects();
+  renderProducerStudio();
+  document.querySelector('[data-studio-area="producer-studio"]')?.click();
+  showToast("Sessão criada localmente. Define o briefing e aplica o Producer Plan.");
 });
 producerRunPlan?.addEventListener("click", () => {
   const project = currentTimelineProject();

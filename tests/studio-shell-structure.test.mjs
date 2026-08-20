@@ -15,9 +15,12 @@ test("recording workspace points to the real recording console", () => {
   assert.doesNotMatch(html, /<div id="recording-workspace" class="help-strip"/);
 });
 
-test("Studio and Mix keep the Control Room with timeline and mixer", () => {
-  assert.match(shell, /timeline: \["control-room", "timeline", "mixer-panel"\]/);
-  assert.match(shell, /"mixer-panel": \["control-room", "timeline", "mixer-panel"\]/);
+test("Studio and Mix keep the DAW editor, browser and mixer together", () => {
+  assert.match(shell, /timeline: \["timeline", "mixer-panel", "instrument-lab", "sound-library", "my-sounds", "beat-maker"\]/);
+  assert.match(shell, /"mixer-panel": \["timeline", "mixer-panel", "instrument-lab", "sound-library", "my-sounds", "beat-maker"\]/);
+  assert.match(shell, /function mountDawWorkspace\(\)/);
+  assert.match(shell, /editor\.append\(timeline, instrument\)/);
+  assert.match(shell, /mixerDock\.appendChild\(mixer\)/);
 });
 
 test("instrument actions await timeline materialization", () => {
@@ -44,7 +47,10 @@ test("local-first persistence compacts binary clips and resolves vocal clips fro
 });
 
 test("studio visual layer is scoped to the authenticated DAW shell", () => {
-  assert.match(fs.readFileSync(path.join(root, "src/css/styles.css"), "utf8"), /body\.studio-ready \{[\s\S]*--daw-bg:/);
-  assert.match(fs.readFileSync(path.join(root, "src/css/styles.css"), "utf8"), /Professional Studio console pass/);
-  assert.match(fs.readFileSync(path.join(root, "src/css/styles.css"), "utf8"), /background-image: none/);
+  const styles = fs.readFileSync(path.join(root, "src/css/styles.css"), "utf8");
+  assert.match(styles, /body\.studio-ready \{[\s\S]*--daw-bg:/);
+  assert.match(styles, /Professional Studio console pass/);
+  assert.match(styles, /background-image: none/);
+  assert.match(styles, /\.daw-workspace/);
+  assert.match(styles, /grid-template-columns: 218px minmax\(0, 1fr\) 308px/);
 });

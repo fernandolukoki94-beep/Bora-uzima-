@@ -34,3 +34,7 @@ A persistência IndexedDB foi validada no browser: a sessão reduziu de 4.426.66
 A resolução vocal por clip foi validada com a sessão criada a partir de My Sounds. O botão de pitch ficou activo, detectou 85 notas, calculou correcção média de -4 cents com 90% de confiança e habilitou Auto-Tune. Voice Cleaner concluiu análise local de 2,00 s; a leitura de pico/RMS foi corrigida para usar os campos `analysis.vocal` do analisador.
 
 A suite passou de 210 para 212 testes, com 211 aprovados. A única falha permanece `tests/openai-secret.test.mjs`, porque o segredo disponibilizado ao runner é rejeitado pelo provider remoto com HTTP 401; não é uma regressão do Studio nem da correcção local.
+
+## Nova auditoria visual contra referência DAW
+
+A referência enviada pelo utilizador mostra uma DAW de ecrã completo: transporte compacto no topo, browser de instrumentos/efeitos à esquerda, arrangement/timeline no centro, piano roll inferior e mixer vertical fixo à direita. O Studio live actual não corresponde: ainda inicia com a Home shell, sidebar de produto, cards de ajuda/privacidade/telemóvel, Control Room vazia e timeline sem sessão; o piano roll não aparece no primeiro viewport e o mixer fica abaixo, não como canal vertical persistente. A crítica do utilizador é correcta.
