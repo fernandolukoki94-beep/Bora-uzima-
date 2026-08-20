@@ -38,3 +38,9 @@ A suite passou de 210 para 212 testes, com 211 aprovados. A única falha permane
 ## Nova auditoria visual contra referência DAW
 
 A referência enviada pelo utilizador mostra uma DAW de ecrã completo: transporte compacto no topo, browser de instrumentos/efeitos à esquerda, arrangement/timeline no centro, piano roll inferior e mixer vertical fixo à direita. O Studio live actual não corresponde: ainda inicia com a Home shell, sidebar de produto, cards de ajuda/privacidade/telemóvel, Control Room vazia e timeline sem sessão; o piano roll não aparece no primeiro viewport e o mixer fica abaixo, não como canal vertical persistente. A crítica do utilizador é correcta.
+
+## Auditoria de organização e instrumentais — iteração seguinte
+
+A versão anterior não correspondia à referência porque a regra antiga `order: 6` colocava a Timeline depois do Instrument Lab e o workspace crescia até cerca de 2.826 px. Foi corrigida localmente com uma consola limitada ao viewport: Timeline em primeiro no editor central, Instrument Lab num dock inferior de 270 px, browser e mixer com scroll interno, sidebar de produto escondida e tabs compactas para Arrangement, Instrument, FX/Mix, MIDI, AI Producer, Record, Beat Maker, My Sounds e Notes.
+
+No teste local dos instrumentais, Sound Library adicionou clips, Beat Maker criou WAVs locais, guitarra materializou clips, Piano Roll criou clips reversíveis e o Producer Plan manteve tracks/clip reais. Os handlers de piano, guitarra, Beat Maker e acorde foram reforçados com inicialização explícita do AudioContext e feedback de sucesso. A pré-escuta Web Audio deve ser validada com um clique físico de utilizador, porque chamadas programáticas da consola não constituem sempre um gesto de autoplay autorizado pelo browser.

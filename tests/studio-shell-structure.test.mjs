@@ -15,15 +15,21 @@ test("recording workspace points to the real recording console", () => {
   assert.doesNotMatch(html, /<div id="recording-workspace" class="help-strip"/);
 });
 
-test("Studio and Mix keep the DAW editor, browser and mixer together", () => {
-  assert.match(shell, /timeline: \["timeline", "mixer-panel", "instrument-lab", "sound-library", "my-sounds", "beat-maker"\]/);
-  assert.match(shell, /"mixer-panel": \["timeline", "mixer-panel", "instrument-lab", "sound-library", "my-sounds", "beat-maker"\]/);
+test("Studio views keep focused DAW areas instead of stacking every module", () => {
+  assert.match(shell, /timeline: \["timeline", "mixer-panel", "instrument-lab", "sound-library"\]/);
+  assert.match(shell, /"instrument-lab": \["instrument-lab", "mixer-panel"\]/);
+  assert.match(shell, /"beat-maker": \["beat-maker", "timeline", "mixer-panel"\]/);
+  assert.match(shell, /"my-sounds": \["my-sounds", "timeline", "mixer-panel"\]/);
   assert.match(shell, /function mountDawWorkspace\(\)/);
   assert.match(shell, /editor\.append\(timeline, instrument\)/);
   assert.match(shell, /mixerDock\.appendChild\(mixer\)/);
 });
 
-test("instrument actions await timeline materialization", () => {
+test("instrument actions await timeline materialization and expose working feedback", () => {
+  assert.match(app, /if \(beatGrid\) applyBeatGridPreset\(beatPreset\?\.value \|\| "Afrobeat"\)/);
+  assert.match(app, /await ensureAudioContextRunning\(\);[\s\S]*showToast\(`Piano · acorde/);
+  assert.match(app, /showToast\(`Guitarra · acorde/);
+  assert.match(app, /showToast\(added \? `Beat Maker · \$\{preset\.name\} materializado/);
   assert.match(app, /keyboardMidiRecord\?\.addEventListener\("click", async/);
   assert.match(app, /const added = await insertInstrumentClip\(\{ name: "Teclado · take MIDI"/);
   assert.match(app, /async function addPianoRollToTimeline\(\) \{[\s\S]*?const added = await insertInstrumentClip/);
@@ -53,4 +59,7 @@ test("studio visual layer is scoped to the authenticated DAW shell", () => {
   assert.match(styles, /background-image: none/);
   assert.match(styles, /\.daw-workspace/);
   assert.match(styles, /grid-template-columns: 218px minmax\(0, 1fr\) 308px/);
+  assert.match(styles, /height: calc\(100vh - 182px\)/);
+  assert.match(styles, /data-studio-view="instrument-lab"/);
+  assert.match(styles, /data-studio-view="beat-maker"/);
 });

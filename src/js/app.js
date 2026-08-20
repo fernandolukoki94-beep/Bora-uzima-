@@ -3205,7 +3205,10 @@ async function previewKeyboardNote(noteName) {
     else await playNote(note, { duration, volume: velocity * 0.18 });
   }
   catch (error) { showToast(error.message); }
-  finally { window.setTimeout(() => button?.classList.remove("is-active"), duration * 1000); }
+  finally {
+    window.setTimeout(() => button?.classList.remove("is-active"), duration * 1000);
+    if (keyboardMidiStatus && !keyboardMidiRecording) keyboardMidiStatus.textContent = `${note} · áudio local reproduzido.`;
+  }
 }
 keyboardNotes?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-note-name]");
@@ -3240,16 +3243,28 @@ document.addEventListener("keydown", async (event) => {
   if (noteName) { event.preventDefault(); await previewKeyboardNote(noteName); }
 });
 playChordButton?.addEventListener("click", async () => {
-  try { await playChord(chordSelect?.value || "C"); } catch (error) { showToast(error.message); }
+  const chord = chordSelect?.value || "C";
+  try {
+    await ensureAudioContextRunning();
+    await playChord(chord);
+    showToast(`Piano · acorde ${chord} reproduzido localmente.`);
+  } catch (error) { showToast(error instanceof Error ? error.message : "Não foi possível tocar o acorde."); }
 });
 addChordTimeline?.addEventListener("click", async () => {
-  await insertInstrumentClip({ name: `Piano · ${chordSelect?.value || "C"}`, type: "instrument", metadata: { instrument: "piano", chord: chordSelect?.value || "C" } });
+  const chord = chordSelect?.value || "C";
+  const added = await insertInstrumentClip({ name: `Piano · ${chord}`, type: "instrument", metadata: { instrument: "piano", chord } });
+  showToast(added ? `Piano · ${chord} materializado na timeline.` : "Abre uma sessão para inserir o acorde na timeline.");
 });
 guitarChords?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-guitar-chord]");
   if (!button) return;
   flashControl(button);
-  try { await playChord(button.dataset.guitarChord, { type: "triangle", duration: 0.65, volume: 0.1, instrument: "guitar" }); } catch (error) { showToast(error.message); }
+  try {
+    const chord = button.dataset.guitarChord;
+    await ensureAudioContextRunning();
+    await playChord(chord, { type: "triangle", duration: 0.65, volume: 0.1, instrument: "guitar" });
+    showToast(`Guitarra · acorde ${chord} reproduzido localmente.`);
+  } catch (error) { showToast(error instanceof Error ? error.message : "Não foi possível tocar a guitarra."); }
 });
 extraInstruments?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-extra-instrument]");
@@ -3264,7 +3279,9 @@ extraInstruments?.addEventListener("click", async (event) => {
   } catch (error) { showToast(error.message); }
 });
 addGuitarTimeline?.addEventListener("click", async () => {
-  await insertInstrumentClip({ name: `Guitarra · ${chordSelect?.value || "C"}`, type: "guitar", metadata: { instrument: "guitar", chord: chordSelect?.value || "C" } });
+  const chord = chordSelect?.value || "C";
+  const added = await insertInstrumentClip({ name: `Guitarra · ${chord}`, type: "guitar", metadata: { instrument: "guitar", chord } });
+  showToast(added ? `Guitarra · ${chord} materializada na timeline.` : "Abre uma sessão para inserir a guitarra na timeline.");
 });
 function pianoRollEvents() {
   const bpm = Math.max(40, Math.min(240, Number(projectTempo?.value) || 100));
@@ -3308,6 +3325,8 @@ function applyBeatGridPreset(name = beatPreset?.value || "Afrobeat") {
   if (projectTempo) projectTempo.value = String(preset.bpm);
   return preset;
 }
+// Start with an audible, editable groove instead of an empty dead-looking grid.
+if (beatGrid) applyBeatGridPreset(beatPreset?.value || "Afrobeat");
 applyBeatPreset?.addEventListener("click", () => {
   const preset = applyBeatGridPreset();
   showToast(`Preset ${preset.name} aplicado a ${preset.bpm} BPM.`);
@@ -3330,7 +3349,8 @@ addBeatTimeline?.addEventListener("click", async () => {
   const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
   const options = beatMachineOptions();
   const sequence = createGridEvents({ channels: preset.channels, bpm: Number(projectTempo?.value) || preset.bpm, ...options });
-  await insertInstrumentClip({ name: `Beat · ${preset.name} · ${options.kit}`, type: "drums", duration: sequence.duration, metadata: { instrument: "drums", preset: preset.name, bpm: preset.bpm, channels: preset.channels, ...options, events: sequence.events } });
+  const added = await insertInstrumentClip({ name: `Beat · ${preset.name} · ${options.kit}`, type: "drums", duration: sequence.duration, metadata: { instrument: "drums", preset: preset.name, bpm: preset.bpm, channels: preset.channels, ...options, events: sequence.events } });
+  showToast(added ? `Beat Maker · ${preset.name} materializado na timeline.` : "Abre uma sessão para inserir o beat.");
 });
 playBeatSequence?.addEventListener("click", async () => {
   const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
