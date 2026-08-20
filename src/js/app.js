@@ -1351,10 +1351,14 @@ async function mixdownActiveTimeline() {
       const variant = variantFromBlobKey(clip.blobKey);
       const instrumentKind = clip.blobKey?.startsWith(`${project.id}:instrument-`) ? clip.blobKey.slice(`${project.id}:`.length) : null;
       try {
-        if (await indexedDbAvailable() && clip.blobKey) blob = await getAudioBlob(project.id, instrumentKind || blobKindForVariant(variant));
+        if (clip.metadata?.origin === "my-sounds" && clip.metadata.mySoundId) {
+          blob = await getMySoundBlob(clip.metadata.mySoundId);
+        } else if (await indexedDbAvailable() && clip.blobKey) {
+          blob = await getAudioBlob(project.id, instrumentKind || blobKindForVariant(variant));
+        }
       } catch {}
       const variantData = clip.audioData || getVariantData(project, variant) || sourceData;
-      if (!blob && variantData && (clip.blobKey?.startsWith(`${project.id}:`) || clip.blobKey === null)) {
+      if (!blob && variantData && (clip.blobKey?.startsWith(`${project.id}:`) || clip.blobKey === null || clip.metadata?.origin === "my-sounds")) {
         blob = await dataUrlToBlob(variantData);
       }
       if (blob) sources.set(clip.blobKey || clip.id, blob);
@@ -1417,7 +1421,7 @@ async function materializeInstrumentAudio(project) {
   return nextProject;
 }
 
-async function insertInstrumentClip({ name, type, duration = 4, metadata = {}, start = null }) {
+async function insertInstrumentClip({ name, type, duration = 4, metadata = {}, start = null, audioData = "", blobKey = null }) {
   const project = currentTimelineProject() || ensureProductionSession("Beat Studio");
   if (!project) {
     showToast("Não foi possível abrir uma sessão de produção.");
@@ -1432,19 +1436,20 @@ async function insertInstrumentClip({ name, type, duration = 4, metadata = {}, s
   const end = track.clips.reduce((latest, clip) => Math.max(latest, Number(clip.start || 0) + Number(clip.duration || 0)), 0);
   const clipStart = Number.isFinite(Number(start)) ? Math.max(0, Number(start)) : end;
   const clipId = `${project.id}-instrument-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const rendered = renderInstrumentClip({ name, type, duration, start: clipStart, metadata, event: metadata }, { sampleRate: 44100, tempo: Number(project.tempo) || 100 });
-  const audioBuffer = { numberOfChannels: 1, sampleRate: 44100, length: rendered.length, getChannelData: () => rendered };
-  const wav = audioBufferToWav(audioBuffer);
+  const rendered = audioData ? null : renderInstrumentClip({ name, type, duration, start: clipStart, metadata, event: metadata }, { sampleRate: 44100, tempo: Number(project.tempo) || 100 });
+  const audioBuffer = rendered ? { numberOfChannels: 1, sampleRate: 44100, length: rendered.length, getChannelData: () => rendered } : null;
+  const wav = audioBuffer ? audioBufferToWav(audioBuffer) : null;
   const kind = `instrument-${clipId}`;
-  const audioData = await blobToDataUrl(wav);
+  const resolvedBlobKey = blobKey || `${project.id}:${kind}`;
+  const resolvedAudioData = audioData || await blobToDataUrl(wav);
   nextProject = addClip(nextProject, track.id, {
     id: clipId,
     name,
     start: clipStart,
     duration,
     sourceOffset: 0,
-    blobKey: `${project.id}:${kind}`,
-    audioData,
+    blobKey: resolvedBlobKey,
+    audioData: resolvedAudioData,
     mimeType: "audio/wav",
     event: metadata,
     gain: 1,
@@ -1452,7 +1457,7 @@ async function insertInstrumentClip({ name, type, duration = 4, metadata = {}, s
   nextProject = normalizeProject({ ...nextProject, duration: Math.max(Number(nextProject.duration || 0), clipStart + Number(duration || 0)), status: "Instrumental materializado", updatedAt: new Date().toISOString() });
   await commitTimelineProject(nextProject);
   try {
-    if (await indexedDbAvailable()) await putAudioBlob(project.id, kind, wav);
+    if (wav && await indexedDbAvailable()) await putAudioBlob(project.id, kind, wav);
   } catch {
     showToast("O instrumental entrou na timeline, mas a cópia IndexedDB falhou; o WAV inline permanece disponível.");
   }
@@ -1551,11 +1556,26 @@ async function previewMySound(id) {
   await audio.play();
   if (mySoundsStatus) mySoundsStatus.textContent = "Pré-escuta local a tocar.";
 }
-function addMySoundToTimeline(id) {
+async function addMySoundToTimeline(id) {
   const item = mySoundsItems.find((candidate) => candidate.id === id);
   if (!item) return;
-  insertInstrumentClip({ name: item.name, type: "sample", duration: item.duration || 4, metadata: { origin: "my-sounds", mySoundId: item.id, folder: item.folder, tags: item.tags } });
-  if (mySoundsStatus) mySoundsStatus.textContent = `${item.name} adicionado à timeline; o ficheiro original permanece privado no IndexedDB.`;
+  try {
+    const blob = await getMySoundBlob(id);
+    if (!blob) throw new Error("O blob privado deste som não foi encontrado no IndexedDB.");
+    const audioData = await blobToDataUrl(blob);
+    const inserted = await insertInstrumentClip({
+      name: item.name,
+      type: "sample",
+      duration: item.duration || 4,
+      audioData,
+      blobKey: `my-sound:${id}`,
+      metadata: { origin: "my-sounds", mySoundId: id, folder: item.folder, tags: item.tags, mimeType: item.mimeType },
+    });
+    if (!inserted) throw new Error("Não foi possível abrir a sessão para inserir este som.");
+    if (mySoundsStatus) mySoundsStatus.textContent = `${item.name} adicionado à timeline com áudio real; o original permanece privado no IndexedDB.`;
+  } catch (error) {
+    if (mySoundsStatus) mySoundsStatus.textContent = error instanceof Error ? error.message : "Não foi possível adicionar o som à timeline.";
+  }
 }
 mySoundsCloudUpload?.addEventListener("click", async () => {
   const file = mySoundsFile?.files?.[0];

@@ -570,3 +570,17 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Adicionar intensidade ajustável, preview, bypass e aplicação como variante sem substituir Original.
 - [x] Persistir a variante Harmony e incluí-la no Mixed WAV/exportação quando activa.
 - [x] Cobrir o processamento com testes determinísticos, documentar e publicar; suite com 200 testes aprovados e 0 falhas.
+
+
+## Próxima lacuna — My Sounds no mixdown/export
+
+- [ ] Auditar o modelo de My Sounds, os blobs persistidos e a resolução usada pelo transporte.
+- [ ] Ligar fontes importadas de My Sounds ao mixdown e à exportação Mixed WAV.
+- [ ] Preservar fallback inline quando IndexedDB não estiver disponível ou falhar.
+- [ ] Adicionar estados claros de fonte ausente/erro sem exportar silêncio silenciosamente.
+- [ ] Cobrir o fluxo com testes determinísticos, documentar e publicar.
+
+- [x] Integrar My Sounds na timeline com `mySoundId`, `my-sound:<id>`, áudio real inline e resolução prioritária do blob IndexedDB no mixdown/exportação.
+- [x] Cobrir a integração My Sounds → timeline → mixdown com teste determinístico de contrato; suite actual: 201 testes aprovados, 0 falhas.
+- [ ] Executar QA física em Samsung Galaxy A06: permissões de microfone, latência de gravação, playback de My Sounds e exportação Mixed WAV.
+- [ ] Validar provider externo do AI Producer quando quota/conectividade estiver disponível.

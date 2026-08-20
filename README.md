@@ -413,3 +413,12 @@ A materialização do AI Producer agora trata cada clip instrumental como áudio
 Foi corrigida uma falha de consistência: quando `putAudioBlob` rejeitava uma escrita IndexedDB, a promessa de materialização abortava o plano inteiro mesmo depois de o WAV inline já ter sido criado. O processamento agora conserva o WAV inline, emite um aviso técnico e continua com os restantes clips. Assim, o Producer Plan não termina com metadata sem áudio reproduzível apenas porque o armazenamento local falhou.
 
 A regressão está coberta por teste determinístico. A suite actual tem **199 testes aprovados, 0 falhas**. A confirmação de provider AI externo e o QA físico de gravação, playback e Mixed WAV no Samsung Galaxy A06 permanecem pendentes e não são declarados como concluídos por esta alteração.
+
+
+## V2.13 — My Sounds ligado ao áudio real da timeline
+
+A biblioteca privada **My Sounds** está agora ligada ao fluxo de produção sem clips fictícios. Ao escolher **＋ Timeline**, a aplicação lê o Blob real do som no IndexedDB, cria uma cópia Data URL para playback imediato e grava no clip os metadados `origin: "my-sounds"`, `mySoundId` e a referência `my-sound:<id>`. Se o blob privado não existir, a operação falha com uma mensagem explícita em vez de inserir uma faixa silenciosa.
+
+Durante o Mixdown, o resolvedor reconhece clips com origem My Sounds e procura primeiro o Blob original através do `mySoundId`. A cópia inline permanece como fallback de recuperação para playback e exportação quando o IndexedDB não puder ser lido. O áudio privado continua local ao dispositivo; não é publicado nem enviado automaticamente para a cloud.
+
+A integração foi coberta por teste determinístico de contrato e a suite oficial terminou esta iteração com **201 testes aprovados, 0 falhas e 0 ignorados**. Este resultado não substitui a validação física: continuam pendentes a verificação no Samsung Galaxy A06 de permissões de microfone, latência, playback da biblioteca e exportação do Mixed WAV, assim como a prova do provider externo do AI Producer quando houver quota e conectividade.
