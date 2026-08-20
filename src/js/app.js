@@ -1890,8 +1890,9 @@ async function saveRecording({ blob, mimeType, seconds }) {
         trackId = nextProject.tracks[nextProject.tracks.length - 1].id;
       }
       const start = nextProject.tracks.find((track) => track.id === trackId)?.clips.reduce((end, clip) => Math.max(end, Number(clip.start || 0) + Number(clip.duration || 0)), 0) || 0;
+      const recordingClipId = `${project.id}-recording-${now}`;
       nextProject = addClip(nextProject, trackId, {
-        id: `${project.id}-recording-${now}`,
+        id: recordingClipId,
         blobKey: clipKey,
         start,
         duration: Number(seconds || 0),
@@ -1908,15 +1909,30 @@ async function saveRecording({ blob, mimeType, seconds }) {
         updatedAt: new Date().toISOString(),
       });
       await commitTimelineProject(nextProject);
+      let persistedInIndexedDb = false;
       try {
         if (await indexedDbAvailable()) {
           await Promise.all([
             putAudioBlob(project.id, clipKind, blob),
             putTake({ id: `${project.id}:${clipKind}`, projectId: project.id, audioBlobKind: clipKind, originalAudioData: true, processedAudioData: false }),
           ]);
+          persistedInIndexedDb = true;
         }
       } catch {
-        showToast("A gravação entrou na sessão, mas o blob IndexedDB falhou; o fallback local permanece disponível.");
+        persistedInIndexedDb = false;
+      }
+      if (!persistedInIndexedDb) {
+        const fallbackProject = normalizeProject({
+          ...nextProject,
+          tracks: nextProject.tracks.map((track) => ({
+            ...track,
+            clips: track.clips.map((clip) => clip.id === recordingClipId ? { ...clip, audioData: originalAudioData } : clip),
+          })),
+          status: "Vocal gravado na sessão · fallback local",
+        });
+        await commitTimelineProject(fallbackProject);
+        nextProject = fallbackProject;
+        showToast("A gravação entrou na sessão; o fallback inline mantém playback e exportação locais.");
       }
       activeTimelineId = project.id;
       timelineHistory = createHistoryState(normalizeProject(nextProject));

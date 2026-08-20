@@ -168,7 +168,7 @@
 - [x] Record Arm persistente por track
 - [x] Selector de Input persistente por track
 - [x] Validar Record Arm/Input com 155 testes aprovados
-- [ ] Ligar o Input seleccionado à cadeia de gravação real
+- [x] Ligar o Input seleccionado à cadeia de gravação real; o deviceId chega ao `getUserMedia`, com teste de fallback inline adicionado.
 
 ## Gravação Vocal — diagnóstico de entrada
 
@@ -178,7 +178,7 @@
 - [x] Enumerar e seleccionar microfone para a próxima gravação
 - [x] Limpar medição e AudioContext ao parar
 - [x] Validar com 155 testes aprovados
-- [ ] Implementar monitorização de entrada com mute/volume separado
+- [x] Implementar monitorização de entrada com mute/volume separado
 - [ ] Validar múltiplos microfones em Chrome Android e Safari iPhone
 
 - [x] Monitorização de entrada opcional com mute por defeito
@@ -541,3 +541,12 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Comparar o alias principal com os deployments de produção e confirmar que o domínio principal serve o bundle actualizado; não foi detectado alias antigo.
 - [x] Confirmar que não foi necessária correcção de alias: o deployment `d9cd642` ficou READY e o domínio principal serviu a versão funcional.
 - [x] Confirmar novamente no mesmo URL que o Instrument Lab mostra 4 Audio Tracks/7 clips/20.0s e o Control Room lista as tracks reais.
+
+
+## Próxima etapa sequencial — gravação ligada ao input real
+
+- [ ] Auditar Record Arm, selector de Input, `getUserMedia` e MediaRecorder no fluxo real.
+- [ ] Ligar o dispositivo seleccionado à cadeia efectiva de captura, sem cair no microfone por defeito silenciosamente.
+- [ ] Preservar estados de permissão, erro, gravação, chunks, take persistida e track criada.
+- [ ] Validar monitorização separada e libertação dos recursos de áudio ao parar.
+- [ ] Testar a take real no playback, autosave e exportação Mixed WAV.

@@ -386,3 +386,12 @@ Quando o AI Producer aplica um plano local ou uma recomendação provider-backed
 A API legada `simulateProductionPipeline` foi removida de `src/js/production.js`. Ela avançava estados com `setTimeout` sem produzir ou persistir áudio e, por isso, não cumpria o critério funcional da especificação mestre. O Producer Studio usa agora exclusivamente `beginProduction`, `setProductionPhase`, `completeProduction` e `failProduction` ligados ao fluxo real do `app.js`: construção do plano, materialização dos clips instrumentais, persistência IndexedDB e commit da timeline.
 
 Foi acrescentado um teste regressivo que impede o reaparecimento de `simulateProductionPipeline` ou de `setTimeout` nesse módulo. Depois da restauração do ambiente, a suite real terminou com **194 testes aprovados, 0 falhas e 0 ignorados**. A dependência `fake-indexeddb` foi reinstalada a partir do lockfile para que os testes de persistência corressem realmente.
+
+
+## V2.10 — gravação real ligada ao input e fallback de take
+
+A gravação vocal da sessão activa usa o `deviceId` seleccionado no selector de Input ao chamar `getUserMedia`, mantendo o Record Arm e o track alvo como fonte de verdade. Depois de `MediaRecorder.stop`, a take é adicionada como clip à timeline e tenta persistir o blob nas stores IndexedDB de áudio e de takes.
+
+Quando IndexedDB não está disponível ou falha durante a persistência, o clip recebe `audioData` inline com a Data URL original. Esse fallback é consumido pelo transporte directo e pelo mixdown local, evitando que uma take apareça na sessão mas fique silenciosa. A variante persistida continua a ser o caminho principal; o fallback não substitui nem inventa uma sincronização cloud.
+
+A regressão é coberta por um teste de contrato dedicado. A suite do clone Git terminou esta iteração com **195 testes aprovados e 0 falhas**. Continua pendente a validação física de permissões, múltiplos microfones, monitorização com auscultadores e exportação no Samsung Galaxy A06, Chrome Android e Safari iPhone.
