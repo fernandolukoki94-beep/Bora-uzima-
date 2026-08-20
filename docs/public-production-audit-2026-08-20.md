@@ -39,3 +39,10 @@ O commit `6ad845b96a4ddc3009b44278580c2987fd4e3db5` foi confirmado pela Vercel c
 ## V2.12 — resiliência do AI Producer
 
 O commit `64a55b73169a23d5b73b36f75924b9e488d54f1f` (`fix: preserve producer audio when indexeddb write fails`) foi confirmado pela Vercel como deployment de produção `READY`. O fluxo do AI Producer mantém o WAV PCM inline e prossegue quando uma escrita na store IndexedDB falha, em vez de rejeitar o arranjo inteiro. A suite determinística desta etapa terminou com 199 testes aprovados e 0 falhas. A validação de provider externo e o teste físico no Samsung Galaxy A06 continuam pendentes.
+
+
+## Harmony — verificação pública
+
+URL verificado: https://fernando-lucoco-music.vercel.app/?v=f67642a#studio-home
+
+A produção responde com a landing pública `Fernando Lucoco Music — O teu próximo take começa aqui` e apresenta os controlos `Entrar`, `Começar` e `Entrar no Studio`. O Studio permanece protegido pela autenticação; a verificação pública do bundle Harmony foi confirmada no deployment Vercel associado ao commit `f67642a102929560e4159f3624e74706007ffe7e`, estado `READY`, target `production`. A abertura sem sessão não expõe o painel interno, conforme o requisito de protecção.
