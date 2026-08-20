@@ -3,7 +3,7 @@ import { createBeatEvents } from "./sequencer.js";
 
 function getContext() {
   const Context = window.AudioContext || window.webkitAudioContext;
-  if (!Context) throw new Error("Web Audio API indisponível");
+  if (!Context) throw new Error("Web Audio API indisponível neste navegador.");
   if (!getContext.instance) getContext.instance = new Context();
   return getContext.instance;
 }
@@ -12,9 +12,18 @@ export function getAudioContext() {
   return getContext();
 }
 
-export async function playNote(note, { duration = 0.35, type = "triangle", volume = 0.16, instrument = "piano" } = {}) {
+/** Resume the shared context from a user gesture and fail loudly when the browser blocks audio. */
+export async function ensureAudioContextRunning() {
   const context = getContext();
   if (context.state === "suspended") await context.resume();
+  if (context.state !== "running") {
+    throw new Error("O áudio está bloqueado pelo navegador. Toca novamente para activar o som.");
+  }
+  return context;
+}
+
+export async function playNote(note, { duration = 0.35, type = "triangle", volume = 0.16, instrument = "piano" } = {}) {
+  const context = await ensureAudioContextRunning();
   const oscillator = context.createOscillator();
   const filter = context.createBiquadFilter();
   const gain = context.createGain();
@@ -137,15 +146,13 @@ function scheduleDrumHit(context, instrument, at, velocity = 0.8) {
 }
 
 export async function playDrumHit(instrument = "kick", { velocity = 0.8 } = {}) {
-  const context = getContext();
-  if (context.state === "suspended") await context.resume();
+  const context = await ensureAudioContextRunning();
   scheduleDrumHit(context, instrument, context.currentTime + 0.01, velocity);
   return { instrument, duration: instrument === "kick" || instrument === "bass" ? 0.22 : 0.1 };
 }
 
 export async function playSequence(sequence) {
-  const context = getContext();
-  if (context.state === "suspended") await context.resume();
+  const context = await ensureAudioContextRunning();
   const start = context.currentTime + 0.02;
   planSequenceEvents(sequence, start).forEach(({ instrument, scheduledTime: at, velocity }) => scheduleDrumHit(context, instrument, at, velocity));
   return { steps: sequence.events.length, duration: sequence.duration };

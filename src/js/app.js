@@ -7,7 +7,7 @@ import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
 import { deleteClip, duplicateClip, moveClip, setClipFade, setClipGain, splitClip, trimClip } from "./studio/timeline.js";
-import { getAudioContext, playChord, playDrumHit, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
+import { ensureAudioContextRunning, getAudioContext, playChord, playDrumHit, playNote, playPattern, playSequence } from "./studio/audio-engine.js";
 import { createSamplerState, playSamplerVoice, updateSamplerState } from "./studio/sampler.js";
 import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
@@ -2658,7 +2658,8 @@ projectKey?.addEventListener("change", () => {
   if (!timelineHistory) return;
   commitTimelineProject({ ...timelineHistory.present, key: projectKey.value });
 });
-function playTimeline() {
+async function playTimeline() {
+  try { await ensureAudioContextRunning(); } catch (error) { showToast(error instanceof Error ? error.message : "Não foi possível activar o áudio."); return; }
   const project = currentTimelineProject();
   if (!project || !timelineHistory) return showToast("Grava primeiro uma take para reproduzir a sessão.");
   if (transportState.position >= transportState.duration) transportState = stopTransport(transportState);
@@ -3040,9 +3041,12 @@ timelineGrid?.addEventListener("drop", (event) => {
 });
 playPatternButton?.addEventListener("click", async () => {
   try {
+    await ensureAudioContextRunning();
     const result = await playPattern(patternSelect?.value || "Afrobeat", { bpm: Number(projectTempo?.value) || 100 });
-    showToast(`${patternSelect?.value || "Groove"}: ${result.steps} eventos locais agendados.`);
-  } catch (error) { showToast(error.message); }
+    showToast(`${patternSelect?.value || "Groove"}: ${result.steps} eventos locais agendados · áudio activo.`);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Não foi possível tocar o groove.");
+  }
 });
 bindPlayerEvents(list, showToast);
 document.addEventListener("visibilitychange", recorder.stopIfHidden);
