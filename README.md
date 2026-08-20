@@ -379,3 +379,10 @@ npm test
 ### AI Producer — saída audível materializada
 
 Quando o AI Producer aplica um plano local ou uma recomendação provider-backed, a fase de arranjo continua a gerar um manifesto determinístico e, adicionalmente, percorre os clips instrumentais gerados para produzir WAV PCM persistente. Assim, a frase de estado do Producer corresponde a uma operação observável: o utilizador pode reproduzir as Audio Tracks criadas, reabrir a sessão local e incluir essas fontes no Mixdown. Se a persistência IndexedDB falhar, o projecto conserva o `audioData` inline e o evento original para permitir re-renderização local; o erro não é convertido silenciosamente numa faixa vazia.
+
+
+## Auditoria da especificação mestre — pipeline sem simulação
+
+A API legada `simulateProductionPipeline` foi removida de `src/js/production.js`. Ela avançava estados com `setTimeout` sem produzir ou persistir áudio e, por isso, não cumpria o critério funcional da especificação mestre. O Producer Studio usa agora exclusivamente `beginProduction`, `setProductionPhase`, `completeProduction` e `failProduction` ligados ao fluxo real do `app.js`: construção do plano, materialização dos clips instrumentais, persistência IndexedDB e commit da timeline.
+
+Foi acrescentado um teste regressivo que impede o reaparecimento de `simulateProductionPipeline` ou de `setTimeout` nesse módulo. Depois da restauração do ambiente, a suite real terminou com **194 testes aprovados, 0 falhas e 0 ignorados**. A dependência `fake-indexeddb` foi reinstalada a partir do lockfile para que os testes de persistência corressem realmente.

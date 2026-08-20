@@ -16,6 +16,11 @@ test("produção local expõe estados explícitos e recuperação", () => {
   assert.match(source, /failProduction/);
 });
 
+test("o módulo de produção não expõe pipeline simulada", () => {
+  assert.doesNotMatch(source, /simulateProductionPipeline/);
+  assert.doesNotMatch(source, /setTimeout/);
+});
+
 test("app liga cancelamento e reexecução ao Producer Plan", () => {
   assert.match(appSource, /data-cancel-process-id/);
   assert.match(appSource, /cancelProducerPlan/);

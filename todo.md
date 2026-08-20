@@ -523,6 +523,8 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [ ] Validar fisicamente gravação, monitorização, playback e exportação no Samsung Galaxy A06.
 - [ ] Confirmar em produção o AI Producer com provider configurado e documentar o resultado real de quota/erro.
 - [ ] Adicionar um script de build/preview documentado para a aplicação estática antes do próximo checkpoint.
+- [x] Remover a API `simulateProductionPipeline` e bloquear a sua reintrodução com teste regressivo.
+- [x] Reinstalar `fake-indexeddb` a partir do lockfile e validar a suite real: 194 testes aprovados, 0 falhas.
 
 
 ## Regressão reportada — produção não reflecte as funcionalidades WAV/AI Producer
@@ -535,7 +537,7 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 
 ## Discrepância reportada no URL público `#instrument-lab`
 
-- [ ] Reproduzir o URL exacto fornecido pelo utilizador e guardar a evidência da versão renderizada.
-- [ ] Comparar o alias principal com o deployment `fa1bdcc` e verificar se existe cache/alias a servir um deployment anterior.
-- [ ] Corrigir o alias ou a publicação se o domínio principal não estiver a apontar para a versão funcional.
-- [ ] Confirmar novamente no mesmo URL que o Instrument Lab e o Control Room mostram as alterações actuais.
+- [x] Reproduzir o URL exacto fornecido pelo utilizador e guardar a evidência da versão renderizada.
+- [x] Comparar o alias principal com os deployments de produção e confirmar que o domínio principal serve o bundle actualizado; não foi detectado alias antigo.
+- [x] Confirmar que não foi necessária correcção de alias: o deployment `d9cd642` ficou READY e o domínio principal serviu a versão funcional.
+- [x] Confirmar novamente no mesmo URL que o Instrument Lab mostra 4 Audio Tracks/7 clips/20.0s e o Control Room lista as tracks reais.

@@ -63,6 +63,7 @@ export function completeProduction(id, renderProjects, label = "Producer Plan lo
   updateProjectStatus(id, label, renderProjects, {
     processing: { state: PRODUCTION_STATES.COMPLETED, progress: 100, completedAt: new Date().toISOString() },
   });
+  return true;
 }
 
 export function failProduction(id, error, renderProjects) {
@@ -70,21 +71,4 @@ export function failProduction(id, error, renderProjects) {
   updateProjectStatus(id, "Produção falhou · tenta novamente", renderProjects, {
     processing: { state: PRODUCTION_STATES.FAILED, progress: 0, error: error instanceof Error ? error.message : "Falha local desconhecida" },
   });
-}
-
-export function simulateProductionPipeline(id, { renderProjects, showToast }) {
-  const job = beginProduction(id, renderProjects);
-  if (!job) {
-    showToast("Este projecto já está a ser processado.");
-    return;
-  }
-  showToast("Producer Plan local iniciado. O original será preservado.");
-  const phases = [
-    [PRODUCTION_STATES.ARRANGING, "A criar arranjo local", 35],
-    [PRODUCTION_STATES.MIXING, "A preparar mix local", 70],
-  ];
-  phases.forEach(([state, status, progress], index) => {
-    window.setTimeout(() => setProductionPhase(id, state, status, progress, renderProjects), (index + 1) * 500);
-  });
-  window.setTimeout(() => completeProduction(id, renderProjects), 1600);
 }
