@@ -22,3 +22,10 @@ Ainda falta, nesta auditoria, validar gravação de microfone, reload persistent
 ## Persistência após reload
 
 Após recarregar `https://fernando-lucoco-music.vercel.app/#studio-home`, o domínio reconstruíu a sessão `Beat Studio Take 1` com `4 tracks` e manteve `IndexedDB activo · 460.8 KB de 10.0 GB usados localmente`. A persistência do manifesto e dos blobs instrumentais foi, portanto, confirmada no browser público de teste. O domínio não mostra a sessão como vazia depois do reload.
+
+
+## Revalidação após `fa1bdcc`
+
+O deployment de produção associado ao commit `fa1bdcc` foi confirmado como `READY` pela Vercel. Depois de abrir o domínio com cache-buster, o Control Room passou a renderizar as tracks persistidas da sessão, em vez de apenas três linhas genéricas: `Lead Vocal` com 0 clips, `Piano · C` com 5 clips e 20,0 s, `Beat Maker` com 1 clip e 4,0 s, e `Guitarra` com 1 clip e 4,0 s. Os clips visíveis incluem `Piano · C`, `Bass · Producer Plan`, `Cordas · C`, `Synth Pad · C`, `Beat · Afrobeat` e `Guitarra · C`. Isto confirma que a melhoria está efectivamente no bundle público e ligada ao estado materializado do Control Room.
+
+A gravação vocal física através do microfone e a exportação no Samsung Galaxy A06 continuam a exigir teste no dispositivo real; não são declaradas como validadas por esta auditoria de browser.
