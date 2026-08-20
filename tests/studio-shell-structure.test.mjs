@@ -69,6 +69,14 @@ test("new production sessions expose real empty DAW tracks", () => {
   assert.match(app, /window\.addEventListener\("fernando-authenticated", \(\) => \{[\s\S]*ensureProductionSession\("Nova sessão de produção"\)[\s\S]*renderTimeline\(\);[\s\S]*renderMixer\(project\);/);
 });
 
+test("Timeline playback resolves persisted recording clips from IndexedDB", () => {
+  assert.match(app, /async function audioSourceForClip\(project, clip\)/);
+  assert.match(app, /clip\?\.blobKey\?\.startsWith\(`\$\{project\?\.id\}:`\)/);
+  assert.match(app, /await getAudioBlob\(project\.id, kind\)/);
+  assert.match(app, /async function scheduleTimelineAudio\(project, startPosition\)/);
+  assert.match(app, /const scheduleToken = transportScheduleToken/);
+});
+
 test("local-first persistence compacts binary clips and resolves vocal clips from My Sounds", () => {
   assert.match(app, /async function persistTimelineProjects\(projects\)/);
   assert.match(app, /await putAudioBlob\(project\.id, kind, await dataUrlToBlob\(clip\.audioData\)\)/);

@@ -337,6 +337,7 @@ let transportState = createTransportState(0);
 let transportStartedAt = 0;
 let transportBasePosition = 0;
 let transportAudio = [];
+let transportScheduleToken = 0;
 const linearToDb = (value) => value <= 0.001 ? -60 : 20 * Math.log10(value);
 const dbToLinear = (value) => value <= -60 ? 0 : Math.pow(10, value / 20);
 const formatGainDb = (value) => value <= 0.001 ? "−∞ dB" : `${linearToDb(value).toFixed(1)} dB`;
@@ -1240,8 +1241,10 @@ function updateTransportUI() {
 }
 
 function stopTransportAudio() {
+  transportScheduleToken += 1;
   transportAudio.forEach((audio) => {
     try { audio.pause(); } catch {}
+    if (audio._flmObjectUrl) URL.revokeObjectURL(audio._flmObjectUrl);
     audio.removeAttribute("src");
     audio.load();
   });
@@ -1250,32 +1253,64 @@ function stopTransportAudio() {
   transportTimers = [];
 }
 
-function audioSourceForClip(project, clip) {
-  if (clip?.audioData) return clip.audioData;
-  return getVariantData(project, variantFromBlobKey(clip.blobKey));
+async function audioSourceForClip(project, clip) {
+  if (clip?.audioData) return { source: clip.audioData, objectUrl: "" };
+  const variantData = getVariantData(project, variantFromBlobKey(clip?.blobKey));
+  if (variantData) return { source: variantData, objectUrl: "" };
+  if (clip?.metadata?.origin === "my-sounds" && clip.metadata.mySoundId) {
+    const blob = await getMySoundBlob(clip.metadata.mySoundId);
+    if (blob) {
+      const objectUrl = URL.createObjectURL(blob);
+      return { source: objectUrl, objectUrl };
+    }
+  }
+  if (clip?.blobKey?.startsWith(`${project?.id}:`) && await indexedDbAvailable()) {
+    const kind = clip.blobKey.slice(`${project.id}:`.length);
+    const blob = await getAudioBlob(project.id, kind);
+    if (blob) {
+      const objectUrl = URL.createObjectURL(blob);
+      return { source: objectUrl, objectUrl };
+    }
+  }
+  return null;
 }
 
-function scheduleTimelineAudio(project, startPosition) {
+async function scheduleTimelineAudio(project, startPosition) {
   stopTransportAudio();
-  project.tracks.forEach((track) => {
-    if (track.muted || (project.tracks.some((item) => item.solo) && !track.solo)) return;
-    track.clips.forEach((clip) => {
+  const scheduleToken = transportScheduleToken;
+  for (const track of project.tracks) {
+    if (track.muted || (project.tracks.some((item) => item.solo) && !track.solo)) continue;
+    for (const clip of track.clips) {
       const clipEnd = Number(clip.start || 0) + Number(clip.duration || 0);
-      if (clipEnd <= startPosition) return;
-      const source = audioSourceForClip(project, clip);
-      if (!source) return;
+      if (clipEnd <= startPosition) continue;
+      let resolved = null;
+      try { resolved = await audioSourceForClip(project, clip); } catch (error) { console.warn("Clip local indisponível para reprodução", error); }
+      if (!resolved || scheduleToken !== transportScheduleToken || transportState.status !== TRANSPORT_STATES.PLAYING) {
+        if (resolved?.objectUrl) URL.revokeObjectURL(resolved.objectUrl);
+        if (scheduleToken !== transportScheduleToken || transportState.status !== TRANSPORT_STATES.PLAYING) return;
+        continue;
+      }
       const delay = Math.max(0, (Number(clip.start || 0) - startPosition) * 1000);
       const timerId = window.setTimeout(() => {
-        const audio = new Audio(source);
+        if (scheduleToken !== transportScheduleToken || transportState.status !== TRANSPORT_STATES.PLAYING) {
+          if (resolved.objectUrl) URL.revokeObjectURL(resolved.objectUrl);
+          return;
+        }
+        const audio = new Audio(resolved.source);
         audio.preload = "auto";
+        audio._flmObjectUrl = resolved.objectUrl;
         audio.volume = Math.max(0, Math.min(1, Number(track.volume ?? 1) * Number(clip.gain ?? 1)));
         const offset = Math.max(0, startPosition - Number(clip.start || 0)) + Number(clip.sourceOffset || 0);
         audio.currentTime = offset;
-        audio.play().then(() => transportAudio.push(audio)).catch(() => showToast("A reprodução da sessão foi bloqueada pelo navegador."));
+        audio.addEventListener("ended", () => { if (audio._flmObjectUrl) URL.revokeObjectURL(audio._flmObjectUrl); }, { once: true });
+        audio.play().then(() => transportAudio.push(audio)).catch(() => {
+          if (audio._flmObjectUrl) URL.revokeObjectURL(audio._flmObjectUrl);
+          showToast("A reprodução da sessão foi bloqueada pelo navegador.");
+        });
       }, delay);
       transportTimers.push(timerId);
-    });
-  });
+    }
+  }
 }
 
 function transportTick(now) {
