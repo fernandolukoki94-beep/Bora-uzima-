@@ -142,10 +142,10 @@ export function createRecorderController({ onStateChange, onComplete, onMetrics,
       onStateChange({ active: true, seconds: 0, label: "00:00" });
     } catch (error) {
       showToast(error?.name === "NotAllowedError" || error?.name === "SecurityError"
-        ? "O microfone foi bloqueado. Em Definições, permite o microfone para este site."
+        ? "O microfone foi bloqueado. Permite o microfone para este site nas definições do navegador e tenta novamente."
         : error?.name === "NotFoundError"
-          ? "Não foi encontrado nenhum microfone disponível."
-          : "Não foi possível iniciar o microfone neste navegador.");
+          ? "Não foi encontrado nenhum microfone. Liga um microfone ou importa a take em Sons → My Sounds."
+          : "Não foi possível iniciar o microfone neste navegador. Verifica as permissões e tenta novamente.");
     }
   }
 

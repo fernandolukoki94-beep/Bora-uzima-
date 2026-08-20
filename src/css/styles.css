@@ -2454,3 +2454,55 @@ body.studio-ready[data-studio-view="producer-studio"] .studio-main-column > .she
   body.studio-ready[data-studio-view="instrument-lab"] .daw-browser-dock,
   body.studio-ready[data-studio-view="mixer-panel"] .daw-browser-dock { display: none; }
 }
+
+
+/* Recording view — a real setup desk, not a narrow form beside an empty list. */
+body.studio-ready[data-studio-view="recording-workspace"] .studio-main-column > .shell { padding: 0 14px 32px; }
+body.studio-ready[data-studio-view="recording-workspace"] .studio-main-column > .shell > #recording-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr);
+  gap: 14px;
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  margin: 0;
+  padding: 14px 0 28px;
+  align-items: start;
+}
+body.studio-ready[data-studio-view="recording-workspace"] #recording-workspace > .workspace-panel {
+  min-width: 0;
+  min-height: 560px;
+  padding: 18px;
+  border: 1px solid var(--daw-line);
+  border-radius: 3px;
+  background: #171819;
+}
+body.studio-ready[data-studio-view="recording-workspace"] #recording-workspace > .workspace-panel:first-child { border-top: 2px solid var(--daw-amber); }
+body.studio-ready[data-studio-view="recording-workspace"] #recording-workspace > .workspace-panel:nth-child(2) { border-top: 2px solid var(--daw-blue); }
+body.studio-ready[data-studio-view="recording-workspace"] .recording-monitor-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, .7fr);
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px;
+  border: 1px solid var(--daw-line-soft);
+  background: #111213;
+}
+body.studio-ready[data-studio-view="recording-workspace"] .recording-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+body.studio-ready[data-studio-view="recording-workspace"] .recording-metrics > * { min-width: 0; padding: 10px; border: 1px solid var(--daw-line-soft); background: #111213; }
+body.studio-ready[data-studio-view="recording-workspace"] .recording-metrics label { grid-column: 1 / -1; }
+body.studio-ready[data-studio-view="recording-workspace"] .project-list { max-height: 480px; overflow: auto; }
+@media (max-width: 820px) {
+  body.studio-ready[data-studio-view="recording-workspace"] .studio-main-column > .shell { padding: 0 8px 24px; }
+  body.studio-ready[data-studio-view="recording-workspace"] .studio-main-column > .shell > #recording-workspace { grid-template-columns: 1fr; min-height: auto; padding-top: 8px; }
+  body.studio-ready[data-studio-view="recording-workspace"] #recording-workspace > .workspace-panel { min-height: auto; }
+  body.studio-ready[data-studio-view="recording-workspace"] .recording-monitor-controls,
+  body.studio-ready[data-studio-view="recording-workspace"] .recording-metrics { grid-template-columns: 1fr; }
+  body.studio-ready[data-studio-view="recording-workspace"] .recording-metrics label { grid-column: auto; }
+}
+
+/* Navigation is intentionally single-bound: one click, one focused area. */

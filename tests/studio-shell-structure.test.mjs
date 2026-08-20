@@ -41,6 +41,14 @@ test("primary sidebar destinations have explicit studio area targets", () => {
   for (const target of ["projects-panel", "recording-workspace", "instrument-lab", "producer-studio", "timeline", "mixer-panel", "community-panel", "profile-panel"]) {
     assert.match(html, new RegExp(`data-studio-area="${target}"`));
   }
+  assert.match(shell, /document\.querySelectorAll\("\.nav-links a, \.studio-step, \.studio-transport-bar a, \.studio-sidebar-export, \[data-studio-area\]"\)/);
+  assert.doesNotMatch(shell, /document\.querySelectorAll\("\[data-studio-area\]"\)\.forEach\(\(item\) => \{\s*item\.addEventListener/);
+});
+
+test("recording workspace has a full-width setup layout", () => {
+  const styles = fs.readFileSync(path.join(root, "src/css/styles.css"), "utf8");
+  assert.match(styles, /data-studio-view="recording-workspace"[\s\S]*grid-template-columns: minmax\(0, 1\.08fr\) minmax\(360px, \.92fr\)/);
+  assert.match(styles, /data-studio-view="recording-workspace"[\s\S]*recording-metrics/);
 });
 
 test("local-first persistence compacts binary clips and resolves vocal clips from My Sounds", () => {

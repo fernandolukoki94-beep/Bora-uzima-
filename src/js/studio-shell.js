@@ -153,10 +153,6 @@ function initStudioShell() {
     });
   });
 
-  document.querySelectorAll("[data-studio-area]").forEach((item) => {
-    item.addEventListener("click", () => focusArea(item.dataset.studioArea, item));
-  });
-
   window.addEventListener("hashchange", () => {
     const targetId = window.location.hash.replace(/^#/, "");
     if (targetId && document.getElementById(targetId) && document.body.classList.contains("studio-ready")) focusArea(targetId);
