@@ -3097,3 +3097,29 @@ timelineGrid?.addEventListener("click", (event) => {
   selectedMixerTrackId = trackId;
   commitTimelineProject(updateTrack(timelineHistory.present, trackId, { [field]: !track[field] }));
 });
+
+
+// Control Room: proxies para os controlos reais da sessão, sem duplicar o motor de áudio.
+document.querySelectorAll("[data-proxy-click]").forEach((proxy) => {
+  proxy.addEventListener("click", () => {
+    const targetId = proxy.getAttribute("data-proxy-click");
+    const target = targetId ? document.getElementById(targetId) : null;
+    if (!target) {
+      const state = document.getElementById("control-room-save-state");
+      if (state) state.textContent = "Controlo indisponível";
+      return;
+    }
+    target.click();
+    proxy.classList.add("is-fired");
+    window.setTimeout(() => proxy.classList.remove("is-fired"), 180);
+  });
+});
+
+const controlRoomClock = document.getElementById("control-room-clock");
+if (controlRoomClock && transportClock) {
+  const syncControlRoomClock = () => {
+    controlRoomClock.textContent = transportClock.textContent || "00:00.000";
+  };
+  syncControlRoomClock();
+  window.setInterval(syncControlRoomClock, 120);
+}

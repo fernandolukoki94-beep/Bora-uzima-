@@ -175,6 +175,31 @@
           <div><strong>Privacidade local</strong><span>As sessões ficam neste navegador. Limpa os dados do site apenas depois de descarregar os ficheiros que queres conservar.</span></div>
           <div><strong>Telemóvel</strong><span>Usa Safari no iPhone ou Chrome no Android com HTTPS/localhost e testa primeiro com uma take curta.</span></div>
         </div>
+        <section class="studio-control-room" aria-labelledby="control-room-title">
+          <div class="control-room-header">
+            <div><span class="section-kicker">Control Room · sessão de produção</span><h3 id="control-room-title">Constrói a música por camadas.</h3><p>Uma sessão de estúdio para voz, instrumental, arranjo e mix — não um gravador de telefone.</p></div>
+            <div class="control-room-meta"><span class="pill">48 kHz · local-first</span><span class="control-room-save" id="control-room-save-state">Sessão pronta</span></div>
+          </div>
+          <div class="control-room-toolbar" aria-label="Controlo da sessão">
+            <button class="control-room-transport" type="button" data-proxy-click="transport-beginning" aria-label="Ir para o início">|◀</button>
+            <button class="control-room-transport is-primary" type="button" data-proxy-click="transport-play" aria-label="Reproduzir sessão">▶</button>
+            <button class="control-room-transport" type="button" data-proxy-click="transport-pause" aria-label="Pausar sessão">Ⅱ</button>
+            <button class="control-room-transport" type="button" data-proxy-click="transport-stop" aria-label="Parar sessão">■</button>
+            <span class="control-room-clock" id="control-room-clock">00:00.000</span>
+            <span class="control-room-toolbar-spacer"></span>
+            <button class="mini-button" type="button" data-proxy-click="timeline-save">Guardar sessão</button>
+            <button class="mini-button primary" type="button" data-proxy-click="timeline-export">Exportar WAV</button>
+          </div>
+          <div class="control-room-grid">
+            <div class="control-room-tracks" aria-label="Tracks da sessão">
+              <div class="control-room-track-head"><span>Tracks</span><span>Clip / waveform</span><span>Mix</span></div>
+              <div class="control-room-track-row"><div class="track-identity"><span class="track-color vocal"></span><div><strong>Vocal · Original</strong><small>Take preservada</small></div></div><div class="track-lane"><span class="track-lane-empty">Importa ou grava uma take para criar waveform</span></div><div class="track-actions"><button class="mini-button" type="button" data-studio-area="recording-workspace">＋ Take</button><button class="mini-button" type="button" data-studio-area="producer-studio">Vocal FX</button></div></div>
+              <div class="control-room-track-row"><div class="track-identity"><span class="track-color beat"></span><div><strong>Instrumental · Beat</strong><small>Camada de arranjo</small></div></div><div class="track-lane track-lane-beat"><span>Escolhe um beat ou cria um groove no Beat Maker</span></div><div class="track-actions"><button class="mini-button" type="button" data-studio-area="instrument-lab">Abrir Sons</button><button class="mini-button" type="button" data-studio-area="beat-maker">Beat Maker</button></div></div>
+              <div class="control-room-track-row"><div class="track-identity"><span class="track-color fx"></span><div><strong>FX / Master</strong><small>Headroom e efeitos</small></div></div><div class="track-lane track-lane-fx"><span>Inspector de mix preparado</span></div><div class="track-actions"><button class="mini-button" type="button" data-studio-area="mixer-panel">Abrir Mix</button></div></div>
+            </div>
+            <aside class="control-room-inspector"><div class="section-kicker">Signal chain</div><h4>Mix bus</h4><div class="inspector-meter"><span></span></div><div class="inspector-readout"><span>Peak</span><strong id="control-room-peak">−∞ dB</strong></div><div class="inspector-readout"><span>Loudness</span><strong id="control-room-loudness">— LUFS</strong></div><button class="mini-button primary" type="button" data-studio-area="mixer-panel">Abrir mixer completo →</button></aside>
+          </div>
+        </section>
         <div class="workspace">
           <div class="workspace-panel">
             <h3>Nova sessão</h3><p>Começa com um nome e escolhe o tipo de take.</p>
