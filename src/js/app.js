@@ -177,6 +177,12 @@ const mySoundsFavoritesOnly = document.getElementById("my-sounds-favorites-only"
 const mySoundsGrid = document.getElementById("my-sounds-grid");
 const mySoundsStatus = document.getElementById("my-sounds-status");
 const mySoundsCloudUpload = document.getElementById("my-sounds-cloud-upload");
+const studioLiveProjectCount = document.getElementById("studio-live-project-count");
+const studioLiveClipCount = document.getElementById("studio-live-clip-count");
+const studioLiveSoundCount = document.getElementById("studio-live-sound-count");
+const studioLiveAudioState = document.getElementById("studio-live-audio-state");
+const studioLiveStatusLabel = document.getElementById("studio-live-status-label");
+const studioLiveStatusDetail = document.getElementById("studio-live-status-detail");
 const beatPreset = document.getElementById("beat-preset");
 const applyBeatPreset = document.getElementById("apply-beat-preset");
 const playBeatSequence = document.getElementById("play-beat-sequence");
@@ -1531,6 +1537,21 @@ function mySoundCard(item) {
   const favorite = Boolean(item.favorite);
   return `<article class="sound-library-card" data-my-sound-id="${escapeHtml(item.id)}" tabindex="0" aria-label="${escapeHtml(item.name)}"><div class="sound-library-card-top"><span class="sound-library-swatch" style="background:#ff765c" aria-hidden="true"></span><span class="sound-library-type">${escapeHtml(item.folder)} · ${escapeHtml(item.mimeType.replace("audio/", ""))}</span><button class="sound-library-favorite${favorite ? " is-active" : ""}" type="button" data-my-sound-favorite="${escapeHtml(item.id)}" aria-label="${favorite ? "Remover" : "Adicionar"} ${escapeHtml(item.name)} ${favorite ? "dos" : "aos"} favoritos" aria-pressed="${favorite}">${favorite ? "★" : "☆"}</button></div><strong>${escapeHtml(item.name)}</strong><small>${(item.size / 1048576).toFixed(2)} MB · ${escapeHtml((item.tags || []).join(" · ") || "sem tags")}</small><div class="sound-library-actions"><button class="mini-button" type="button" data-my-sound-preview="${escapeHtml(item.id)}">▶ Ouvir</button><button class="mini-button primary" type="button" data-my-sound-add="${escapeHtml(item.id)}">＋ Timeline</button><button class="mini-button" type="button" data-my-sound-edit="${escapeHtml(item.id)}">Editar</button><button class="mini-button danger" type="button" data-my-sound-delete="${escapeHtml(item.id)}">Apagar</button></div></article>`;
 }
+function renderStudioLiveStatus() {
+  if (!studioLiveProjectCount) return;
+  const projects = readProjects();
+  const clipCount = projects.reduce((total, project) => total + (project.tracks || []).reduce((trackTotal, track) => trackTotal + (track.clips || []).length, 0), 0);
+  const audioProject = projects.find((project) => getVariantData(project, "original"));
+  studioLiveProjectCount.textContent = String(projects.length);
+  studioLiveClipCount.textContent = String(clipCount);
+  studioLiveSoundCount.textContent = String(mySoundsItems.length);
+  studioLiveAudioState.textContent = audioProject ? "Áudio real" : "Pronto";
+  studioLiveStatusLabel.textContent = projects.length || mySoundsItems.length ? "Activo" : "Pronto";
+  studioLiveStatusDetail.textContent = projects.length || mySoundsItems.length
+    ? `Dados locais confirmados: ${projects.length} ${projects.length === 1 ? "sessão" : "sessões"}, ${clipCount} ${clipCount === 1 ? "clip" : "clips"} e ${mySoundsItems.length} ${mySoundsItems.length === 1 ? "som privado" : "sons privados"}.`
+    : "Ainda não existem sessões ou My Sounds neste dispositivo. Cria uma sessão ou importa um som para veres os dados a aparecerem aqui.";
+}
+
 function renderMySounds() {
   if (!mySoundsGrid) return;
   const folders = [...new Set(mySoundsItems.map((item) => item.folder).filter(Boolean))].sort();
@@ -1542,6 +1563,7 @@ function renderMySounds() {
   const items = filterMySounds(mySoundsItems, mySoundsFilters);
   mySoundsGrid.innerHTML = items.length ? items.map(mySoundCard).join("") : `<div class="sound-library-empty">Ainda não há sons privados com estes filtros. Escolhe um áudio acima para criar a tua biblioteca.</div>`;
   if (mySoundsStatus) mySoundsStatus.textContent = `${items.length} de ${mySoundsItems.length} ${mySoundsItems.length === 1 ? "som privado" : "sons privados"} · IndexedDB neste dispositivo.`;
+  renderStudioLiveStatus();
 }
 async function refreshMySounds() {
   try { mySoundsItems = await listMySounds(); renderMySounds(); }
@@ -1830,6 +1852,7 @@ function renderProjects() {
   loadSoundLibraryFavorites();
   renderSoundLibrary();
   const projects = readProjects();
+  renderStudioLiveStatus();
   renderRecentProjects(projects);
   renderProjectsHub(projects);
   const query = projectSearch?.value.trim().toLocaleLowerCase("pt-PT") || "";

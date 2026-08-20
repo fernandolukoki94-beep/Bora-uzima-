@@ -429,3 +429,12 @@ A integração foi coberta por teste determinístico de contrato e a suite ofici
 A biblioteca privada agora permite editar **nome, pasta e tags** de qualquer som já guardado. A acção `Editar` lê os metadados actualmente persistidos, aceita a alteração do utilizador e chama `updateMySound` no IndexedDB. O Blob de áudio não é regravado nem substituído: apenas os metadados são actualizados, e a grelha é recarregada a partir da store para que pesquisa, filtro por pasta e favoritos reflictam os dados reais.
 
 O fluxo mantém feedback explícito para cancelamento, som inexistente e falhas de persistência. A validação determinística passou com **202 testes aprovados, 0 falhas e 0 ignorados**, incluindo o contrato de presença da edição e a preservação do caminho de áudio privado.
+
+
+## V2.15 — Estado real do Studio visível no Home protegido
+
+O Home autenticado do Studio passou a incluir o painel **Estado real do Studio**. O painel lê os dados locais existentes e mostra sessões guardadas, clips presentes na timeline, sons privados My Sounds e o estado do motor de áudio. Os valores são recalculados quando os projectos ou a biblioteca My Sounds são renderizados; não existem números demonstrativos hardcoded.
+
+Quando ainda não há dados no dispositivo, o painel informa explicitamente esse estado. Depois de criar uma sessão, adicionar clips ou importar um som para My Sounds, os contadores mudam no próprio Home protegido. O áudio continua a ser resolvido localmente através do armazenamento existente.
+
+Validação deste marco: `node --check src/js/app.js`, `git diff --check` e suite determinística com **202 testes aprovados e 0 falhas**. A publicação Vercel deste marco permanece pendente até ao commit e confirmação do deployment READY.

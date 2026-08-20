@@ -857,6 +857,14 @@ body.studio-focus-mode .studio-main-column .studio-view-hidden + .studio-module-
 .studio-home-card p { min-height: 2.8rem; margin: 0 0 1.1rem; color: rgba(255,255,255,.58); font-size: .9rem; line-height: 1.45; }
 .studio-home-section-head { max-width: 1180px; margin: 0 auto .85rem; }
 .studio-home-section-head h3 { margin: .25rem 0 0; font-size: 1.25rem; }
+.studio-live-status { max-width: 1180px; margin: 0 auto 2.4rem; padding: 1.15rem 1.25rem; border: 1px solid rgba(255,255,255,.12); border-radius: 1rem; background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); }
+.studio-live-status .studio-home-section-head { margin-bottom: 1rem; }
+.studio-live-status-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; }
+.studio-live-status-grid > div { display: grid; gap: .2rem; padding: .8rem .9rem; border: 1px solid rgba(255,255,255,.08); border-radius: .7rem; background: rgba(0,0,0,.14); }
+.studio-live-status-grid strong { color: var(--cream); font-size: 1.35rem; letter-spacing: -.03em; }
+.studio-live-status-grid span, .studio-live-status-detail { color: rgba(255,255,255,.55); font-size: .78rem; }
+.studio-live-status-detail { margin: .9rem 0 0; }
+@media (max-width: 640px) { .studio-live-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .studio-recent-projects { max-width: 1180px; margin: 0 auto; display: grid; gap: 10px; }
 .studio-recent-project { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid rgba(255,255,255,.11); border-radius: 14px; background: rgba(255,255,255,.035); }
 .studio-recent-project-art { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: var(--ink); background: linear-gradient(145deg, var(--gold), var(--coral)); font-size: 1.2rem; font-weight: 900; }

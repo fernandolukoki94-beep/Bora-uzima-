@@ -592,5 +592,14 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Implementar a próxima funcionalidade operacional escolhida pela matriz de conformidade, sem estado simulado.
 - [x] Criar testes determinísticos para o novo fluxo e executar a suite completa.
 - [x] Actualizar README, matriz de conformidade e evidência no TODO após validação.
-- [ ] Sincronizar o commit validado com GitHub/Vercel e confirmar o estado READY em produção.
+- [x] Sincronizar o commit validado com GitHub/Vercel e confirmar o estado READY em produção (`1469370`, deployment `dpl_4RrDrswMAym7JRvoLcbaQzjpfYWu`, URL pública Vercel READY).
 - [x] Permitir editar nome, pasta e tags de um som privado já guardado, com persistência IndexedDB e feedback real de sucesso/erro.
+
+
+## Ciclo de visibilidade funcional do Studio
+
+- [x] Auditar quais estados funcionais estão ocultos ou pouco verificáveis na experiência pública.
+- [x] Implementar uma melhoria operacional visível dentro do fluxo autenticado do Studio.
+- [x] Testar a melhoria com contratos determinísticos e suite completa.
+- [x] Actualizar README e TODO com o local exacto onde a melhoria pode ser verificada.
+- [ ] Publicar a versão validada e confirmar o deployment READY.
