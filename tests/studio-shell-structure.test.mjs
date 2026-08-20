@@ -51,6 +51,15 @@ test("recording workspace has a full-width setup layout", () => {
   assert.match(styles, /data-studio-view="recording-workspace"[\s\S]*recording-metrics/);
 });
 
+test("new production sessions expose real empty DAW tracks", () => {
+  assert.match(app, /const preparedTracks = \[/);
+  assert.match(app, /name: "Beat Maker", type: "drums"/);
+  assert.match(app, /name: "Instrumento", type: "instrument"/);
+  assert.match(app, /name: "Guitarra", type: "guitar"/);
+  assert.match(app, /reduce\(\(project, track\) => addTrack\(project, track\), base\)/);
+  assert.match(app, /window\.addEventListener\("fernando-authenticated", \(\) => \{[\s\S]*ensureProductionSession\("Nova sessão de produção"\)[\s\S]*renderTimeline\(\);[\s\S]*renderMixer\(project\);/);
+});
+
 test("local-first persistence compacts binary clips and resolves vocal clips from My Sounds", () => {
   assert.match(app, /async function persistTimelineProjects\(projects\)/);
   assert.match(app, /await putAudioBlob\(project\.id, kind, await dataUrlToBlob\(clip\.audioData\)\)/);

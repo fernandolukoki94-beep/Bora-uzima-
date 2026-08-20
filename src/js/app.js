@@ -708,7 +708,13 @@ function ensureProductionSession(name = "Nova sessão de produção") {
     syncTimelineHistory(existing);
     return existing;
   }
-  const created = normalizeProject(createProject({ name }));
+  const base = normalizeProject(createProject({ name }));
+  const preparedTracks = [
+    { name: "Beat Maker", type: "drums", color: "#f4b860" },
+    { name: "Instrumento", type: "instrument", color: "#9c8cff" },
+    { name: "Guitarra", type: "guitar", color: "#62d6c7" },
+  ].reduce((project, track) => addTrack(project, track), base);
+  const created = normalizeProject(preparedTracks);
   saveProjects([created]);
   syncTimelineHistory(created);
   renderProjects();
@@ -1380,7 +1386,7 @@ function renderAutomationMarkup(track) {
   const rows = lanes.flatMap((lane) => lane.points.map((point) => `<li><span>${escapeHtml(lane.target === "fx" ? `FX ${Number(lane.fxIndex) + 1}` : lane.target)} · ${point.time.toFixed(2)}s · ${lane.target === "volume" ? formatGainDb(point.value) : lane.target === "pan" ? point.value.toFixed(2) : `${Math.round(point.value * 100)}%`}</span><button class="mini-button danger" type="button" data-automation-remove data-automation-target="${lane.target}" data-automation-fx-index="${lane.fxIndex ?? 0}" data-automation-time="${point.time}">×</button></li>`)).join("");
   return `<section class="mixer-automation" aria-label="Automação da faixa"><div class="mixer-fx-heading"><strong>Automação</strong><label><span>Alvo</span><select data-automation-field="target">${AUTOMATION_TARGETS_LIST.map((target) => `<option value="${target}">${target === "volume" ? "Volume" : target === "pan" ? "Pan" : "Intensidade FX"}</option>`).join("")}</select></label></div><div class="automation-inputs"><label><span>Tempo (s)</span><input type="number" min="0" step="0.01" value="0" data-automation-field="time" aria-label="Tempo do ponto de automação"></label><label><span>Valor</span><input type="number" min="0" max="2" step="0.01" value="1" data-automation-field="value" aria-label="Valor do ponto de automação"></label><label><span>FX</span><input type="number" min="1" step="1" value="1" data-automation-field="fx-index" aria-label="Número do FX para automação"></label><button class="mini-button primary" type="button" data-automation-add>Adicionar ponto</button></div><label class="automation-toggle"><input type="checkbox" data-automation-enabled ${automation.enabled ? "checked" : ""}> <span>Reproduzir lanes durante Mixdown</span></label>${rows ? `<ul class="automation-points">${rows}</ul>` : `<span class="empty">Sem pontos. Adicione volume, pan ou intensidade FX.</span>`}</section>`;
 }
-function renderMixer(project) {
+function renderMixer(project = timelineHistory?.present || currentTimelineProject()) {
   renderMasterControls(project);
   if (!mixerTracks) return;
   if (!project?.tracks?.length) {
@@ -2764,7 +2770,15 @@ document.querySelectorAll("[data-projects-hub-filter]").forEach((button) => butt
   document.querySelectorAll("[data-projects-hub-filter]").forEach((item) => item.classList.toggle("is-active", item === button));
   renderProjects();
 }));
-window.addEventListener("fernando-authenticated", () => { syncCloudProjects(); });
+window.addEventListener("fernando-authenticated", () => {
+  const project = ensureProductionSession("Nova sessão de produção");
+  if (project) {
+    renderTimeline();
+    renderMixer(project);
+    renderProducerStudio();
+  }
+  syncCloudProjects();
+});
 window.addEventListener("firebase-signed-out", () => {
   if (saveCloudProjectButton) saveCloudProjectButton.disabled = true;
   if (cloudSyncStatus) cloudSyncStatus.textContent = "Sessão terminada. Os projectos locais continuam disponíveis.";
