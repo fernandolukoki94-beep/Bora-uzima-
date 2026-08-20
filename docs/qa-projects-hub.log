@@ -1,0 +1,983 @@
+$ node --test $(find tests -maxdepth 1 -name '*.test.mjs' ! -name '*.vitest.test.mjs' -print)
+TAP version 13
+# Subtest: A/B percorre idle, loading, success e reset
+ok 1 - A/B percorre idle, loading, success e reset
+  ---
+  duration_ms: 0.764965
+  ...
+# Subtest: A/B comunica erro sem ficar preso em loading
+ok 2 - A/B comunica erro sem ficar preso em loading
+  ---
+  duration_ms: 0.125013
+  ...
+# Subtest: exportação comunica preparação, conclusão e falha
+ok 3 - exportação comunica preparação, conclusão e falha
+  ---
+  duration_ms: 0.207317
+  ...
+# Subtest: normaliza samples sem ultrapassar o pico alvo
+ok 4 - normaliza samples sem ultrapassar o pico alvo
+  ---
+  duration_ms: 1.488101
+  ...
+# Subtest: compressor reduz apenas a região acima do threshold
+ok 5 - compressor reduz apenas a região acima do threshold
+  ---
+  duration_ms: 0.250306
+  ...
+# Subtest: noise gate remove ruído abaixo do limiar e preserva sinal útil
+ok 6 - noise gate remove ruído abaixo do limiar e preserva sinal útil
+  ---
+  duration_ms: 0.2183
+  ...
+# Subtest: pitch correction assistida limita cents ao intervalo seguro
+ok 7 - pitch correction assistida limita cents ao intervalo seguro
+  ---
+  duration_ms: 1.355034
+  ...
+# Subtest: Auto-Tune local normaliza intensidade e expõe correcção mensurável
+ok 8 - Auto-Tune local normaliza intensidade e expõe correcção mensurável
+  ---
+  duration_ms: 1.482089
+  ...
+# Subtest: valida uma recomendação IA completa
+ok 9 - valida uma recomendação IA completa
+  ---
+  duration_ms: 0.839899
+  ...
+# Subtest: transforma recomendação validada num Producer Plan local
+ok 10 - transforma recomendação validada num Producer Plan local
+  ---
+  duration_ms: 2.966359
+  ...
+# Subtest: rejeita confidence fora do contrato
+ok 11 - rejeita confidence fora do contrato
+  ---
+  duration_ms: 0.482658
+  ...
+# Subtest: cliente distingue quota esgotada sem expor credenciais nem alterar áudio
+ok 12 - cliente distingue quota esgotada sem expor credenciais nem alterar áudio
+  ---
+  duration_ms: 45.459623
+  ...
+# Subtest: cliente distingue provider indisponível e mantém fallback local possível
+ok 13 - cliente distingue provider indisponível e mantém fallback local possível
+  ---
+  duration_ms: 0.495379
+  ...
+# Subtest: IA server-side rejeita campos desconhecidos
+ok 14 - IA server-side rejeita campos desconhecidos
+  ---
+  duration_ms: 1.006274
+  ...
+# Subtest: IA server-side não altera o fluxo quando o provedor não está configurado
+ok 15 - IA server-side não altera o fluxo quando o provedor não está configurado
+  ---
+  duration_ms: 179.431496
+  ...
+# Subtest: IA server-side rejeita resposta com confidence, chain ou tamanhos inválidos
+ok 16 - IA server-side rejeita resposta com confidence, chain ou tamanhos inválidos
+  ---
+  duration_ms: 2.116027
+  ...
+# Subtest: IA server-side aceita resposta completa válida do provider
+ok 17 - IA server-side aceita resposta completa válida do provider
+  ---
+  duration_ms: 5.524925
+  ...
+# Subtest: cliente IA envia apenas metadados e devolve recomendação pronta
+ok 18 - cliente IA envia apenas metadados e devolve recomendação pronta
+  ---
+  duration_ms: 0.369359
+  ...
+# Subtest: AI Producer usa Gemini server-side quando GEMINI_API_KEY está configurada
+ok 19 - AI Producer usa Gemini server-side quando GEMINI_API_KEY está configurada
+  ---
+  duration_ms: 3.227731
+  ...
+# Subtest: AI Producer traduz erro de quota Gemini sem expor detalhes
+ok 20 - AI Producer traduz erro de quota Gemini sem expor detalhes
+  ---
+  duration_ms: 0.445838
+  ...
+# Subtest: análise local devolve resultado seguro para silêncio
+ok 21 - análise local devolve resultado seguro para silêncio
+  ---
+  duration_ms: 11.582643
+  ...
+# Subtest: análise local estima classe tonal de um tom determinístico
+ok 22 - análise local estima classe tonal de um tom determinístico
+  ---
+  duration_ms: 15.81454
+  ...
+# Subtest: BPM permanece dentro dos limites da análise local
+ok 23 - BPM permanece dentro dos limites da análise local
+  ---
+  duration_ms: 15.456054
+  ...
+# Subtest: Producer Plan usa a análise apenas quando solicitado
+ok 24 - Producer Plan usa a análise apenas quando solicitado
+  ---
+  duration_ms: 2.501909
+  ...
+# Subtest: normaliza lanes e ordena pontos
+ok 25 - normaliza lanes e ordena pontos
+  ---
+  duration_ms: 1.857555
+  ...
+# Subtest: insere, substitui e remove ponto sem duplicar tempo
+ok 26 - insere, substitui e remove ponto sem duplicar tempo
+  ---
+  duration_ms: 0.439803
+  ...
+# Subtest: interpola volume entre pontos e respeita limites temporais
+ok 27 - interpola volume entre pontos e respeita limites temporais
+  ---
+  duration_ms: 0.3298
+  ...
+# Subtest: não aplica lanes quando a automação está globalmente desactivada
+ok 28 - não aplica lanes quando a automação está globalmente desactivada
+  ---
+  duration_ms: 0.183578
+  ...
+# Subtest: avalia volume, pan e FX de uma track
+ok 29 - avalia volume, pan e FX de uma track
+  ---
+  duration_ms: 1.563518
+  ...
+# Subtest: beat import aceita áudio válido e cria metadados locais
+ok 30 - beat import aceita áudio válido e cria metadados locais
+  ---
+  duration_ms: 2.830832
+  ...
+# Subtest: beat import aceita extensão quando o browser omite o MIME
+ok 31 - beat import aceita extensão quando o browser omite o MIME
+  ---
+  duration_ms: 0.162096
+  ...
+# Subtest: beat import rejeita formato desconhecido
+ok 32 - beat import rejeita formato desconhecido
+  ---
+  duration_ms: 0.407838
+  ...
+# Subtest: beat import rejeita ficheiro acima do limite local
+ok 33 - beat import rejeita ficheiro acima do limite local
+  ---
+  duration_ms: 0.199008
+  ...
+# Subtest: Beat Maker usa preview dedicado para cada canal
+ok 34 - Beat Maker usa preview dedicado para cada canal
+  ---
+  duration_ms: 1.354243
+  ...
+# Subtest: renderer offline mantém todos os canais de bateria
+ok 35 - renderer offline mantém todos os canais de bateria
+  ---
+  duration_ms: 0.294619
+  ...
+# Subtest: preview de bateria não depende do mapa de notas do piano
+ok 36 - preview de bateria não depende do mapa de notas do piano
+  ---
+  duration_ms: 0.634968
+  ...
+# Subtest: bass do preview reforça presença móvel com corpo e harmónico superior
+ok 37 - bass do preview reforça presença móvel com corpo e harmónico superior
+  ---
+  duration_ms: 0.221167
+  ...
+# Subtest: exporta WAV PCM com header e metadados preservados
+ok 38 - exporta WAV PCM com header e metadados preservados
+  ---
+  duration_ms: 1.191575
+  ...
+# Subtest: mede pico estéreo e preserva duração lógica
+ok 39 - mede pico estéreo e preserva duração lógica
+  ---
+  duration_ms: 0.186917
+  ...
+# Subtest: limita ganho solicitado quando o pico excede o headroom
+ok 40 - limita ganho solicitado quando o pico excede o headroom
+  ---
+  duration_ms: 0.266187
+  ...
+# Subtest: preserva silêncio e não muta o áudio de entrada ao exportar
+ok 41 - preserva silêncio e não muta o áudio de entrada ao exportar
+  ---
+  duration_ms: 2.77676
+  ...
+# Subtest: mantém o ganho unitário quando não há clipping
+ok 42 - mantém o ganho unitário quando não há clipping
+  ---
+  duration_ms: 0.235298
+  ...
+# Subtest: normaliza e persiste uma configuração completa de efeitos
+ok 43 - normaliza e persiste uma configuração completa de efeitos
+  ---
+  duration_ms: 1.380109
+  ...
+# Subtest: permite apagar apenas a predefinição escolhida
+ok 44 - permite apagar apenas a predefinição escolhida
+  ---
+  duration_ms: 2.434958
+  ...
+# Subtest: normaliza a intensidade dos efeitos modulares e expõe catálogo profissional
+ok 45 - normaliza a intensidade dos efeitos modulares e expõe catálogo profissional
+  ---
+  duration_ms: 0.185802
+  ...
+# Subtest: mixedExportFilename cria um nome WAV seguro e legível
+ok 46 - mixedExportFilename cria um nome WAV seguro e legível
+  ---
+  duration_ms: 1.683315
+  ...
+# Subtest: downloadBlob cria, activa e revoga o link de exportação
+ok 47 - downloadBlob cria, activa e revoga o link de exportação
+  ---
+  duration_ms: 1.356146
+  ...
+# Subtest: Firebase Web config identifica a aplicação sem credenciais administrativas
+ok 48 - Firebase Web config identifica a aplicação sem credenciais administrativas
+  ---
+  duration_ms: 0.674983
+  ...
+# Subtest: Firebase media contract allows audio, video and image paths
+ok 49 - Firebase media contract allows audio, video and image paths
+  ---
+  duration_ms: 1.089575
+  ...
+# Subtest: Firebase media contract enforces the 80 MB upload ceiling
+ok 50 - Firebase media contract enforces the 80 MB upload ceiling
+  ---
+  duration_ms: 0.216252
+  ...
+# Subtest: Firebase media contract persists Storage URL and Firestore metadata
+ok 51 - Firebase media contract persists Storage URL and Firestore metadata
+  ---
+  duration_ms: 0.295187
+  ...
+# Subtest: Message Storage normaliza texto e rejeita mensagem vazia
+ok 52 - Message Storage normaliza texto e rejeita mensagem vazia
+  ---
+  duration_ms: 0.81222
+  ...
+# Subtest: conversation id é determinístico e independente da ordem
+ok 53 - conversation id é determinístico e independente da ordem
+  ---
+  duration_ms: 0.209384
+  ...
+# Subtest: mensagens não podem iniciar conversa consigo próprio
+ok 54 - mensagens não podem iniciar conversa consigo próprio
+  ---
+  duration_ms: 0.139027
+  ...
+# Subtest: Harmony normaliza intensidade para 0..1
+ok 55 - Harmony normaliza intensidade para 0..1
+  ---
+  duration_ms: 1.107318
+  ...
+# Subtest: Harmony cria duas vozes transpostas e preserva reversibilidade
+ok 56 - Harmony cria duas vozes transpostas e preserva reversibilidade
+  ---
+  duration_ms: 1.127831
+  ...
+# Subtest: Harmony mantém intensidade segura nos extremos
+ok 57 - Harmony mantém intensidade segura nos extremos
+  ---
+  duration_ms: 0.179127
+  ...
+# Subtest: undo e redo percorrem estados sem mutação
+ok 58 - undo e redo percorrem estados sem mutação
+  ---
+  duration_ms: 1.250307
+  ...
+# Subtest: uma nova edição limpa o futuro
+ok 59 - uma nova edição limpa o futuro
+  ---
+  duration_ms: 0.171896
+  ...
+# Subtest: respeita o limite do histórico e estados vazios são no-op
+ok 60 - respeita o limite do histórico e estados vazios são no-op
+  ---
+  duration_ms: 0.183146
+  ...
+# Subtest: diagnostica armazenamento dual e quota disponível
+ok 61 - diagnostica armazenamento dual e quota disponível
+  ---
+  duration_ms: 12.373046
+  ...
+# Subtest: cria o schema IndexedDB v2 e confirma disponibilidade
+ok 62 - cria o schema IndexedDB v2 e confirma disponibilidade
+  ---
+  duration_ms: 2.543819
+  ...
+# Subtest: persiste projecto, take, blob original/processado e histórico de efeito
+ok 63 - persiste projecto, take, blob original/processado e histórico de efeito
+  ---
+  duration_ms: 9.435856
+  ...
+# Subtest: persiste beat numa store dedicada sem o converter em data URL
+ok 64 - persiste beat numa store dedicada sem o converter em data URL
+  ---
+  duration_ms: 2.47978
+  ...
+# Subtest: persiste e restaura notas editadas por projecto
+ok 65 - persiste e restaura notas editadas por projecto
+  ---
+  duration_ms: 4.127102
+  ...
+# Subtest: persiste variantes vocais nomeadas sem confundir a origem
+ok 66 - persiste variantes vocais nomeadas sem confundir a origem
+  ---
+  duration_ms: 2.65199
+  ...
+# Subtest: reset de efeitos remove variantes processadas e preserva o projecto base
+ok 67 - reset de efeitos remove variantes processadas e preserva o projecto base
+  ---
+  duration_ms: 4.334808
+  ...
+# Subtest: migra localStorage para IndexedDB sem apagar os dados de origem
+ok 68 - migra localStorage para IndexedDB sem apagar os dados de origem
+  ---
+  duration_ms: 48.184565
+  ...
+# Subtest: migração inválida não apaga localStorage e relata falha controlada
+ok 69 - migração inválida não apaga localStorage e relata falha controlada
+  ---
+  duration_ms: 4.207221
+  ...
+# Subtest: fallback é diagnosticado quando localStorage fica bloqueado
+ok 70 - fallback é diagnosticado quando localStorage fica bloqueado
+  ---
+  duration_ms: 1.428393
+  ...
+# Subtest: remove projecto elimina blobs, take e projecto IndexedDB
+ok 71 - remove projecto elimina blobs, take e projecto IndexedDB
+  ---
+  duration_ms: 3.035945
+  ...
+# Subtest: renderer de Piano converte acorde C em áudio determinístico
+ok 72 - renderer de Piano converte acorde C em áudio determinístico
+  ---
+  duration_ms: 13.077887
+  ...
+# Subtest: renderer de Guitarra produz harmónicos e respeita a duração do clip
+ok 73 - renderer de Guitarra produz harmónicos e respeita a duração do clip
+  ---
+  duration_ms: 1.786464
+  ...
+# Subtest: renderer de Beat converte preset em eventos audíveis
+ok 74 - renderer de Beat converte preset em eventos audíveis
+  ---
+  duration_ms: 10.071739
+  ...
+# Subtest: Mixdown inclui clips instrumentais sem buffer externo
+ok 75 - Mixdown inclui clips instrumentais sem buffer externo
+  ---
+  duration_ms: 17.573944
+  ...
+# Subtest: renderer de drum genérico usa uma síntese audível segura
+ok 76 - renderer de drum genérico usa uma síntese audível segura
+  ---
+  duration_ms: 1.125297
+  ...
+# Subtest: renderer de Beat respeita canais personalizados do grid
+ok 77 - renderer de Beat respeita canais personalizados do grid
+  ---
+  duration_ms: 1.552806
+  ...
+# Subtest: Mixdown mantém audível um Beat Maker personalizado
+ok 78 - Mixdown mantém audível um Beat Maker personalizado
+  ---
+  duration_ms: 9.106603
+  ...
+# Subtest: renderer de Bass produz corpo e harmónicos audíveis
+ok 79 - renderer de Bass produz corpo e harmónicos audíveis
+  ---
+  duration_ms: 6.299157
+  ...
+# Subtest: renderer distingue os canais de percussão sem silêncio
+ok 80 - renderer distingue os canais de percussão sem silêncio
+  ---
+  duration_ms: 2.870195
+  ...
+# Subtest: novos timbres locais de cordas e synth pad produzem clips audíveis
+ok 81 - novos timbres locais de cordas e synth pad produzem clips audíveis
+  ---
+  duration_ms: 7.70187
+  ...
+# Subtest: renderer de Piano Roll sintetiza eventos melódicos temporizados
+ok 82 - renderer de Piano Roll sintetiza eventos melódicos temporizados
+  ---
+  duration_ms: 1.781601
+  ...
+# Subtest: calcula frequências de notas e acordes base
+ok 83 - calcula frequências de notas e acordes base
+  ---
+  duration_ms: 1.928953
+  ...
+# Subtest: cria nota com limites de MIDI e velocity
+ok 84 - cria nota com limites de MIDI e velocity
+  ---
+  duration_ms: 0.284446
+  ...
+# Subtest: quantiza notas numa grelha temporal
+ok 85 - quantiza notas numa grelha temporal
+  ---
+  duration_ms: 0.143797
+  ...
+# Subtest: Piano Roll normaliza, edita e quantiza notas com grid triplet
+ok 86 - Piano Roll normaliza, edita e quantiza notas com grid triplet
+  ---
+  duration_ms: 1.393086
+  ...
+# Subtest: Piano Roll transpõe notas com limites MIDI
+ok 87 - Piano Roll transpõe notas com limites MIDI
+  ---
+  duration_ms: 0.320305
+  ...
+# Subtest: disponibiliza padrões de bateria para os cinco estilos
+ok 88 - disponibiliza padrões de bateria para os cinco estilos
+  ---
+  duration_ms: 0.50122
+  ...
+# Subtest: gera presets reproduzíveis com BPM e canais independentes
+ok 89 - gera presets reproduzíveis com BPM e canais independentes
+  ---
+  duration_ms: 0.513756
+  ...
+# Subtest: Mixer V1.1 persiste quatro tracks e todos os controlos
+ok 90 - Mixer V1.1 persiste quatro tracks e todos os controlos
+  ---
+  duration_ms: 8.751629
+  ...
+# Subtest: cadeia Move, Trim, Split, Gain, Fade, Duplicate e Delete atravessa Undo/Redo
+ok 91 - cadeia Move, Trim, Split, Gain, Fade, Duplicate e Delete atravessa Undo/Redo
+  ---
+  duration_ms: 2.107533
+  ...
+# Subtest: todos os presets de Beat produzem eventos determinísticos adicionáveis à timeline
+ok 92 - todos os presets de Beat produzem eventos determinísticos adicionáveis à timeline
+  ---
+  duration_ms: 9.15282
+  ...
+# Subtest: eventos de Piano e Guitarra conservam identidade ao entrar na timeline
+ok 93 - eventos de Piano e Guitarra conservam identidade ao entrar na timeline
+  ---
+  duration_ms: 0.417543
+  ...
+# Subtest: Mixdown efectivo demonstra que gain, mute, solo, pan e headroom alteram a saída
+ok 94 - Mixdown efectivo demonstra que gain, mute, solo, pan e headroom alteram a saída
+  ---
+  duration_ms: 2.38256
+  ...
+# Subtest: trim mantém start e avança apenas sourceOffset
+ok 95 - trim mantém start e avança apenas sourceOffset
+  ---
+  duration_ms: 0.285448
+  ...
+# Subtest: split preserva continuidade da fonte e o projecto completo sobrevive ao reload
+ok 96 - split preserva continuidade da fonte e o projecto completo sobrevive ao reload
+  ---
+  duration_ms: 0.852853
+  ...
+# Subtest: Looper cria estado seguro e adiciona camadas independentes
+ok 97 - Looper cria estado seguro e adiciona camadas independentes
+  ---
+  duration_ms: 1.126416
+  ...
+# Subtest: Looper suporta overdub e flatten apenas de camadas activas
+ok 98 - Looper suporta overdub e flatten apenas de camadas activas
+  ---
+  duration_ms: 0.413375
+  ...
+# Subtest: Looper materializa camadas activas num clip persistível
+ok 99 - Looper materializa camadas activas num clip persistível
+  ---
+  duration_ms: 1.278282
+  ...
+# Subtest: Looper actualiza ganho e faz undo apenas da última camada
+ok 100 - Looper actualiza ganho e faz undo apenas da última camada
+  ---
+  duration_ms: 0.305096
+  ...
+# Subtest: mixdown soma clips, respeita duração e não muta o buffer
+ok 101 - mixdown soma clips, respeita duração e não muta o buffer
+  ---
+  duration_ms: 6.710701
+  ...
+# Subtest: mixdown aplica mute, solo, ganho de clip e pan
+ok 102 - mixdown aplica mute, solo, ganho de clip e pan
+  ---
+  duration_ms: 0.385954
+  ...
+# Subtest: mixdown limita headroom e exporta WAV estéreo
+ok 103 - mixdown limita headroom e exporta WAV estéreo
+  ---
+  duration_ms: 1.984036
+  ...
+# Subtest: masterização local comprime picos, respeita ceiling e mede loudness
+ok 104 - masterização local comprime picos, respeita ceiling e mede loudness
+  ---
+  duration_ms: 0.45316
+  ...
+# Subtest: LUFS integrado e short-term descem quando o sinal é atenuado
+ok 105 - LUFS integrado e short-term descem quando o sinal é atenuado
+  ---
+  duration_ms: 0.335176
+  ...
+# Subtest: mixer meters: maps silence to the floor and zero percent
+ok 106 - mixer meters: maps silence to the floor and zero percent
+  ---
+  duration_ms: 1.292306
+  ...
+# Subtest: mixer meters: reports a local estimate for a track with clips
+ok 107 - mixer meters: reports a local estimate for a track with clips
+  ---
+  duration_ms: 0.282934
+  ...
+# Subtest: mixer meters: honours mute and solo decisions
+ok 108 - mixer meters: honours mute and solo decisions
+  ---
+  duration_ms: 0.237191
+  ...
+# Subtest: mixer meters: marks channel and master clipping
+ok 109 - mixer meters: marks channel and master clipping
+  ---
+  duration_ms: 0.261849
+  ...
+# Subtest: pan central distribui o sinal pelos dois canais
+ok 110 - pan central distribui o sinal pelos dois canais
+  ---
+  duration_ms: 0.880227
+  ...
+# Subtest: mistura duas faixas com ganho e mantém o original intacto
+ok 111 - mistura duas faixas com ganho e mantém o original intacto
+  ---
+  duration_ms: 1.439733
+  ...
+# Subtest: mute e solo seleccionam faixas sem mutar o estado de entrada
+ok 112 - mute e solo seleccionam faixas sem mutar o estado de entrada
+  ---
+  duration_ms: 0.196389
+  ...
+# Subtest: master headroom limita o pico e reporta a escala aplicada
+ok 113 - master headroom limita o pico e reporta a escala aplicada
+  ---
+  duration_ms: 1.039389
+  ...
+# Subtest: master channel aplica ganho e limiter configurável
+ok 114 - master channel aplica ganho e limiter configurável
+  ---
+  duration_ms: 0.365679
+  ...
+# Subtest: master bypass preserva o ganho legacy e não muta o buffer
+ok 115 - master bypass preserva o ganho legacy e não muta o buffer
+  ---
+  duration_ms: 0.19992
+  ...
+# Subtest: buffers vazios produzem uma mistura segura
+ok 116 - buffers vazios produzem uma mistura segura
+  ---
+  duration_ms: 0.236394
+  ...
+# Subtest: Mixer expõe ganho contínuo em dB e preserva conversão para schema linear
+ok 117 - Mixer expõe ganho contínuo em dB e preserva conversão para schema linear
+  ---
+  duration_ms: 2.302837
+  ...
+# Subtest: instrumentos usam envelope e filtro para resposta menos agressiva
+ok 118 - instrumentos usam envelope e filtro para resposta menos agressiva
+  ---
+  duration_ms: 0.25696
+  ...
+# Subtest: percussão mantém ruído determinístico sem Math.random
+ok 119 - percussão mantém ruído determinístico sem Math.random
+  ---
+  duration_ms: 0.191758
+  ...
+# Subtest: melhoria vocal local usa passa-alto, presença e compressor
+ok 120 - melhoria vocal local usa passa-alto, presença e compressor
+  ---
+  duration_ms: 0.291438
+  ...
+# Subtest: controlos instrumentais têm feedback e alvos móveis
+ok 121 - controlos instrumentais têm feedback e alvos móveis
+  ---
+  duration_ms: 0.270811
+  ...
+# Subtest: Producer Studio expõe Auto-Tune local e waveforms para vocal e beat
+ok 122 - Producer Studio expõe Auto-Tune local e waveforms para vocal e beat
+  ---
+  duration_ms: 0.170922
+  ...
+# Subtest: ganho solicitado passa por limiter em vez de ser silenciosamente reduzido
+ok 123 - ganho solicitado passa por limiter em vez de ser silenciosamente reduzido
+  ---
+  duration_ms: 0.226103
+  ...
+# Subtest: kick e bass têm níveis dedicados acima da percussão genérica
+ok 124 - kick e bass têm níveis dedicados acima da percussão genérica
+  ---
+  duration_ms: 0.120351
+  ...
+# Subtest: kick usa síntese dedicada com ataque e queda de frequência no preview e no Mixdown
+ok 125 - kick usa síntese dedicada com ataque e queda de frequência no preview e no Mixdown
+  ---
+  duration_ms: 0.370298
+  ...
+# Subtest: Producer Studio expõe escala, análise de pitch e exportação final Vocal + beat
+ok 126 - Producer Studio expõe escala, análise de pitch e exportação final Vocal + beat
+  ---
+  duration_ms: 1.464739
+  ...
+# Subtest: Producer Studio expõe editor de notas, curva interactiva e partilha final
+ok 127 - Producer Studio expõe editor de notas, curva interactiva e partilha final
+  ---
+  duration_ms: 0.695323
+  ...
+# Subtest: app liga edição manual de notas, curva e Web Share com fallback
+ok 128 - app liga edição manual de notas, curva e Web Share com fallback
+  ---
+  duration_ms: 0.265126
+  ...
+# Subtest: Producer Studio expõe bypass A/B sem substituir variantes
+ok 129 - Producer Studio expõe bypass A/B sem substituir variantes
+  ---
+  duration_ms: 0.521207
+  ...
+# Subtest: preflight aprova o conjunto de APIs móveis disponível
+ok 130 - preflight aprova o conjunto de APIs móveis disponível
+  ---
+  duration_ms: 1.851593
+  ...
+# Subtest: preflight identifica microfone e IndexedDB ausentes
+ok 131 - preflight identifica microfone e IndexedDB ausentes
+  ---
+  duration_ms: 0.308539
+  ...
+# Subtest: My Sounds valida ficheiro áudio e limite de tamanho
+ok 132 - My Sounds valida ficheiro áudio e limite de tamanho
+  ---
+  duration_ms: 2.783873
+  ...
+# Subtest: My Sounds normaliza pastas e tags sem duplicados
+ok 133 - My Sounds normaliza pastas e tags sem duplicados
+  ---
+  duration_ms: 1.349518
+  ...
+# Subtest: My Sounds filtra por pesquisa, pasta e favoritos
+ok 134 - My Sounds filtra por pesquisa, pasta e favoritos
+  ---
+  duration_ms: 0.292303
+  ...
+# Subtest: onboarding mantém foco previsível, escape e restauração do foco
+ok 135 - onboarding mantém foco previsível, escape e restauração do foco
+  ---
+  duration_ms: 0.892525
+  ...
+# Subtest: onboarding expõe resumo de erro acessível e campos obrigatórios
+ok 136 - onboarding expõe resumo de erro acessível e campos obrigatórios
+  ---
+  duration_ms: 0.194721
+  ...
+# Subtest: OPENAI_API_KEY autentica no endpoint leve de modelos sem expor a chave
+ok 137 - OPENAI_API_KEY autentica no endpoint leve de modelos sem expor a chave
+  ---
+  duration_ms: 692.085201
+  ...
+# Subtest: Producer Plan materializa os seis instrumentos na timeline
+ok 138 - Producer Plan materializa os seis instrumentos na timeline
+  ---
+  duration_ms: 8.310875
+  ...
+# Subtest: a origem da track distingue Producer Plan de faixas manuais
+ok 139 - a origem da track distingue Producer Plan de faixas manuais
+  ---
+  duration_ms: 0.980816
+  ...
+# Subtest: reaplicar o plano não duplica clips gerados nem remove a voz original
+ok 140 - reaplicar o plano não duplica clips gerados nem remove a voz original
+  ---
+  duration_ms: 3.350019
+  ...
+# Subtest: Producer Plan cria uma proposta determinística de produção local
+ok 141 - Producer Plan cria uma proposta determinística de produção local
+  ---
+  duration_ms: 2.6112
+  ...
+# Subtest: Producer Plan transforma o género em clips locais sem áudio externo
+ok 142 - Producer Plan transforma o género em clips locais sem áudio externo
+  ---
+  duration_ms: 0.485823
+  ...
+# Subtest: Producer Plan aplica headroom de instrumentos sem destruir o original vocal
+ok 143 - Producer Plan aplica headroom de instrumentos sem destruir o original vocal
+  ---
+  duration_ms: 4.355257
+  ...
+# Subtest: interprets a Portuguese production brief deterministically
+ok 144 - interprets a Portuguese production brief deterministically
+  ---
+  duration_ms: 0.323914
+  ...
+# Subtest: keeps an empty production brief backward compatible
+ok 145 - keeps an empty production brief backward compatible
+  ---
+  duration_ms: 0.340463
+  ...
+# Subtest: Producer Plan materializa a paleta completa de seis instrumentos locais
+ok 146 - Producer Plan materializa a paleta completa de seis instrumentos locais
+  ---
+  duration_ms: 0.408292
+  ...
+# Subtest: Direcção de Produção transforma briefing em arranjo e instrumentalização automáticos
+ok 147 - Direcção de Produção transforma briefing em arranjo e instrumentalização automáticos
+  ---
+  duration_ms: 0.50098
+  ...
+# Subtest: Producer Studio V2 flow
+    # Subtest: starts empty without inventing analysis
+    ok 1 - starts empty without inventing analysis
+      ---
+      duration_ms: 1.692531
+      ...
+    # Subtest: exposes heuristic analysis and manual overrides
+    ok 2 - exposes heuristic analysis and manual overrides
+      ---
+      duration_ms: 0.249617
+      ...
+    # Subtest: marks the local path through Mixed while Mastering remains pending
+    ok 3 - marks the local path through Mixed while Mastering remains pending
+      ---
+      duration_ms: 0.261078
+      ...
+    # Subtest: marks Mastering complete only when a mastered variant exists
+    ok 4 - marks Mastering complete only when a mastered variant exists
+      ---
+      duration_ms: 1.012485
+      ...
+    1..4
+ok 148 - Producer Studio V2 flow
+  ---
+  duration_ms: 4.944197
+  type: 'suite'
+  ...
+# Subtest: produção local expõe estados explícitos e recuperação
+ok 149 - produção local expõe estados explícitos e recuperação
+  ---
+  duration_ms: 1.86127
+  ...
+# Subtest: app liga cancelamento e reexecução ao Producer Plan
+ok 150 - app liga cancelamento e reexecução ao Producer Plan
+  ---
+  duration_ms: 0.46552
+  ...
+# Subtest: pipeline mantém origem local e Mixdown no mesmo fluxo
+ok 151 - pipeline mantém origem local e Mixdown no mesmo fluxo
+  ---
+  duration_ms: 0.239832
+  ...
+# Subtest: cria um schema de projecto preparado para o Music Engine
+ok 152 - cria um schema de projecto preparado para o Music Engine
+  ---
+  duration_ms: 7.035422
+  ...
+# Subtest: migra uma take vocal legacy para track e clip
+ok 153 - migra uma take vocal legacy para track e clip
+  ---
+  duration_ms: 0.609591
+  ...
+# Subtest: adiciona tracks e clips sem mutar a origem
+ok 154 - adiciona tracks e clips sem mutar a origem
+  ---
+  duration_ms: 0.648027
+  ...
+# Subtest: actualiza controlos de mistura e arranjo de clips de forma imutável
+ok 155 - actualiza controlos de mistura e arranjo de clips de forma imutável
+  ---
+  duration_ms: 0.809096
+  ...
+# Subtest: serializa apenas dados JSON-safe
+ok 156 - serializa apenas dados JSON-safe
+  ---
+  duration_ms: 0.513839
+  ...
+# Subtest: fixtures WAV têm formato PCM, 44.1 kHz e não são silenciosas
+ok 157 - fixtures WAV têm formato PCM, 44.1 kHz e não são silenciosas
+  ---
+  duration_ms: 22.536549
+  ...
+# Subtest: V2.1 completa preserva plano, clips, variantes e chega ao WAV após reload
+ok 158 - V2.1 completa preserva plano, clips, variantes e chega ao WAV após reload
+  ---
+  duration_ms: 191.317326
+  ...
+# Subtest: sessão real-world vocal + beat + piano + guitarra chega ao WAV final
+ok 159 - sessão real-world vocal + beat + piano + guitarra chega ao WAV final
+  ---
+  duration_ms: 61.373567
+  ...
+# Subtest: Sampler normaliza região, pitch, loop e filtro
+ok 160 - Sampler normaliza região, pitch, loop e filtro
+  ---
+  duration_ms: 1.843603
+  ...
+# Subtest: Sampler cria plano de reprodução com transposição e envelope por velocity
+ok 161 - Sampler cria plano de reprodução com transposição e envelope por velocity
+  ---
+  duration_ms: 0.264066
+  ...
+# Subtest: Sampler actualiza parâmetros de forma não destrutiva e limita extremos
+ok 162 - Sampler actualiza parâmetros de forma não destrutiva e limita extremos
+  ---
+  duration_ms: 0.223089
+  ...
+# Subtest: constrói eventos de Beat Maker com tempo e duração determinísticos
+ok 163 - constrói eventos de Beat Maker com tempo e duração determinísticos
+  ---
+  duration_ms: 1.399536
+  ...
+# Subtest: usa fallback seguro para padrão e limites de BPM
+ok 164 - usa fallback seguro para padrão e limites de BPM
+  ---
+  duration_ms: 0.267458
+  ...
+# Subtest: normaliza grid personalizado, remove duplicados e ordena eventos
+ok 165 - normaliza grid personalizado, remove duplicados e ordena eventos
+  ---
+  duration_ms: 2.452912
+  ...
+# Subtest: Sound Library expõe catálogo local com ids únicos
+ok 166 - Sound Library expõe catálogo local com ids únicos
+  ---
+  duration_ms: 0.787057
+  ...
+# Subtest: Sound Library cria clip de evento numa posição não negativa
+ok 167 - Sound Library cria clip de evento numa posição não negativa
+  ---
+  duration_ms: 1.157361
+  ...
+# Subtest: Sound Library devolve null para sons desconhecidos
+ok 168 - Sound Library devolve null para sons desconhecidos
+  ---
+  duration_ms: 0.133439
+  ...
+# Subtest: Sound Library filtra por pesquisa, género, BPM e favoritos
+ok 169 - Sound Library filtra por pesquisa, género, BPM e favoritos
+  ---
+  duration_ms: 0.549193
+  ...
+# Subtest: dataUrlToBlob converte uma Data URL base64 em Blob com MIME preservado
+ok 170 - dataUrlToBlob converte uma Data URL base64 em Blob com MIME preservado
+  ---
+  duration_ms: 1.04553
+  ...
+# Subtest: dataUrlToBlob aceita MIME de MediaRecorder com parâmetro de codec
+ok 171 - dataUrlToBlob aceita MIME de MediaRecorder com parâmetro de codec
+  ---
+  duration_ms: 0.208318
+  ...
+# Subtest: dataUrlToBlob rejeita uma origem persistida inválida
+ok 172 - dataUrlToBlob rejeita uma origem persistida inválida
+  ---
+  duration_ms: 0.497726
+  ...
+# Subtest: dataUrlToBlob aceita Blob directamente para não duplicar dados
+ok 173 - dataUrlToBlob aceita Blob directamente para não duplicar dados
+  ---
+  duration_ms: 0.209657
+  ...
+# Subtest: Supabase foundation defines profiles and projects
+ok 174 - Supabase foundation defines profiles and projects
+  ---
+  duration_ms: 0.899056
+  ...
+# Subtest: Supabase foundation enables ownership and public visibility policies
+ok 175 - Supabase foundation enables ownership and public visibility policies
+  ---
+  duration_ms: 0.383998
+  ...
+# Subtest: Supabase foundation provisions profiles for new auth users
+ok 176 - Supabase foundation provisions profiles for new auth users
+  ---
+  duration_ms: 0.199971
+  ...
+# Subtest: move, ganho e fade respeitam os limites
+ok 177 - move, ganho e fade respeitam os limites
+  ---
+  duration_ms: 6.865845
+  ...
+# Subtest: divide um clip em duas partes com offsets correctos
+ok 178 - divide um clip em duas partes com offsets correctos
+  ---
+  duration_ms: 1.542083
+  ...
+# Subtest: trim preserva a posição e avança apenas a origem
+ok 179 - trim preserva a posição e avança apenas a origem
+  ---
+  duration_ms: 0.313794
+  ...
+# Subtest: múltiplos splits preservam a continuidade da fonte
+ok 180 - múltiplos splits preservam a continuidade da fonte
+  ---
+  duration_ms: 0.342593
+  ...
+# Subtest: duplica, corta e apaga clips sem afectar o original
+ok 181 - duplica, corta e apaga clips sem afectar o original
+  ---
+  duration_ms: 0.480626
+  ...
+# Subtest: calculates timeline duration from clip ends
+ok 182 - calculates timeline duration from clip ends
+  ---
+  duration_ms: 0.761396
+  ...
+# Subtest: clamps positions to the transport duration
+ok 183 - clamps positions to the transport duration
+  ---
+  duration_ms: 0.158865
+  ...
+# Subtest: supports start, pause and stop without mutating state
+ok 184 - supports start, pause and stop without mutating state
+  ---
+  duration_ms: 0.221649
+  ...
+# Subtest: advances to the end and stops automatically
+ok 185 - advances to the end and stops automatically
+  ---
+  duration_ms: 0.140623
+  ...
+# Subtest: planeia eventos de áudio com tempos absolutos sem mutar a sequência
+ok 186 - planeia eventos de áudio com tempos absolutos sem mutar a sequência
+  ---
+  duration_ms: 1.689845
+  ...
+# Subtest: normaliza tempos negativos no planeamento de eventos
+ok 187 - normaliza tempos negativos no planeamento de eventos
+  ---
+  duration_ms: 0.189805
+  ...
+# Subtest: grid do Beat Maker produz eventos ordenados e deduplicados
+ok 188 - grid do Beat Maker produz eventos ordenados e deduplicados
+  ---
+  duration_ms: 0.538639
+  ...
+# Subtest: clip instrumental preserva metadados de evento no projecto
+ok 189 - clip instrumental preserva metadados de evento no projecto
+  ---
+  duration_ms: 4.537314
+  ...
+# Subtest: split de clip instrumental preserva o evento e divide a duração
+ok 190 - split de clip instrumental preserva o evento e divide a duração
+  ---
+  duration_ms: 0.638559
+  ...
+1..190
+# tests 193
+# suites 1
+# pass 193
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1374.453786

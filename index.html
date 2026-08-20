@@ -124,6 +124,7 @@
           <div class="studio-sidebar-label">Sessão</div>
           <nav class="studio-app-nav">
             <a href="#studio-home" class="studio-app-nav-item is-active" data-studio-area="studio-home"><span class="studio-nav-icon">⌂</span><span><strong>Home</strong><small>Projectos recentes</small></span></a>
+            <a href="#projects-panel" class="studio-app-nav-item" data-studio-area="projects-panel"><span class="studio-nav-icon">▦</span><span><strong>Projectos</strong><small>Biblioteca e sessões</small></span></a>
             <a href="#recording-workspace" class="studio-app-nav-item" data-studio-area="recording-workspace"><span class="studio-nav-icon">＋</span><span><strong>Criar</strong><small>Vocal & take</small></span></a>
             <a href="#instrument-lab" class="studio-app-nav-item"><span class="studio-nav-icon">⌁</span><span><strong>Sons</strong><small>Instrumentos</small></span></a>
             <a href="#producer-studio" class="studio-app-nav-item"><span class="studio-nav-icon">✦</span><span><strong>AI Producer</strong><small>Arranjo</small></span></a>
@@ -137,6 +138,11 @@
           <div class="studio-sidebar-user"><span class="studio-user-avatar">FL</span><span><strong id="studio-sidebar-user-name">Artista</strong><small>Conta activa</small></span></div>
         </aside>
         <div class="studio-main-column">
+          <section id="projects-panel" class="studio-projects-view" aria-labelledby="projects-panel-title">
+            <div class="studio-home-hero"><div><span class="section-kicker">Projects · biblioteca local</span><h2 id="projects-panel-title">As tuas ideias, organizadas.</h2><p>Pesquisa, filtra e retoma sessões reais sem sair do Studio. O áudio continua no teu dispositivo; os metadados ficam prontos para sincronização.</p></div><button class="button button-primary" type="button" data-studio-area="recording-workspace">＋ Novo projecto</button></div>
+            <div class="projects-hub-toolbar"><div class="projects-hub-search"><span aria-hidden="true">⌕</span><input id="projects-hub-search" type="search" placeholder="Pesquisar projectos…" autocomplete="off" /></div><div class="projects-hub-filters" role="group" aria-label="Filtrar projectos"><button class="mini-button is-active" type="button" data-projects-hub-filter="all">Todos</button><button class="mini-button" type="button" data-projects-hub-filter="active">Activos</button><button class="mini-button" type="button" data-projects-hub-filter="archived">Arquivados</button></div></div>
+            <div id="projects-hub-list" class="projects-hub-list"><div class="studio-recent-empty"><span>♪</span><div><strong>A carregar projectos</strong><p>A biblioteca local será apresentada aqui.</p></div></div></div>
+          </section>
           <section id="studio-home" class="studio-home-view" aria-labelledby="studio-home-title">
             <div class="studio-home-hero"><div><span class="section-kicker">Home · sessão protegida</span><h2 id="studio-home-title">O que vais criar hoje?</h2><p>Entra numa sessão, captura uma ideia e deixa o teu produtor acompanhar cada decisão.</p></div><button class="button button-primary" type="button" data-studio-area="recording-workspace">＋ Nova sessão</button></div>
             <div class="studio-home-grid">
@@ -144,7 +150,7 @@
               <article class="studio-home-card"><div class="studio-home-card-top"><span class="studio-card-icon">✦</span><span class="studio-card-status">IA Producer</span></div><h3>Construir um arranjo</h3><p>Descreve a música e transforma a intenção num plano de produção.</p><button class="mini-button" type="button" data-studio-area="producer-studio">Abrir AI Producer →</button></article>
               <article class="studio-home-card"><div class="studio-home-card-top"><span class="studio-card-icon">♫</span><span class="studio-card-status">Biblioteca local</span></div><h3>Explorar sons</h3><p>Escolhe instrumentos, beats e texturas para dar corpo à sessão.</p><button class="mini-button" type="button" data-studio-area="instrument-lab">Abrir Sons →</button></article>
             </div>
-            <div class="studio-home-section-head"><div><span class="section-kicker">Projectos recentes</span><h3>As tuas sessões</h3></div><button class="mini-button" type="button" data-studio-area="timeline">Ver todas →</button></div>
+            <div class="studio-home-section-head"><div><span class="section-kicker">Projectos recentes</span><h3>As tuas sessões</h3></div><button class="mini-button" type="button" data-studio-area="projects-panel">Ver todos →</button></div>
             <div class="studio-recent-projects" id="studio-recent-projects"><div class="studio-recent-empty"><span>♪</span><div><strong>Ainda não há sessões guardadas</strong><p>Cria o teu primeiro projecto e ele aparecerá aqui.</p></div><button class="mini-button" type="button" data-studio-area="recording-workspace">Criar projecto</button></div></div>
           </section>
           <div class="studio-session-bar"><div><span class="studio-session-dot"></span><strong id="studio-session-name">Nova sessão</strong><span class="studio-session-state">Guardado localmente</span></div><div class="studio-session-actions"><button class="mini-button" type="button" data-studio-command="undo">↶</button><button class="mini-button" type="button" data-studio-command="redo">↷</button><button class="mini-button" type="button" data-studio-command="save">Guardar</button><button class="button button-primary" type="button" data-studio-command="publish">Publicar</button></div></div>

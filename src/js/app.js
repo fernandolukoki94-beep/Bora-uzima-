@@ -74,6 +74,8 @@ const timer = document.getElementById("timer");
 const recordLabel = document.getElementById("record-label");
 const list = document.getElementById("project-list");
 const recentProjects = document.getElementById("studio-recent-projects");
+const projectsHubList = document.getElementById("projects-hub-list");
+const projectsHubSearch = document.getElementById("projects-hub-search");
 const projectSearch = document.getElementById("project-search");
 const projectFilter = document.getElementById("project-filter");
 const nameInput = document.getElementById("project-name");
@@ -1672,11 +1674,32 @@ async function createCompedVocal(groupId, container) {
   renderProjects();
   showToast(`“${comped.name}” criada a partir de ${projects.length} takes.`);
 }
+function renderProjectsHub(projects) {
+  if (!projectsHubList) return;
+  const query = projectsHubSearch?.value.trim().toLocaleLowerCase("pt-PT") || "";
+  const filter = document.querySelector("[data-projects-hub-filter].is-active")?.dataset.projectsHubFilter || "all";
+  const visible = projects.filter((project) => {
+    const matchesQuery = !query || [project.name, project.genre, project.status].some((value) => String(value || "").toLocaleLowerCase("pt-PT").includes(query));
+    const matchesFilter = filter === "all" || (filter === "archived" ? project.archived : !project.archived);
+    return matchesQuery && matchesFilter;
+  });
+  if (!visible.length) {
+    projectsHubList.innerHTML = `<div class="studio-recent-empty"><span>♪</span><div><strong>${projects.length ? "Nenhum projecto encontrado" : "Ainda não há projectos"}</strong><p>${projects.length ? "Experimenta outro termo ou filtro." : "Cria a tua primeira sessão para começar a biblioteca."}</p></div><button class="mini-button" type="button" data-studio-area="recording-workspace">＋ Novo projecto</button></div>`;
+    return;
+  }
+  projectsHubList.innerHTML = visible.map((project) => {
+    const tracks = Array.isArray(project.tracks) ? project.tracks.length : (project.originalAudioData ? 1 : 0);
+    const version = getVariantData(project, "mixed") ? "Mixed" : "Original";
+    return `<article class="projects-hub-card${project.archived ? " is-archived" : ""}"><div class="projects-hub-card-icon" aria-hidden="true">${escapeHtml(project.coverGlyph || "♫")}</div><div class="projects-hub-card-body"><div class="projects-hub-card-top"><span class="section-kicker">${escapeHtml(project.genre || "Demo vocal")}</span><span class="pill">${escapeHtml(project.archived ? "Arquivado" : project.status || "Guardado localmente")}</span></div><h3>${escapeHtml(project.name || "Sessão sem título")}</h3><p>${escapeHtml(project.createdAt || "Sem data")} · ${tracks} track${tracks === 1 ? "" : "s"} · ${version}</p><div class="projects-hub-card-actions"><button class="mini-button primary" type="button" data-open-project="${escapeHtml(project.id)}" data-studio-area="timeline">Abrir Studio →</button><button class="mini-button" type="button" data-projects-hub-action="archive" data-archive-id="${escapeHtml(project.id)}">${project.archived ? "Restaurar" : "Arquivar"}</button></div></div></article>`;
+  }).join("");
+}
+
 function renderProjects() {
   loadSoundLibraryFavorites();
   renderSoundLibrary();
   const projects = readProjects();
   renderRecentProjects(projects);
+  renderProjectsHub(projects);
   const query = projectSearch?.value.trim().toLocaleLowerCase("pt-PT") || "";
   const filter = projectFilter?.value || "all";
   const visibleProjects = projects.filter((project) => {
@@ -2343,6 +2366,11 @@ syncCloudProjectsButton?.addEventListener("click", syncCloudProjects);
 saveCloudProjectButton?.addEventListener("click", saveCurrentProjectToCloud);
 projectSearch?.addEventListener("input", renderProjects);
 projectFilter?.addEventListener("change", renderProjects);
+projectsHubSearch?.addEventListener("input", renderProjects);
+document.querySelectorAll("[data-projects-hub-filter]").forEach((button) => button.addEventListener("click", () => {
+  document.querySelectorAll("[data-projects-hub-filter]").forEach((item) => item.classList.toggle("is-active", item === button));
+  renderProjects();
+}));
 window.addEventListener("fernando-authenticated", () => { syncCloudProjects(); });
 window.addEventListener("firebase-signed-out", () => {
   if (saveCloudProjectButton) saveCloudProjectButton.disabled = true;
@@ -2354,12 +2382,28 @@ updateEffectPresetOptions();
 updateABMeters();
 updateMasteringControls();
 
-recentProjects?.addEventListener("click", (event) => {
-  const openButton = event.target.closest("[data-open-project]");
-  if (!openButton) return;
+function openProjectFromCard(openButton) {
   activeTimelineId = openButton.dataset.openProject || null;
   renderTimeline();
   renderProducerStudio();
+}
+
+recentProjects?.addEventListener("click", (event) => {
+  const openButton = event.target.closest("[data-open-project]");
+  if (!openButton) return;
+  openProjectFromCard(openButton);
+});
+
+projectsHubList?.addEventListener("click", (event) => {
+  const openButton = event.target.closest("[data-open-project]");
+  if (openButton) openProjectFromCard(openButton);
+  const archiveButton = event.target.closest("[data-archive-id]");
+  if (archiveButton) {
+    const id = archiveButton.dataset.archiveId;
+    saveProjects(readProjects().map((project) => project.id === id ? { ...project, archived: !project.archived, status: project.archived ? "Restaurada localmente" : "Arquivada localmente" } : project));
+    renderProjects();
+    showToast("Estado do projecto actualizado.");
+  }
 });
 
 list?.addEventListener("click", (event) => {
