@@ -2,7 +2,7 @@ import { blobToDataUrl, dataUrlToBlob, escapeHtml, getFileExtension, makeProject
 import { bindPlayerEvents } from "./player.js";
 import { buildProducerPlan, producerPlanClipSpecs, applyProducerMix } from "./producer-plan.js";
 import { analyzeAudioDataUrl } from "./audio-analysis.js";
-import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyVoiceCleanerLocal, applyVoiceChangerLocal, applyHarmonyLocal, applyVoiceCharacterLocal, voiceCharacterParameters, harmonyParameters, applyMasteringLocal, applyReverbLocal, applyDelayLocal, spatialEffectParameters } from "./effects.js";
+import { applyAutoTuneLocal, autoTuneParameters, autoTuneCorrectionFromPitch, detectPitchNotes, applyCompressor, applyFade, applyGain, applyNormalize, applyPitchCorrectionAssist, applyVocalEnhancement, applyVoiceCleanerLocal, applyVoiceChangerLocal, applyHarmonyLocal, applyVoiceCharacterLocal, voiceCharacterParameters, harmonyParameters, applyMasteringLocal, applyReverbLocal, applyDelayLocal, spatialEffectParameters, audioBufferToWav } from "./effects.js";
 import { createRecorderController } from "./recorder.js";
 import { addClip, addTrack, createProject, normalizeProject, updateTrack } from "./studio/project-model.js";
 import { createHistoryState, canRedo, canUndo, commitHistory, redoHistory, undoHistory } from "./studio/history.js";
@@ -13,7 +13,7 @@ import { createGridEvents } from "./studio/sequencer.js";
 import { getBeatPreset } from "./studio/instruments.js";
 import { SOUND_LIBRARY, filterSoundLibrary, getSoundLibraryItem, soundLibraryClip } from "./studio/sound-library.js";
 import { filterMySounds, listMySounds, putMySound, updateMySound, deleteMySound, getMySoundBlob } from "./studio/my-sounds.js";
-import { isInstrumentClip } from "./studio/instrument-renderer.js";
+import { isInstrumentClip, renderInstrumentClip } from "./studio/instrument-renderer.js";
 import { renderTimelineToWav, calculateLoudnessMetrics } from "./studio/mixdown.js";
 import { createProjectManifest, downloadBlob, exportVariantFilename, preferredExportVariant, projectManifestFilename } from "./export-audio.js";
 import { deriveProducerStudioState } from "./producer-studio-flow.js";
@@ -1151,6 +1151,7 @@ function stopTransportAudio() {
 }
 
 function audioSourceForClip(project, clip) {
+  if (clip?.audioData) return clip.audioData;
   return getVariantData(project, variantFromBlobKey(clip.blobKey));
 }
 
@@ -1322,8 +1323,11 @@ async function mixdownActiveTimeline() {
       if (sources.has(clip.blobKey) || sources.has(clip.id)) continue;
       let blob = null;
       const variant = variantFromBlobKey(clip.blobKey);
-      try { if (await indexedDbAvailable() && clip.blobKey) blob = await getAudioBlob(project.id, blobKindForVariant(variant)); } catch {}
-      const variantData = getVariantData(project, variant) || sourceData;
+      const instrumentKind = clip.blobKey?.startsWith(`${project.id}:instrument-`) ? clip.blobKey.slice(`${project.id}:`.length) : null;
+      try {
+        if (await indexedDbAvailable() && clip.blobKey) blob = await getAudioBlob(project.id, instrumentKind || blobKindForVariant(variant));
+      } catch {}
+      const variantData = clip.audioData || getVariantData(project, variant) || sourceData;
       if (!blob && variantData && (clip.blobKey?.startsWith(`${project.id}:`) || clip.blobKey === null)) {
         blob = await dataUrlToBlob(variantData);
       }
@@ -1363,10 +1367,28 @@ async function mixdownActiveTimeline() {
   }
 }
 
-function insertInstrumentClip({ name, type, duration = 4, metadata = {}, start = null }) {
-  const project = currentTimelineProject();
+async function materializeInstrumentAudio(project) {
+  const nextProject = normalizeProject({ ...project, tracks: project.tracks.map((track) => ({ ...track, clips: track.clips.map((clip) => ({ ...clip })) })) });
+  for (const track of nextProject.tracks) {
+    for (const clip of track.clips) {
+      if (!isInstrumentClip(clip) || clip.audioData) continue;
+      const rendered = renderInstrumentClip(clip, { sampleRate: 44100, tempo: Number(nextProject.tempo) || 100 });
+      const audioBuffer = { numberOfChannels: 1, sampleRate: 44100, length: rendered.length, getChannelData: () => rendered };
+      const wav = audioBufferToWav(audioBuffer);
+      const kind = `instrument-${clip.id}`;
+      clip.blobKey = `${nextProject.id}:${kind}`;
+      clip.audioData = await blobToDataUrl(wav);
+      clip.mimeType = "audio/wav";
+      if (await indexedDbAvailable()) await putAudioBlob(nextProject.id, kind, wav);
+    }
+  }
+  return nextProject;
+}
+
+async function insertInstrumentClip({ name, type, duration = 4, metadata = {}, start = null }) {
+  const project = currentTimelineProject() || ensureProductionSession("Beat Studio");
   if (!project) {
-    showToast("Grava primeiro uma take para abrir uma sessão na timeline.");
+    showToast("Não foi possível abrir uma sessão de produção.");
     return false;
   }
   let nextProject = normalizeProject(project);
@@ -1376,16 +1398,39 @@ function insertInstrumentClip({ name, type, duration = 4, metadata = {}, start =
     track = nextProject.tracks[nextProject.tracks.length - 1];
   }
   const end = track.clips.reduce((latest, clip) => Math.max(latest, Number(clip.start || 0) + Number(clip.duration || 0)), 0);
+  const clipStart = Number.isFinite(Number(start)) ? Math.max(0, Number(start)) : end;
+  const clipId = `${project.id}-instrument-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const rendered = renderInstrumentClip({ name, type, duration, start: clipStart, metadata, event: metadata }, { sampleRate: 44100, tempo: Number(project.tempo) || 100 });
+  const audioBuffer = { numberOfChannels: 1, sampleRate: 44100, length: rendered.length, getChannelData: () => rendered };
+  const wav = audioBufferToWav(audioBuffer);
+  const kind = `instrument-${clipId}`;
+  const audioData = await blobToDataUrl(wav);
   nextProject = addClip(nextProject, track.id, {
+    id: clipId,
     name,
-    start: Number.isFinite(Number(start)) ? Math.max(0, Number(start)) : end,
+    start: clipStart,
     duration,
     sourceOffset: 0,
-    mimeType: "application/x-fernando-lucoco-event",
+    blobKey: `${project.id}:${kind}`,
+    audioData,
+    mimeType: "audio/wav",
     event: metadata,
+    gain: 1,
   });
-  commitTimelineProject(nextProject);
-  showToast(`${name} adicionado à timeline local.`);
+  nextProject = normalizeProject({ ...nextProject, duration: Math.max(Number(nextProject.duration || 0), clipStart + Number(duration || 0)), status: "Instrumental materializado", updatedAt: new Date().toISOString() });
+  await commitTimelineProject(nextProject);
+  try {
+    if (await indexedDbAvailable()) await putAudioBlob(project.id, kind, wav);
+  } catch {
+    showToast("O instrumental entrou na timeline, mas a cópia IndexedDB falhou; o WAV inline permanece disponível.");
+  }
+  activeTimelineId = project.id;
+  timelineHistory = createHistoryState(nextProject);
+  renderTimeline();
+  renderMixer();
+  renderProjects();
+  await refreshStorageStatus();
+  showToast(`${name} materializado como Audio Track WAV e guardado localmente.`);
   return true;
 }
 
@@ -1598,10 +1643,15 @@ async function runProducerPlan(id, { planOverride = null, sourceLabel = "local" 
     const plannedProject = applyProducerMix(normalizeProject(analyzedProject.find((item) => item.id === id) || source), plan);
     const specs = producerPlanClipSpecs(plan, Math.max(4, Math.min(16, Number(source.duration || 8))));
     if (!isProductionActive(id)) return;
-    const next = materializeProducerPlan(plannedProject, plan, {
+    let next = materializeProducerPlan(plannedProject, plan, {
       duration: source.duration,
         onStep: ({ index, total }) => setProductionPhase(id, PRODUCTION_STATES.ARRANGING, `${isAiPlan ? "A IA materializa a faixa do produtor" : "A criar arranjo local"} · ${index}/${total}`, 25 + Math.round((index / total) * 45), renderProjects),
     });
+    try {
+      next = await materializeInstrumentAudio(next);
+    } catch (error) {
+      console.warn("Materialização WAV do Producer Plan falhou; os eventos continuam disponíveis para re-renderização local.", error);
+    }
     await new Promise((resolve) => window.setTimeout(resolve, 0));
     if (!setProductionPhase(id, PRODUCTION_STATES.MIXING, isAiPlan ? "A preparar vocal, mix e master local seguro" : "A preparar mix local", 85, renderProjects)) return;
     await commitTimelineProject(next);

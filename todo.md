@@ -512,3 +512,14 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 
 - [ ] Confirmar que as alterações visuais locais foram committed e enviadas para o repositório/deployment correcto
 - [ ] Verificar a versão pública de Fernando Lucoco Music após o deployment e invalidar cache se necessário
+
+
+## Iteração funcional — materialização de instrumentais WAV
+
+- [x] Materializar clips virtuais de piano, drums, guitarra, synth e MIDI em WAV PCM persistente na timeline.
+- [x] Guardar cada instrumental numa chave IndexedDB dedicada `instrument-*` e manter fallback inline para playback local.
+- [x] Resolver clips instrumentais materializados no mixdown WAV da timeline.
+- [x] Validar a suite determinística após a materialização: 193 testes aprovados, 0 falhas.
+- [ ] Validar fisicamente gravação, monitorização, playback e exportação no Samsung Galaxy A06.
+- [ ] Confirmar em produção o AI Producer com provider configurado e documentar o resultado real de quota/erro.
+- [ ] Adicionar um script de build/preview documentado para a aplicação estática antes do próximo checkpoint.

@@ -359,3 +359,18 @@ A validação desta etapa confirmou a presença dos ids de interface (`voice-cha
 O AI Producer server-side selecciona **Gemini prioritariamente** quando `GEMINI_API_KEY` está configurada e usa OpenAI como alternativa configurada. As respostas são JSON validadas, com timeout e estados explícitos para quota, autenticação, indisponibilidade e resposta inválida. O áudio não é enviado ao provider; a IA produz um plano baseado em metadados e o Producer Studio materializa o arranjo e o processamento localmente.
 
 O **Voice Character é DSP local**, não clonagem nem geração de identidade vocal. Os perfis actuais combinam filtros, compressão, ganho e saturação suave em variantes reversíveis. A automação do Mix Session suporta lanes persistentes de volume, pan e intensidade FX, com pontos ordenados, interpolação linear, adição, substituição, remoção e toggle global. Durante o Mixdown, volume e pan são agendados no Web Audio; parâmetros contínuos de compressor, limiter, EQ e wet gain também podem seguir pontos de FX. Os restantes parâmetros não contínuos continuam estáticos e estão documentados como limitação.
+
+
+## Iteração funcional — Instrumentais materializados em WAV
+
+Os instrumentais virtuais deixam de ser apenas eventos visuais na timeline. Ao adicionar piano, drums, guitarra, synth, cordas, bass ou uma take MIDI, o renderer local gera uma faixa PCM mono a 44.1 kHz, converte-a para WAV e associa-a a um clip com `mimeType: audio/wav`. O clip mantém os metadados de evento para edição e re-renderização, mas já possui uma fonte áudio materializada para playback, Mixdown e exportação.
+
+Cada WAV instrumental é guardado no IndexedDB na store de blobs com uma chave dedicada no formato `<projectId>:instrument-<clipId>`. O manifesto local inclui também uma cópia Data URL como fallback de reprodução imediata; esta redundância é intencional para que uma falha temporária de IndexedDB não transforme o clip num bloco silencioso. O Mixdown reconhece as chaves `instrument-*` e resolve primeiro o blob dedicado antes de recorrer ao fallback inline.
+
+A gravação vocal continua a usar `getUserMedia` + `MediaRecorder`: o evento `stop` aguarda todos os chunks, cria o Blob no MIME real do navegador, integra-o numa Audio Track da sessão activa e grava a take e o blob no IndexedDB. A validação física de permissões, monitorização, playback e exportação no Samsung Galaxy A06 continua pendente, porque não deve ser apresentada como concluída sem teste no dispositivo.
+
+Nesta iteração, a suite determinística terminou com **193 testes aprovados, 0 falhas e 0 ignorados**. O repositório não define actualmente um script `build`; por isso, a compilação de produção deve ser adicionada como tarefa explícita antes de uma nova promoção automática. O comando de regressão disponível é:
+
+```bash
+npm test
+```
