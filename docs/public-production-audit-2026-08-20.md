@@ -29,3 +29,8 @@ Após recarregar `https://fernando-lucoco-music.vercel.app/#studio-home`, o dom�
 O deployment de produção associado ao commit `fa1bdcc` foi confirmado como `READY` pela Vercel. Depois de abrir o domínio com cache-buster, o Control Room passou a renderizar as tracks persistidas da sessão, em vez de apenas três linhas genéricas: `Lead Vocal` com 0 clips, `Piano · C` com 5 clips e 20,0 s, `Beat Maker` com 1 clip e 4,0 s, e `Guitarra` com 1 clip e 4,0 s. Os clips visíveis incluem `Piano · C`, `Bass · Producer Plan`, `Cordas · C`, `Synth Pad · C`, `Beat · Afrobeat` e `Guitarra · C`. Isto confirma que a melhoria está efectivamente no bundle público e ligada ao estado materializado do Control Room.
 
 A gravação vocal física através do microfone e a exportação no Samsung Galaxy A06 continuam a exigir teste no dispositivo real; não são declaradas como validadas por esta auditoria de browser.
+
+
+## V2.10 — publicação da gravação real
+
+O commit `6ad845b96a4ddc3009b44278580c2987fd4e3db5` foi confirmado pela Vercel como deployment de produção `READY`. O domínio principal abre a autenticação Firebase antes de expor o Studio; a gravação não fica acessível anonimamente. A validação pública autenticada da captura física continua pendente porque requer uma conta/sessão e permissão de microfone no dispositivo real.
