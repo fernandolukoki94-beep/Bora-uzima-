@@ -1728,3 +1728,113 @@ h1 em { color: #d27a63; font-style: italic; text-shadow: none; }
   .onboarding-card, .firebase-auth-card { width: 100%; }
   .onboarding-step { width: 100%; }
 }
+
+
+/* Studio architecture — one session, distinct work modes, real DAW hierarchy */
+body.studio-ready { background: #0f0e0d; }
+body.studio-ready .topbar { background: #151311; border-bottom-color: rgba(243,238,229,.12); box-shadow: none; }
+body.studio-ready .topbar .nav-links { display: none; }
+body.studio-ready .topbar .brand-copy small { display: block; }
+body.studio-ready .topbar .account-actions .button-quiet { display: inline-flex; }
+body.studio-ready .studio { padding: 0; background: #0f0e0d; }
+body.studio-ready .studio-app-frame { width: 100%; max-width: none; min-height: calc(100vh - 76px); margin: 0; grid-template-columns: 224px minmax(0,1fr); border: 0; border-radius: 0; background: #0f0e0d; box-shadow: none; }
+body.studio-ready .studio-sidebar { position: sticky; top: 76px; height: calc(100vh - 76px); padding: 18px 12px; background: #151311; border-right: 1px solid rgba(243,238,229,.12); }
+body.studio-ready .studio-sidebar-brand { padding: 2px 8px 24px; }
+body.studio-ready .studio-sidebar-brand .brand-mark { width: 32px; height: 32px; border-radius: 7px; background: var(--coral); box-shadow: none; }
+body.studio-ready .studio-sidebar-label { margin: 0 8px 8px; padding: 0; color: #8f8377; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; }
+body.studio-ready .studio-sidebar-divider { display: flex; align-items: center; gap: 8px; margin: 22px 8px 8px; color: #8f8377; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; }
+body.studio-ready .studio-sidebar-divider::before { content: ""; flex: 1; height: 1px; background: rgba(243,238,229,.12); }
+body.studio-ready .studio-sidebar-divider span { order: 2; }
+body.studio-ready .studio-app-nav { gap: 3px; }
+body.studio-ready .studio-app-nav-item { min-height: 42px; padding: 7px 9px; border: 1px solid transparent; border-radius: 7px; color: #958b80; }
+body.studio-ready .studio-app-nav-item:hover, body.studio-ready .studio-app-nav-item:focus-visible { color: var(--cream); background: rgba(243,238,229,.05); border-color: rgba(243,238,229,.08); }
+body.studio-ready .studio-app-nav-item.is-active { color: var(--cream); background: #211e1a; border-color: rgba(200,107,85,.42); box-shadow: inset 2px 0 var(--coral); }
+body.studio-ready .studio-nav-icon { color: var(--gold); }
+body.studio-ready .studio-sidebar-export { margin: 12px 0; padding: 10px 9px; border: 1px solid rgba(200,107,85,.34); border-radius: 7px; background: rgba(200,107,85,.08); color: #d8c4b8; }
+body.studio-ready .studio-sidebar-user { border-top-color: rgba(243,238,229,.12); color: var(--cream); }
+body.studio-ready .studio-main-column { min-width: 0; background: #0f0e0d; display: flex; flex-direction: column; }
+body.studio-ready .studio-projects-view, body.studio-ready .studio-home-view { order: 2; border: 0; border-radius: 0; box-shadow: none; }
+body.studio-ready .studio-session-bar { order: 0; position: sticky; top: 76px; z-index: 45; min-height: 58px; padding: 10px 24px; border-bottom: 1px solid rgba(243,238,229,.12); background: rgba(21,19,17,.97); backdrop-filter: blur(12px); }
+body.studio-ready .studio-session-bar > div:first-child { min-width: 0; display: flex; align-items: center; gap: 9px; }
+body.studio-ready .studio-session-state { color: #8f857a; }
+body.studio-ready .studio-session-mode { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 8px; border-left: 1px solid rgba(243,238,229,.18); color: var(--gold); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; }
+body.studio-ready .studio-session-actions { gap: 6px; }
+body.studio-ready .studio-session-actions .mini-button { min-height: 32px; padding: 6px 10px; border-color: rgba(243,238,229,.14); border-radius: 6px; background: transparent; color: #b8aea2; }
+body.studio-ready .studio-bottom-toolbar { order: 1; position: sticky; top: 134px; z-index: 44; min-height: 48px; padding: 6px 24px; border-bottom: 1px solid rgba(243,238,229,.11); background: #12100f; overflow-x: auto; }
+body.studio-ready .studio-bottom-tab { min-height: 34px; padding: 7px 12px; border-radius: 5px; color: #90867b; background: transparent; }
+body.studio-ready .studio-bottom-tab:hover, body.studio-ready .studio-bottom-tab:focus-visible, body.studio-ready .studio-bottom-tab.is-active { color: var(--cream); background: #211e1a; border-color: rgba(243,238,229,.12); }
+body.studio-ready .studio-bottom-tab.is-active { box-shadow: inset 0 -2px var(--coral); }
+body.studio-ready .studio-context-panel { order: 3; margin: 18px 24px; }
+body.studio-ready .studio-main-column > .shell { order: 4; width: 100%; max-width: none; min-height: 0; margin: 0; padding: 0 24px 40px; background: #0f0e0d; }
+body.studio-ready .studio-main-column > .shell > .section-head { display: none; }
+body.studio-ready .studio-flow { display: none; }
+body.studio-ready .studio-main-column .studio-view-hidden { display: none !important; }
+body.studio-ready .studio-main-column .studio-module-head-hidden { display: none !important; }
+body.studio-ready .studio-main-column > .shell > .studio-control-room,
+body.studio-ready .studio-main-column > .shell > .workspace,
+body.studio-ready .studio-main-column > .shell > .producer-studio,
+body.studio-ready .studio-main-column > .shell > .instrument-panel,
+body.studio-ready .studio-main-column > .shell > .sound-library,
+body.studio-ready .studio-main-column > .shell > .beat-panel,
+body.studio-ready .studio-main-column > .shell > .timeline-panel { width: min(100%, 1440px); margin-left: auto; margin-right: auto; }
+body.studio-ready .studio-control-room { margin-top: 24px; border-color: rgba(243,238,229,.14); border-radius: 10px; background: #191715; box-shadow: 0 16px 42px rgba(0,0,0,.16); }
+body.studio-ready .control-room-toolbar { border-color: rgba(243,238,229,.12); border-radius: 7px; background: #12100f; }
+body.studio-ready .control-room-tracks, body.studio-ready .control-room-inspector { border-color: rgba(243,238,229,.12); border-radius: 8px; background: #12100f; }
+body.studio-ready .control-room-track-head { background: #191715; color: #8f857a; }
+body.studio-ready .control-room-track-row { border-top-color: rgba(243,238,229,.1); }
+body.studio-ready .track-lane { background: #201b18; border-color: rgba(200,107,85,.3); }
+body.studio-ready .track-lane-beat { background: #19201e; border-color: rgba(152,183,161,.3); }
+body.studio-ready .track-lane-fx { background: #211e18; border-color: rgba(197,160,107,.3); }
+body.studio-ready .workspace { margin-top: 24px; padding: 0; grid-template-columns: minmax(280px, 340px) minmax(0,1fr); gap: 12px; background: transparent; }
+body.studio-ready .workspace-panel { min-height: 0; border: 1px solid rgba(243,238,229,.12); border-radius: 9px; background: #191715; }
+body.studio-ready .workspace-panel + .workspace-panel { border-left: 1px solid rgba(243,238,229,.12); border-radius: 9px; }
+body.studio-ready .producer-studio, body.studio-ready .instrument-panel, body.studio-ready .sound-library, body.studio-ready .beat-panel, body.studio-ready .timeline-panel, body.studio-ready .mixer-panel { margin-top: 24px; border-color: rgba(243,238,229,.12); border-radius: 9px; background: #191715; box-shadow: 0 14px 36px rgba(0,0,0,.12); }
+body.studio-ready .producer-studio-head, body.studio-ready .panel-heading { border-bottom-color: rgba(243,238,229,.1); }
+body.studio-ready .producer-analysis-card, body.studio-ready .producer-stage, body.studio-ready .ai-task-card, body.studio-ready .waveform-card, body.studio-ready .preset-panel, body.studio-ready .ab-meter-card { border-color: rgba(243,238,229,.1); border-radius: 7px; background: #211e1a; }
+body.studio-ready .studio-focus-target { animation: studio-focus-in .22s ease both; }
+body.studio-ready[data-studio-view="studio-home"] .studio-bottom-toolbar,
+body.studio-ready[data-studio-view="projects-panel"] .studio-bottom-toolbar,
+body.studio-ready[data-studio-view="community-panel"] .studio-bottom-toolbar,
+body.studio-ready[data-studio-view="profile-panel"] .studio-bottom-toolbar,
+body.studio-ready[data-studio-view="messages-panel"] .studio-bottom-toolbar { display: none; }
+body.studio-ready[data-studio-view="studio-home"] .studio-transport-bar,
+body.studio-ready[data-studio-view="projects-panel"] .studio-transport-bar,
+body.studio-ready[data-studio-view="community-panel"] .studio-transport-bar,
+body.studio-ready[data-studio-view="profile-panel"] .studio-transport-bar,
+body.studio-ready[data-studio-view="messages-panel"] .studio-transport-bar { display: none; }
+body.studio-ready[data-studio-view="studio-home"] .studio-main-column > .shell,
+body.studio-ready[data-studio-view="projects-panel"] .studio-main-column > .shell,
+body.studio-ready[data-studio-view="community-panel"] .studio-main-column > .shell,
+body.studio-ready[data-studio-view="profile-panel"] .studio-main-column > .shell,
+body.studio-ready[data-studio-view="messages-panel"] .studio-main-column > .shell { min-height: 0; padding-bottom: 0; }
+@media (max-width: 900px) {
+  body.studio-ready .studio-app-frame { grid-template-columns: 76px minmax(0,1fr); }
+  body.studio-ready .studio-sidebar { top: 68px; height: calc(100vh - 68px); padding-inline: 8px; }
+  body.studio-ready .studio-sidebar-brand span:not(.brand-mark), body.studio-ready .studio-sidebar-label, body.studio-ready .studio-sidebar-divider, body.studio-ready .studio-app-nav-item span:not(.studio-nav-icon), body.studio-ready .studio-sidebar-export span:last-child, body.studio-ready .studio-sidebar-user span:last-child { display: none; }
+  body.studio-ready .studio-app-nav-item { justify-content: center; padding-inline: 0; }
+  body.studio-ready .studio-sidebar-export { display: grid; place-items: center; padding: 10px 0; }
+  body.studio-ready .studio-session-bar { top: 68px; padding-inline: 12px; }
+  body.studio-ready .studio-bottom-toolbar { top: 126px; padding-inline: 12px; }
+  body.studio-ready .studio-main-column > .shell { padding-inline: 12px; }
+  body.studio-ready .studio-context-panel { margin-inline: 12px; }
+}
+@media (max-width: 680px) {
+  body.studio-ready .studio-app-frame { display: block; }
+  body.studio-ready .studio-sidebar { position: sticky; top: 0; z-index: 60; width: 100%; height: auto; min-height: 54px; padding: 6px; border-right: 0; border-bottom: 1px solid rgba(243,238,229,.12); overflow-x: auto; }
+  body.studio-ready .studio-sidebar-brand, body.studio-ready .studio-sidebar-spacer, body.studio-ready .studio-sidebar-export, body.studio-ready .studio-sidebar-user { display: none; }
+  body.studio-ready .studio-app-nav { display: flex; min-width: max-content; gap: 4px; }
+  body.studio-ready .studio-app-nav-item { min-width: 52px; min-height: 40px; }
+  body.studio-ready .studio-main-column { width: 100%; }
+  body.studio-ready .studio-session-bar { top: 54px; }
+  body.studio-ready .studio-bottom-toolbar { top: 112px; }
+  body.studio-ready .studio-main-column > .shell { padding-inline: 10px; }
+  body.studio-ready .studio-main-column > .shell > .studio-control-room, body.studio-ready .studio-main-column > .shell > .workspace, body.studio-ready .studio-main-column > .shell > .producer-studio, body.studio-ready .studio-main-column > .shell > .instrument-panel, body.studio-ready .studio-main-column > .shell > .sound-library, body.studio-ready .studio-main-column > .shell > .beat-panel, body.studio-ready .studio-main-column > .shell > .timeline-panel { width: 100%; }
+  body.studio-ready .workspace { grid-template-columns: 1fr; }
+  body.studio-ready .workspace-panel + .workspace-panel { border-left: 1px solid rgba(243,238,229,.12); }
+  body.studio-ready .studio-session-state { display: none; }
+}
+
+body.studio-ready .account-actions > .account-open,
+body.studio-ready .account-actions > .nav-cta { display: none !important; }
+body.studio-ready .firebase-account { align-items: center; gap: 8px; }
+body.studio-ready .firebase-account small { color: #8f857a; }
