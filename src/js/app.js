@@ -89,6 +89,7 @@ const syncCloudProjectsButton = document.getElementById("sync-cloud-projects");
 const saveCloudProjectButton = document.getElementById("save-cloud-project");
 const cloudSyncStatus = document.getElementById("cloud-sync-status");
 const timelineGrid = document.getElementById("timeline-grid");
+const controlRoomTrackList = document.getElementById("control-room-track-list");
 const mixerTracks = document.getElementById("mixer-tracks");
 const mixerInspector = document.getElementById("mixer-inspector");
 const mixerHeadroom = document.getElementById("mixer-headroom");
@@ -1197,6 +1198,22 @@ function refreshTransportProject() {
   updateTransportUI();
 }
 
+function renderControlRoomTracks(project) {
+  if (!controlRoomTrackList) return;
+  if (!project?.tracks?.length) {
+    controlRoomTrackList.innerHTML = '<div class="control-room-track-row"><div class="track-identity"><span class="track-color fx"></span><div><strong>Sessão sem tracks</strong><small>Cria um instrumental ou grava uma take</small></div></div><div class="track-lane track-lane-fx"><span>O áudio materializado aparecerá aqui.</span></div><div class="track-actions"><button class="mini-button" type="button" data-studio-area="instrument-lab">Abrir Sons</button></div></div>';
+    return;
+  }
+  const colorFor = (track) => track.type === "vocal" ? "vocal" : ["drums", "beat", "instrument"].includes(track.type) ? "beat" : "fx";
+  controlRoomTrackList.innerHTML = project.tracks.map((track) => {
+    const clips = Array.isArray(track.clips) ? track.clips : [];
+    const duration = clips.reduce((max, clip) => Math.max(max, Number(clip.start || 0) + Number(clip.duration || 0)), 0);
+    const clipSummary = clips.length ? clips.map((clip) => `${escapeHtml(clip.name || "Clip") } · ${Number(clip.duration || 0).toFixed(1)}s`).join(" · ") : "Sem clips nesta faixa";
+    const laneClass = colorFor(track) === "beat" ? " track-lane-beat" : colorFor(track) === "fx" ? " track-lane-fx" : "";
+    return `<div class="control-room-track-row" data-control-room-track="${escapeHtml(track.id)}"><div class="track-identity"><span class="track-color ${colorFor(track)}"></span><div><strong>${escapeHtml(track.name || "Track")}</strong><small>${escapeHtml(track.type || "audio")} · ${clips.length} clip${clips.length === 1 ? "" : "s"} · ${duration.toFixed(1)}s</small></div></div><div class="track-lane${laneClass}"><span>${clipSummary}</span></div><div class="track-actions"><button class="mini-button" type="button" data-studio-area="mixer-panel">Abrir Mix</button></div></div>`;
+  }).join("");
+}
+
 function renderTimeline() {
   refreshSamplerSources();
   if (!timelineGrid) return;
@@ -1209,6 +1226,7 @@ function renderTimeline() {
     return;
   }
   const normalized = timelineHistory.present;
+  renderControlRoomTracks(normalized);
   const nextDuration = getTimelineDuration(normalized);
   if (transportState.status === TRANSPORT_STATES.STOPPED || transportState.duration !== nextDuration) {
     transportState = { ...transportState, duration: nextDuration, position: Math.min(transportState.position, nextDuration) };

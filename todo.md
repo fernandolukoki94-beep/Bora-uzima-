@@ -523,3 +523,11 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [ ] Validar fisicamente gravação, monitorização, playback e exportação no Samsung Galaxy A06.
 - [ ] Confirmar em produção o AI Producer com provider configurado e documentar o resultado real de quota/erro.
 - [ ] Adicionar um script de build/preview documentado para a aplicação estática antes do próximo checkpoint.
+
+
+## Regressão reportada — produção não reflecte as funcionalidades WAV/AI Producer
+
+- [x] Confirmar qual deployment está ligado ao domínio público e se serve o commit que contém a materialização WAV.
+- [x] Reproduzir no site público a criação de sessão e aplicação do Producer Plan/AI Producer; playback/exportação vocal física continuam pendentes.
+- [x] Confirmar que não existe discrepância no bundle publicado para a materialização instrumental: o domínio executa e persiste as novas tracks.
+- [x] Confirmar publicamente que o instrumental aparece como Audio Track, altera a duração, persiste em IndexedDB e entra no Producer Plan local.
