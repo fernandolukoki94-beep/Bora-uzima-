@@ -2506,3 +2506,126 @@ body.studio-ready[data-studio-view="recording-workspace"] .project-list { max-he
 }
 
 /* Navigation is intentionally single-bound: one click, one focused area. */
+
+
+/* DAW editor rebuild: arrangement first, MIDI strip second, advanced instruments on demand. */
+@media (min-width: 821px) {
+  body.studio-ready .daw-editor-dock {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    overflow: hidden;
+  }
+  body.studio-ready .daw-editor-dock > #timeline {
+    order: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+  }
+  body.studio-ready .daw-editor-dock > #daw-midi-strip {
+    order: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(290px, .88fr);
+    gap: 8px;
+    flex: 0 0 178px;
+    min-height: 178px;
+    max-height: 178px;
+    padding: 8px;
+    border: 1px solid var(--daw-line);
+    border-top: 2px solid var(--daw-amber);
+    background: #111315;
+    overflow: hidden;
+  }
+  body.studio-ready .daw-midi-strip > .instrument-row,
+  body.studio-ready .daw-midi-piano-panel {
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--daw-line-soft);
+    background: #17191b;
+    overflow: hidden;
+  }
+  body.studio-ready .daw-midi-strip > .instrument-row > div,
+  body.studio-ready .daw-midi-piano-panel > strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--daw-text);
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  body.studio-ready .daw-midi-strip .keyboard-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  body.studio-ready .daw-midi-strip .keyboard-toolbar label,
+  body.studio-ready .daw-midi-strip .keyboard-toolbar .action-feedback {
+    font-size: .58rem;
+  }
+  body.studio-ready .daw-midi-strip .keyboard-toolbar input[type="range"] { width: 62px; }
+  body.studio-ready .daw-midi-strip .keyboard {
+    height: 88px;
+    min-height: 88px;
+    gap: 2px;
+    overflow: hidden;
+  }
+  body.studio-ready .daw-midi-strip .key {
+    min-width: 0;
+    height: 76px;
+    padding: 0 2px;
+    font-size: .62rem;
+  }
+  body.studio-ready .daw-midi-piano-panel {
+    display: flex;
+    flex-direction: column;
+  }
+  body.studio-ready .daw-midi-piano-panel .piano-roll {
+    flex: 1 1 auto;
+    min-height: 80px;
+    max-height: 96px;
+    overflow: auto;
+  }
+  body.studio-ready .daw-midi-piano-panel .piano-roll-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  body.studio-ready .daw-midi-piano-panel .piano-roll-actions .action-feedback {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .58rem;
+  }
+  body.studio-ready[data-studio-view="timeline"] .daw-editor-dock > #instrument-lab,
+  body.studio-ready[data-studio-view="mixer-panel"] .daw-editor-dock > #instrument-lab { display: none; }
+  body.studio-ready[data-studio-view="timeline"] .daw-editor-dock > #daw-midi-strip { display: grid; }
+  body.studio-ready[data-studio-view="mixer-panel"] .daw-editor-dock > #daw-midi-strip { display: none; }
+  body.studio-ready[data-studio-view="instrument-lab"] .daw-editor-dock > #daw-midi-strip { display: grid; }
+}
+@media (max-width: 820px) {
+  body.studio-ready .daw-editor-dock > #daw-midi-strip {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    max-height: 360px;
+    overflow: auto;
+    padding: 8px;
+    border-top: 2px solid var(--daw-amber);
+  }
+  body.studio-ready .daw-midi-strip .keyboard { min-height: 72px; height: 72px; }
+  body.studio-ready .daw-midi-strip .key { height: 64px; }
+  body.studio-ready[data-studio-view="timeline"] .daw-editor-dock > #instrument-lab { display: none; }
+  body.studio-ready[data-studio-view="mixer-panel"] .daw-editor-dock > #daw-midi-strip { display: none; }
+}

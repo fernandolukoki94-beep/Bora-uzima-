@@ -63,10 +63,30 @@ function mountDawWorkspace() {
   mixerDock.id = "daw-mixer-dock";
   mixerDock.className = "daw-mixer-dock";
   mixerDock.setAttribute("aria-label", "Mixer vertical da sessão");
+  const midiStrip = document.createElement("section");
+  midiStrip.id = "daw-midi-strip";
+  midiStrip.className = "daw-midi-strip";
+  midiStrip.setAttribute("aria-label", "Editor MIDI e teclado da sessão");
+  const keyboardRow = instrument.querySelector("#keyboard-notes")?.closest(".instrument-row");
+  const pianoRoll = instrument.querySelector("#piano-roll");
+  const pianoRollRow = pianoRoll?.closest(".instrument-row");
+  const pianoRollColumn = pianoRoll?.parentElement;
+  const pianoRollTitle = pianoRollColumn?.querySelector("strong");
+  if (keyboardRow) midiStrip.appendChild(keyboardRow);
+  if (pianoRollRow) {
+    const pianoPanel = document.createElement("div");
+    pianoPanel.className = "daw-midi-piano-panel";
+    if (pianoRollTitle) pianoPanel.appendChild(pianoRollTitle);
+    pianoPanel.appendChild(pianoRoll);
+    const actions = pianoRollColumn?.querySelector(".piano-roll-actions");
+    if (actions) pianoPanel.appendChild(actions);
+    pianoRollColumn?.remove();
+    midiStrip.appendChild(pianoPanel);
+  }
   workspace.append(browser, editor, mixerDock);
   shell.insertBefore(workspace, shell.firstChild);
   [soundLibrary, mySounds, beatMaker].filter(Boolean).forEach((node) => browser.appendChild(node));
-  editor.append(timeline, instrument);
+  editor.append(timeline, midiStrip, instrument);
   mixerDock.appendChild(mixer);
 }
 
@@ -75,9 +95,10 @@ function focusArea(targetId, source) {
   const target = document.getElementById(targetId);
   if (!target) return;
   const keep = new Set(VIEW_GROUPS[targetId] || [targetId]);
+  if (["timeline", "instrument-lab"].includes(targetId)) keep.add("daw-midi-strip");
   document.body.classList.add("studio-focus-mode");
   document.body.dataset.studioView = targetId;
-  const viewIds = ["studio-home", "projects-panel", "recording-workspace", "control-room", "instrument-lab", "sound-library", "my-sounds", "beat-maker", "producer-studio", "timeline", "mixer-panel", "community-panel", "profile-panel", "messages-panel"];
+  const viewIds = ["studio-home", "projects-panel", "recording-workspace", "control-room", "instrument-lab", "sound-library", "my-sounds", "beat-maker", "producer-studio", "timeline", "mixer-panel", "daw-midi-strip", "community-panel", "profile-panel", "messages-panel"];
   viewIds.forEach((id) => {
     const view = document.getElementById(id);
     if (!view) return;

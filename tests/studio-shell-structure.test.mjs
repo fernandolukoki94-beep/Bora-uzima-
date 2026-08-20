@@ -21,8 +21,17 @@ test("Studio views keep focused DAW areas instead of stacking every module", () 
   assert.match(shell, /"beat-maker": \["beat-maker", "timeline", "mixer-panel"\]/);
   assert.match(shell, /"my-sounds": \["my-sounds", "timeline", "mixer-panel"\]/);
   assert.match(shell, /function mountDawWorkspace\(\)/);
-  assert.match(shell, /editor\.append\(timeline, instrument\)/);
+  assert.match(shell, /editor\.append\(timeline, midiStrip, instrument\)/);
   assert.match(shell, /mixerDock\.appendChild\(mixer\)/);
+});
+test("Arrangement mounts a compact real MIDI strip", () => {
+  const styles = fs.readFileSync(path.join(root, "src/css/styles.css"), "utf8");
+  assert.match(shell, /id = "daw-midi-strip"/);
+  assert.match(shell, /instrument\.querySelector\("#keyboard-notes"\)/);
+  assert.match(shell, /instrument\.querySelector\("#piano-roll"\)/);
+  assert.match(shell, /keep\.add\("daw-midi-strip"\)/);
+  assert.match(styles, /daw-editor-dock > #daw-midi-strip/);
+  assert.match(styles, /\[data-studio-view="timeline"\] \.daw-editor-dock > #instrument-lab/);
 });
 
 test("instrument actions await timeline materialization and expose working feedback", () => {
