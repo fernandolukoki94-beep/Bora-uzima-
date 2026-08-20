@@ -550,3 +550,14 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Preservar estados de permissão, erro, gravação, chunks, take persistida e track criada.
 - [x] Validar monitorização separada e libertação dos recursos de áudio ao parar; QA físico de latência continua pendente.
 - [ ] Testar a take real no playback, autosave e exportação Mixed WAV no Samsung Galaxy A06.
+
+
+## Auditoria de exportação e AI Producer — resiliência de materialização
+
+- [x] Confirmar que o mixdown resolve blobs IndexedDB, `audioData` inline e clips instrumentais antes de gerar Mixed WAV.
+- [x] Confirmar que o AI Producer materializa clips de evento em WAV PCM e actualiza `blobKey`, `audioData` e `mimeType`.
+- [x] Corrigir falha em que uma escrita IndexedDB rejeitada abortava todo o Producer Plan; o WAV inline agora permanece reproduzível e o processamento prossegue.
+- [x] Adicionar regressão determinística para a falha de IndexedDB durante a materialização.
+- [x] Validar suite após a correcção: 199 testes aprovados, 0 falhas.
+- [ ] Confirmar provider AI externo com resposta real e quota disponível.
+- [ ] Validar fisicamente Mixed WAV, playback e gravação no Samsung Galaxy A06.

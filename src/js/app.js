@@ -1404,7 +1404,13 @@ async function materializeInstrumentAudio(project) {
       clip.blobKey = `${nextProject.id}:${kind}`;
       clip.audioData = await blobToDataUrl(wav);
       clip.mimeType = "audio/wav";
-      if (await indexedDbAvailable()) await putAudioBlob(nextProject.id, kind, wav);
+      try {
+        if (await indexedDbAvailable()) await putAudioBlob(nextProject.id, kind, wav);
+      } catch (error) {
+        // O WAV inline já foi materializado; uma falha de IndexedDB não pode
+        // apagar o arranjo nem deixar o Producer Plan sem áudio reproduzível.
+        console.warn("WAV instrumental mantido inline; IndexedDB indisponível", error);
+      }
     }
   }
   return nextProject;

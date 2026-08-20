@@ -404,3 +404,12 @@ A cadeia de gravação foi reforçada para ambientes Chromium Android e Safari/W
 A monitorização continua separada da captura: o ganho, o filtro de presença, o compressor local, o delay e a ambiência são encaminhados apenas quando o monitor está activo. Ao parar, todos os nós, o `requestAnimationFrame`, o medidor e o contexto de áudio são desligados. Se `saveRecording` falhar, o recorder limpa sempre o seu estado e apresenta erro explícito, em vez de ficar preso em `recording`.
 
 Esta etapa foi validada com **197 testes aprovados, 0 falhas**, incluindo contratos determinísticos para suporte WebKit, retomada do contexto e limpeza garantida após falha de persistência. A confirmação física do microfone, da latência percebida e da monitorização com auscultadores no Samsung Galaxy A06 continua pendente.
+
+
+## V2.12 — AI Producer resiliente a falhas de IndexedDB
+
+A materialização do AI Producer agora trata cada clip instrumental como áudio real antes de concluir o plano. O renderer gera WAV PCM a 44,1 kHz, o projecto recebe `blobKey`, `audioData` inline e `mimeType`, e o mixdown resolve a fonte persistida ou a fonte inline.
+
+Foi corrigida uma falha de consistência: quando `putAudioBlob` rejeitava uma escrita IndexedDB, a promessa de materialização abortava o plano inteiro mesmo depois de o WAV inline já ter sido criado. O processamento agora conserva o WAV inline, emite um aviso técnico e continua com os restantes clips. Assim, o Producer Plan não termina com metadata sem áudio reproduzível apenas porque o armazenamento local falhou.
+
+A regressão está coberta por teste determinístico. A suite actual tem **199 testes aprovados, 0 falhas**. A confirmação de provider AI externo e o QA físico de gravação, playback e Mixed WAV no Samsung Galaxy A06 permanecem pendentes e não são declarados como concluídos por esta alteração.
