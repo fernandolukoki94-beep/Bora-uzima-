@@ -602,4 +602,14 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Implementar uma melhoria operacional visível dentro do fluxo autenticado do Studio.
 - [x] Testar a melhoria com contratos determinísticos e suite completa.
 - [x] Actualizar README e TODO com o local exacto onde a melhoria pode ser verificada.
-- [ ] Publicar a versão validada e confirmar o deployment READY.
+- [x] Publicar a versão validada e confirmar o deployment READY (`a6226c7`, `dpl_5iuptDWJQUXuNgwD77ZLU3n8xRgt`).
+
+
+## Auditoria visual baseada no pasted_content.txt
+
+- [ ] Reduzir a aparência de dashboard com cartões, bordas e blocos isolados.
+- [ ] Tornar topbar, ferramentas, timeline, tracks e mixer uma superfície contínua de DAW.
+- [ ] Fazer da timeline e dos clips/waveforms o centro visual do Studio.
+- [ ] Reduzir texto explicativo dentro do espaço de produção e melhorar a hierarquia Arrange/Mix/FX/MIDI/AI.
+- [ ] Apresentar o AI Producer como ferramenta operacional com acções ligadas ao projecto real.
+- [x] Validar a reconstrução visual sem quebrar gravação, timeline, mixer, My Sounds, AI Producer e exportação (202 testes aprovados).
