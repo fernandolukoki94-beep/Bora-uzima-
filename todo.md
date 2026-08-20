@@ -607,9 +607,9 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 
 ## Auditoria visual baseada no pasted_content.txt
 
-- [ ] Reduzir a aparência de dashboard com cartões, bordas e blocos isolados.
-- [ ] Tornar topbar, ferramentas, timeline, tracks e mixer uma superfície contínua de DAW.
-- [ ] Fazer da timeline e dos clips/waveforms o centro visual do Studio.
-- [ ] Reduzir texto explicativo dentro do espaço de produção e melhorar a hierarquia Arrange/Mix/FX/MIDI/AI.
+- [x] Reduzir a aparência de dashboard com cartões, bordas e blocos isolados.
+- [x] Tornar topbar, ferramentas, timeline, tracks e mixer uma superfície contínua de DAW.
+- [x] Fazer da timeline e dos clips/waveforms o centro visual do Studio.
+- [x] Reduzir texto explicativo dentro do espaço de produção e melhorar a hierarquia Arrange/Mix/FX/MIDI/AI.
 - [ ] Apresentar o AI Producer como ferramenta operacional com acções ligadas ao projecto real.
 - [x] Validar a reconstrução visual sem quebrar gravação, timeline, mixer, My Sounds, AI Producer e exportação (202 testes aprovados).

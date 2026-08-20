@@ -438,3 +438,12 @@ O Home autenticado do Studio passou a incluir o painel **Estado real do Studio**
 Quando ainda não há dados no dispositivo, o painel informa explicitamente esse estado. Depois de criar uma sessão, adicionar clips ou importar um som para My Sounds, os contadores mudam no próprio Home protegido. O áudio continua a ser resolvido localmente através do armazenamento existente.
 
 Validação deste marco: `node --check src/js/app.js`, `git diff --check` e suite determinística com **202 testes aprovados e 0 falhas**. A publicação Vercel deste marco permanece pendente até ao commit e confirmação do deployment READY.
+
+
+## V2.16 — Studio como DAW contínua
+
+A interface do Studio foi reconstruída de acordo com a direcção visual definida em `pasted_content.txt`. A alteração reduz cartões e blocos isolados, transforma o espaço central numa superfície contínua e dá prioridade visual à sequência `topbar → ferramentas → timeline → tracks → mixer`.
+
+A timeline passou a ocupar o centro da experiência, com lanes mais altas, labels de tracks integradas, ruler persistente, clips destacados e mixer tratado como continuação da sessão. O texto explicativo foi reduzido dentro do espaço de produção; a área de trabalho passa a privilegiar tracks, waveforms, timeline, mixer e controlos.
+
+A alteração é visual e não remove os fluxos funcionais existentes. A suite determinística continua com 202 testes aprovados e 0 falhas. O commit `525e9e6` foi publicado no Vercel com estado READY. O AI Producer continua a ser tratado como uma lacuna funcional separada: os controlos locais existentes executam operações reais, mas a apresentação completa de acções `Analyze vocal`, `Generate drums`, `Create bassline`, `Improve arrangement`, `Mix vocals` e `Master track` ainda deve ser concluída em sequência, sem criar botões fictícios.
