@@ -357,6 +357,35 @@ function getVariantData(project, variant) {
   if (key === "original") return project.originalAudioData || (!project.processedAudioData ? project.audioData : "") || "";
   return project.audioVariants?.[key]?.data || (key === "processed" ? project.processedAudioData || ((project.effectApplied || project.fadeApplied) ? project.audioData : "") : "") || "";
 }
+
+async function resolveVocalSourceBlob(project) {
+  const direct = getVariantData(project, "original");
+  if (direct) return dataUrlToBlob(direct);
+  const candidates = (project?.tracks || []).flatMap((track) => (track.clips || []).map((clip) => ({ track, clip })))
+    .filter(({ track, clip }) => ["vocal", "audio", "sample"].includes(track.type) || clip.metadata?.origin === "my-sounds");
+  for (const { clip } of candidates) {
+    try {
+      if (clip.metadata?.origin === "my-sounds" && clip.metadata.mySoundId) {
+        const blob = await getMySoundBlob(clip.metadata.mySoundId);
+        if (blob) return blob;
+      }
+      if (clip.audioData) return dataUrlToBlob(clip.audioData);
+      if (clip.blobKey?.startsWith(`${project.id}:`) && await indexedDbAvailable()) {
+        const kind = clip.blobKey.slice(`${project.id}:`.length);
+        const blob = await getAudioBlob(project.id, kind);
+        if (blob) return blob;
+      }
+    } catch (error) {
+      console.warn("Fonte vocal local indisponível para análise", error);
+    }
+  }
+  return null;
+}
+
+async function resolveVocalSourceData(project) {
+  const blob = await resolveVocalSourceBlob(project);
+  return blob ? blobToDataUrl(blob) : "";
+}
 function getVariantMime(project, variant) {
   if (canonicalVariant(variant) === "original") return project?.originalMimeType || project?.mimeType || "audio/webm";
   const key = canonicalVariant(variant);
@@ -722,16 +751,19 @@ async function updateProducerBeatControls(project = currentTimelineProject()) {
   const beat = project?.importedBeat;
   const beatBlob = await resolveBeatBlob(project);
   const ready = Boolean(beat && beatBlob);
+  const vocalBlob = await resolveVocalSourceBlob(project);
+  const vocalReady = Boolean(vocalBlob);
   if (producerBeatPreview) producerBeatPreview.disabled = !ready;
-  if (producerApplyAutoTune) producerApplyAutoTune.disabled = !getVariantData(project, "original");
+  if (producerAnalyzePitch) producerAnalyzePitch.disabled = !vocalReady;
+  if (producerApplyAutoTune) producerApplyAutoTune.disabled = !vocalReady;
   if (producerResetAutoTune) producerResetAutoTune.disabled = !project?.audioVariants?.pitchCorrected;
-  if (producerApplySpace) producerApplySpace.disabled = !getVariantData(project, "original");
+  if (producerApplySpace) producerApplySpace.disabled = !vocalReady;
   if (producerResetSpace) producerResetSpace.disabled = !project?.audioVariants?.spatial;
-  if (harmonyPreview) harmonyPreview.disabled = !Boolean(getVariantData(project, "original"));
-  if (harmonyApply) harmonyApply.disabled = !Boolean(getVariantData(project, "original"));
+  if (harmonyPreview) harmonyPreview.disabled = !vocalReady;
+  if (harmonyApply) harmonyApply.disabled = !vocalReady;
   if (harmonyReset) harmonyReset.disabled = !project?.audioVariants?.harmony;
-  if (voiceCharacterPreview) voiceCharacterPreview.disabled = !Boolean(getVariantData(project, "original"));
-  if (voiceCharacterApply) voiceCharacterApply.disabled = !Boolean(getVariantData(project, "original"));
+  if (voiceCharacterPreview) voiceCharacterPreview.disabled = !vocalReady;
+  if (voiceCharacterApply) voiceCharacterApply.disabled = !vocalReady;
   if (voiceCharacterReset) voiceCharacterReset.disabled = !project?.audioVariants?.voiceCharacter;
   if (harmonyStatus && project?.audioVariants?.harmony) harmonyStatus.textContent = `Harmony disponível · ${Math.round((project.audioVariants.harmony.intensity || 0) * 100)}%`;
   if (producerExport) producerExport.disabled = !getVariantData(project, "mixed");
@@ -748,7 +780,7 @@ async function updateProducerBeatControls(project = currentTimelineProject()) {
     }
   }
   await drawBlobWaveform(beatBlob, producerBeatWaveform, producerBeatWaveformStatus, "#62d6c7");
-  await drawBlobWaveform(getVariantData(project, "original") ? await dataUrlToBlob(getVariantData(project, "original")) : null, producerVocalWaveform, producerVocalWaveformStatus, "#f06aa8");
+  await drawBlobWaveform(vocalBlob, producerVocalWaveform, producerVocalWaveformStatus, "#f06aa8");
 }
 async function importProducerBeat(file) {
   const project = ensureProductionSession("Beat Studio");
@@ -841,15 +873,15 @@ async function shareFinalTrack() {
 }
 async function analyzeProducerPitch() {
   const project = currentTimelineProject();
-  const sourceData = getVariantData(project, "original");
-  if (!project || !sourceData) return showToast("Grava primeiro uma take vocal.");
+  const sourceData = await resolveVocalSourceData(project);
+  if (!project || !sourceData) return showToast("Grava ou adiciona um clip vocal à sessão.");
   if (producerAnalyzePitch) producerAnalyzePitch.disabled = true;
   if (producerPitchStatus) producerPitchStatus.textContent = "A analisar pitch nota-a-nota localmente…";
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) throw new Error("Web Audio API indisponível neste navegador.");
     const context = new AudioContextClass();
-    const buffer = await context.decodeAudioData((await dataUrlToBlob(sourceData)).arrayBuffer());
+    const buffer = await context.decodeAudioData(await (await dataUrlToBlob(sourceData)).arrayBuffer());
     const notes = detectPitchNotes(buffer.getChannelData(0), buffer.sampleRate);
     const correction = autoTuneCorrectionFromPitch(notes, producerAutoTuneRoot?.value || "C", producerAutoTuneScale?.value || "major");
     const savedPitchEdits = await getPitchEdits(project.id).catch(() => null);
@@ -873,8 +905,8 @@ async function analyzeProducerPitch() {
 }
 async function applyLocalAutoTune() {
   const project = currentTimelineProject();
-  const sourceData = getVariantData(project, "original");
-  if (!project || !sourceData) return showToast("Grava primeiro uma take vocal.");
+  const sourceData = await resolveVocalSourceData(project);
+  if (!project || !sourceData) return showToast("Grava ou adiciona um clip vocal à sessão.");
   const intensity = Number(producerAutoTuneIntensity?.value || 50) / 100;
   const root = producerAutoTuneRoot?.value || "C";
   const scale = producerAutoTuneScale?.value || "major";
@@ -1337,14 +1369,47 @@ function scheduleCloudAutosave(project) {
   }, 1200);
 }
 
+async function persistTimelineProjects(projects) {
+  let useIndexedDb = false;
+  try { useIndexedDb = await indexedDbAvailable(); } catch { useIndexedDb = false; }
+  if (!useIndexedDb) {
+    saveProjects(projects);
+    return projects;
+  }
+  const compacted = [];
+  for (const project of projects) {
+    const nextProject = normalizeProject({ ...project, tracks: project.tracks.map((track) => ({ ...track, clips: track.clips.map((clip) => ({ ...clip })) })) });
+    for (const track of nextProject.tracks) {
+      for (const clip of track.clips) {
+        if (!clip.audioData || !clip.blobKey?.startsWith(`${project.id}:instrument-`)) continue;
+        const kind = clip.blobKey.slice(`${project.id}:`.length);
+        try {
+          await putAudioBlob(project.id, kind, await dataUrlToBlob(clip.audioData));
+          delete clip.audioData;
+        } catch (error) {
+          console.warn("WAV do clip mantido inline; IndexedDB indisponível", error);
+        }
+      }
+    }
+    compacted.push(nextProject);
+  }
+  saveProjects(compacted);
+  try {
+    const active = compacted.find((project) => project.id === activeTimelineId);
+    if (active) await putProject(active);
+  } catch (error) {
+    console.warn("Manifesto IndexedDB indisponível; localStorage continua activo", error);
+  }
+  return compacted;
+}
+
 async function commitTimelineProject(nextProject) {
   const currentRevision = Number(timelineHistory?.present?.revision || 0);
   const nextRevision = currentRevision + 1;
   const normalized = normalizeProject({ ...nextProject, revision: nextRevision, versionHistory: [...(timelineHistory?.present?.versionHistory || []), { revision: nextRevision, savedAt: new Date().toISOString(), label: `Revisão ${nextRevision}` }].slice(-20), cloudSyncState: "pending" });
   timelineHistory = commitHistory(timelineHistory, normalized);
   const projects = readProjects().map((project) => project.id === activeTimelineId ? timelineHistory.present : project);
-  saveProjects(projects);
-  try { if (await indexedDbAvailable()) await putProject(timelineHistory.present); } catch { showToast("A edição ficou no fallback local; IndexedDB será tentado novamente."); }
+  await persistTimelineProjects(projects);
   renderProjects();
   scheduleCloudAutosave(timelineHistory.present);
 }
@@ -1526,10 +1591,10 @@ async function previewSoundLibraryItem(item) {
   }
 }
 
-function addSoundLibraryItem(item, start = null) {
+async function addSoundLibraryItem(item, start = null) {
   if (!item) return false;
   const clip = soundLibraryClip(item, start);
-  const added = insertInstrumentClip({ name: clip.name, type: item.type, duration: clip.duration, start: clip.start, metadata: clip.event });
+  const added = await insertInstrumentClip({ name: clip.name, type: item.type, duration: clip.duration, start: clip.start, metadata: clip.event });
   if (added && soundLibraryStatus) soundLibraryStatus.textContent = `${item.name} adicionado à timeline na posição ${clip.start.toFixed(1)}s.`;
   return added;
 }
@@ -2081,9 +2146,9 @@ async function saveRecording({ blob, mimeType, seconds }) {
   if (productionBriefInput) productionBriefInput.value = "";
 }
 
-async function applyLocalEffect(id, effectName, processor, successMessage, variant = "processed") {
+async function applyLocalEffect(id, effectName, processor, successMessage, variant = "processed", sourceResolver = null) {
   const project = readProjects().find((item) => item.id === id);
-  const sourceData = getVariantData(project, "original");
+  const sourceData = sourceResolver ? await sourceResolver(project) : getVariantData(project, "original");
   if (!project || !sourceData || project[effectName] || project.audioVariants?.[variant]?.data) return;
   try {
     showToast(`A preparar ${VOCAL_VARIANTS[variant]?.label || "Processada"} local em WAV…`);
@@ -2143,7 +2208,7 @@ function applyLocalVocalEnhancement(id) {
   return applyLocalEffect(id, "vocalEnhancementApplied", applyVocalEnhancement, "Melhoria vocal local aplicada. O original continua preservado.", "enhanced");
 }
 async function applyLocalVoiceCleaner(id, options = {}) {
-  return applyLocalEffect(id, "voiceCleanerApplied", (blob) => applyVoiceCleanerLocal(blob, options), "Voice Cleaner local aplicado. O original continua preservado.", "cleaned");
+  return applyLocalEffect(id, "voiceCleanerApplied", (blob) => applyVoiceCleanerLocal(blob, options), "Voice Cleaner local aplicado. O original continua preservado.", "cleaned", resolveVocalSourceData);
 }
 async function applyLocalVoiceChanger(id, character = "deep") {
   return applyLocalEffect(id, "voiceChangerApplied", (blob) => applyVoiceChangerLocal(blob, { character }), "Voice Changer local aplicado. O original continua preservado.", "voiceChanged");
@@ -2268,20 +2333,22 @@ function setVoiceCleanerStatus(message, state = "") {
 }
 async function analyzeVoiceCleaner() {
   const project = currentTimelineProject();
-  const sourceData = getVariantData(project, "original");
-  if (!project || !sourceData) { setVoiceCleanerStatus("Abre ou grava uma sessão vocal antes de analisar.", "error"); return; }
+  const sourceData = await resolveVocalSourceData(project);
+  if (!project || !sourceData) { setVoiceCleanerStatus("Adiciona ou grava um clip vocal antes de analisar.", "error"); return; }
   try {
     const analysis = await analyzeAudioDataUrl(sourceData);
-    const peak = Number.isFinite(analysis.peakDb) ? `${analysis.peakDb.toFixed(1)} dBFS` : "indisponível";
-    const rms = Number.isFinite(analysis.rmsDb) ? `${analysis.rmsDb.toFixed(1)} dBFS` : "indisponível";
-    if (voiceCleanerAnalysis) voiceCleanerAnalysis.textContent = `Análise local: ${analysis.durationSeconds.toFixed(2)} s · pico ${peak} · loudness RMS ${rms}. Os módulos seleccionados serão processados de forma reversível.`;
+    const peakDb = analysis.vocal?.peakDb ?? analysis.peakDb;
+    const rmsDb = analysis.vocal?.rmsDb ?? analysis.rmsDb;
+    const peak = Number.isFinite(peakDb) ? `${peakDb.toFixed(1)} dBFS` : "indisponível";
+    const rms = Number.isFinite(rmsDb) ? `${rmsDb.toFixed(1)} dBFS` : "indisponível";
+    if (voiceCleanerAnalysis) voiceCleanerAnalysis.textContent = `Análise local: ${Number(analysis.duration ?? analysis.durationSeconds ?? 0).toFixed(2)} s · pico ${peak} · loudness RMS ${rms}. Os módulos seleccionados serão processados de forma reversível.`;
     setVoiceCleanerStatus("Análise concluída localmente.", "success");
   } catch (error) { setVoiceCleanerStatus(`Não foi possível analisar o vocal: ${error instanceof Error ? error.message : "erro desconhecido"}.`, "error"); }
 }
 async function previewVoiceCleaner() {
   const project = currentTimelineProject();
-  const sourceData = getVariantData(project, "original");
-  if (!project || !sourceData) { setVoiceCleanerStatus("Abre ou grava uma sessão vocal antes da pré-escuta.", "error"); return; }
+  const sourceData = await resolveVocalSourceData(project);
+  if (!project || !sourceData) { setVoiceCleanerStatus("Adiciona ou grava um clip vocal antes da pré-escuta.", "error"); return; }
   try {
     const processed = await applyVoiceCleanerLocal(await dataUrlToBlob(sourceData), voiceCleanerOptions());
     if (voiceCleanerPreviewUrl) URL.revokeObjectURL(voiceCleanerPreviewUrl);
@@ -2451,10 +2518,36 @@ producerRequestAi?.addEventListener("click", async () => {
     }
     await runProducerPlan(project.id, { planOverride: recommendationPlan, sourceLabel: "ai" });
   } catch (error) {
+    const status = error.status || "provider_unavailable";
+    const fallbackPlan = buildProducerPlan({
+      genre: project.genre || "Afrobeat",
+      tempo: project.tempo || 100,
+      key: project.key || "C",
+      duration: Number(project.duration || 60),
+      brief: project.productionBrief || "",
+      analysis: project.analysis || null,
+      preferAnalysis: Boolean(project.analysis?.hasAudio),
+    });
+    const fallbackAdvice = {
+      summary: "O provider generativo está indisponível; o assistente local preparou uma direcção reversível.",
+      chain: ["Arranjo local", "Instrumental local", "Mix local", "Master local"],
+      confidence: "medium",
+      source: "local-fallback",
+      providerStatus: status,
+    };
+    const fallbackProjects = readProjects().map((item) => item.id === project.id
+      ? { ...item, aiRecommendation: fallbackAdvice, aiRecommendedPlan: fallbackPlan, aiRecommendationSource: "local-fallback" }
+      : item);
+    saveProjects(fallbackProjects);
     if (producerAiStatus) {
-      const status = error.status || "provider_unavailable";
-      producerAiStatus.dataset.state = status === "provider_quota_exhausted" ? "fallback" : "error";
-      producerAiStatus.textContent = `${error.message || "Recomendação IA indisponível."} O Producer Plan local continua disponível, mas não é uma resposta generativa do provider.`;
+      producerAiStatus.dataset.state = "fallback";
+      producerAiStatus.textContent = `${error.message || "Recomendação IA indisponível."} O Assistente local aplicará agora um plano reversível; isto não é uma resposta generativa do provider.`;
+    }
+    try {
+      await runProducerPlan(project.id, { planOverride: fallbackPlan, sourceLabel: "local-fallback" });
+      if (producerAiStatus) producerAiStatus.textContent += " Plano local aplicado à timeline.";
+    } catch (fallbackError) {
+      if (producerAiStatus) producerAiStatus.textContent += ` O fallback local também falhou: ${fallbackError.message || "erro desconhecido"}.`;
     }
   } finally {
     producerRequestAi.disabled = false;
@@ -3022,11 +3115,11 @@ function createLooperLayerFromInput() {
   renderLooperLayers();
   showToast(`${layer.name} adicionada ao Looper.`);
 }
-function materializeLooperToTimeline() {
+async function materializeLooperToTimeline() {
   updateLooperFromControls();
   if (!looperState.layers.length) return showToast("Adiciona pelo menos uma camada ao Looper.");
   const clip = materializeLooperClip(looperState, { name: `Looper · ${looperState.layers.length} camadas` });
-  const added = insertInstrumentClip({ name: clip.name, type: "instrument", duration: clip.duration, metadata: clip.event });
+  const added = await insertInstrumentClip({ name: clip.name, type: "instrument", duration: clip.duration, metadata: clip.event });
   if (added && looperStatus) looperStatus.textContent = "Looper materializado na timeline · clip reversível.";
 }
 looperDuration?.addEventListener("input", () => { updateLooperFromControls(); renderLooperLayers(); });
@@ -3073,7 +3166,7 @@ keyboardVelocity?.addEventListener("input", () => { if (keyboardVelocityValue) k
 samplerSource?.addEventListener("change", async () => { samplerBuffers.delete(samplerSource.value); try { await loadSamplerBuffer(samplerSource.value); } catch (error) { if (samplerStatus) samplerStatus.textContent = error.message; } });
 samplerPreview?.addEventListener("click", async () => { try { await previewSampler("C4"); } catch (error) { if (samplerStatus) samplerStatus.textContent = error.message; } });
 keyboardQuantize?.addEventListener("change", () => showToast(`Quantização do teclado: ${keyboardQuantize.value}.`));
-keyboardMidiRecord?.addEventListener("click", () => {
+keyboardMidiRecord?.addEventListener("click", async () => {
   if (!keyboardMidiRecording) {
     keyboardMidiRecording = { startedAt: performance.now(), events: [] };
     keyboardMidiRecord.setAttribute("aria-pressed", "true");
@@ -3087,7 +3180,7 @@ keyboardMidiRecord?.addEventListener("click", () => {
   keyboardMidiRecord.textContent = "● Gravar MIDI";
   if (!events.length) { if (keyboardMidiStatus) keyboardMidiStatus.textContent = "Nenhuma nota gravada."; return; }
   const duration = Math.max(0.25, events.reduce((latest, event) => Math.max(latest, event.time + event.duration), 0));
-  const added = insertInstrumentClip({ name: "Teclado · take MIDI", type: "midi", duration, metadata: { instrument: "piano", events, sequence: "keyboard-recording", quantize: keyboardQuantize?.value || null } });
+  const added = await insertInstrumentClip({ name: "Teclado · take MIDI", type: "midi", duration, metadata: { instrument: "piano", events, sequence: "keyboard-recording", quantize: keyboardQuantize?.value || null } });
   if (keyboardMidiStatus) keyboardMidiStatus.textContent = added ? `${events.length} notas inseridas na timeline.` : "Abre uma sessão para inserir o MIDI.";
 });
 document.addEventListener("keydown", async (event) => {
@@ -3098,8 +3191,8 @@ document.addEventListener("keydown", async (event) => {
 playChordButton?.addEventListener("click", async () => {
   try { await playChord(chordSelect?.value || "C"); } catch (error) { showToast(error.message); }
 });
-addChordTimeline?.addEventListener("click", () => {
-  insertInstrumentClip({ name: `Piano · ${chordSelect?.value || "C"}`, type: "instrument", metadata: { instrument: "piano", chord: chordSelect?.value || "C" } });
+addChordTimeline?.addEventListener("click", async () => {
+  await insertInstrumentClip({ name: `Piano · ${chordSelect?.value || "C"}`, type: "instrument", metadata: { instrument: "piano", chord: chordSelect?.value || "C" } });
 });
 guitarChords?.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-guitar-chord]");
@@ -3115,12 +3208,12 @@ extraInstruments?.addEventListener("click", async (event) => {
   flashControl(button);
   try {
     await playChord(chord, { duration: instrument === "strings" ? 0.9 : 0.7, volume: instrument === "strings" ? 0.08 : 0.07, instrument });
-    insertInstrumentClip({ name: `${instrument === "strings" ? "Cordas" : "Synth Pad"} · ${chord}`, type: "instrument", duration: instrument === "strings" ? 1.2 : 0.9, metadata: { instrument, chord } });
-    showToast(`${instrument === "strings" ? "Cordas" : "Synth Pad"} preparado localmente.`);
+    const added = await insertInstrumentClip({ name: `${instrument === "strings" ? "Cordas" : "Synth Pad"} · ${chord}`, type: "instrument", duration: instrument === "strings" ? 1.2 : 0.9, metadata: { instrument, chord } });
+    if (added) showToast(`${instrument === "strings" ? "Cordas" : "Synth Pad"} preparado localmente.`);
   } catch (error) { showToast(error.message); }
 });
-addGuitarTimeline?.addEventListener("click", () => {
-  insertInstrumentClip({ name: `Guitarra · ${chordSelect?.value || "C"}`, type: "guitar", metadata: { instrument: "guitar", chord: chordSelect?.value || "C" } });
+addGuitarTimeline?.addEventListener("click", async () => {
+  await insertInstrumentClip({ name: `Guitarra · ${chordSelect?.value || "C"}`, type: "guitar", metadata: { instrument: "guitar", chord: chordSelect?.value || "C" } });
 });
 function pianoRollEvents() {
   const bpm = Math.max(40, Math.min(240, Number(projectTempo?.value) || 100));
@@ -3144,11 +3237,11 @@ async function previewPianoRollSequence() {
     if (pianoRollStatus) pianoRollStatus.textContent = `${events.length} notas reproduzidas · ${Math.round((events.at(-1).time + events.at(-1).duration) * 1000) / 1000}s`;
   } catch (error) { showToast(error instanceof Error ? error.message : "Pré-escuta do Piano Roll falhou."); }
 }
-function addPianoRollToTimeline() {
+async function addPianoRollToTimeline() {
   const events = pianoRollEvents();
   if (!events.length) return showToast("Activa pelo menos um passo no Piano Roll.");
   const duration = Math.max(0.25, events.reduce((latest, event) => Math.max(latest, event.time + event.duration), 0));
-  const added = insertInstrumentClip({ name: "Piano Roll · sequência", type: "instrument", duration, metadata: { instrument: "piano", events, sequence: "piano-roll", bpm: Number(projectTempo?.value) || 100 } });
+  const added = await insertInstrumentClip({ name: "Piano Roll · sequência", type: "instrument", duration, metadata: { instrument: "piano", events, sequence: "piano-roll", bpm: Number(projectTempo?.value) || 100 } });
   if (added && pianoRollStatus) pianoRollStatus.textContent = `${events.length} notas materializadas na timeline · clip reversível.`;
 }
 
@@ -3182,11 +3275,11 @@ function beatMachineOptions() {
   return { kit: beatKit?.value || "Acoustic", swing, velocity, loop, loopCount };
 }
 [beatSwing, beatVelocity, beatLoop, beatLoopCount].forEach((control) => control?.addEventListener("input", beatMachineOptions));
-addBeatTimeline?.addEventListener("click", () => {
+addBeatTimeline?.addEventListener("click", async () => {
   const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
   const options = beatMachineOptions();
   const sequence = createGridEvents({ channels: preset.channels, bpm: Number(projectTempo?.value) || preset.bpm, ...options });
-  insertInstrumentClip({ name: `Beat · ${preset.name} · ${options.kit}`, type: "drums", duration: sequence.duration, metadata: { instrument: "drums", preset: preset.name, bpm: preset.bpm, channels: preset.channels, ...options, events: sequence.events } });
+  await insertInstrumentClip({ name: `Beat · ${preset.name} · ${options.kit}`, type: "drums", duration: sequence.duration, metadata: { instrument: "drums", preset: preset.name, bpm: preset.bpm, channels: preset.channels, ...options, events: sequence.events } });
 });
 playBeatSequence?.addEventListener("click", async () => {
   const preset = getBeatPreset(beatPreset?.value || "Afrobeat");
@@ -3246,7 +3339,7 @@ soundLibraryGrid?.addEventListener("click", async (event) => {
   if (!preview && !add) return;
   const item = getSoundLibraryItem((preview || add).dataset.soundPreview || (preview || add).dataset.soundAdd);
   if (preview) await previewSoundLibraryItem(item);
-  else addSoundLibraryItem(item);
+  else await addSoundLibraryItem(item);
 });
 function syncSoundLibraryFilters() {
   soundLibraryFilters = { query: soundLibraryQuery?.value || "", category: soundLibraryCategory?.value || "", genre: soundLibraryGenre?.value || "", mood: soundLibraryMood?.value || "", favoritesOnly: Boolean(soundLibraryFavoritesOnly?.getAttribute("aria-pressed") === "true") };
@@ -3278,7 +3371,7 @@ timelineGrid?.addEventListener("dragover", (event) => {
   }
 });
 timelineGrid?.addEventListener("dragleave", () => timelineGrid.classList.remove("is-drop-target"));
-timelineGrid?.addEventListener("drop", (event) => {
+timelineGrid?.addEventListener("drop", async (event) => {
   event.preventDefault();
   timelineGrid.classList.remove("is-drop-target");
   const id = event.dataTransfer?.getData("text/fernando-lucoco-sound");
@@ -3286,7 +3379,7 @@ timelineGrid?.addEventListener("drop", (event) => {
   if (!item || !timelineGrid) return;
   const rect = timelineGrid.getBoundingClientRect();
   const start = Math.max(0, Math.min(39, ((event.clientX - rect.left) / Math.max(1, rect.width)) * 40));
-  addSoundLibraryItem(item, start);
+  await addSoundLibraryItem(item, start);
 });
 playPatternButton?.addEventListener("click", async () => {
   try {
