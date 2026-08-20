@@ -374,3 +374,8 @@ Nesta iteração, a suite determinística terminou com **193 testes aprovados, 0
 ```bash
 npm test
 ```
+
+
+### AI Producer — saída audível materializada
+
+Quando o AI Producer aplica um plano local ou uma recomendação provider-backed, a fase de arranjo continua a gerar um manifesto determinístico e, adicionalmente, percorre os clips instrumentais gerados para produzir WAV PCM persistente. Assim, a frase de estado do Producer corresponde a uma operação observável: o utilizador pode reproduzir as Audio Tracks criadas, reabrir a sessão local e incluir essas fontes no Mixdown. Se a persistência IndexedDB falhar, o projecto conserva o `audioData` inline e o evento original para permitir re-renderização local; o erro não é convertido silenciosamente numa faixa vazia.

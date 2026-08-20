@@ -510,8 +510,8 @@ A execução correcta separa os 169 testes Node dos dois ficheiros Vitest de sec
 - [x] Persistir Lyrics/Notes localmente com estado acessível de gravação
 - [x] Validar visualmente o novo shell no preview local e corrigir a regressão de navegação por hash
 
-- [ ] Confirmar que as alterações visuais locais foram committed e enviadas para o repositório/deployment correcto
-- [ ] Verificar a versão pública de Fernando Lucoco Music após o deployment e invalidar cache se necessário
+- [x] Confirmar que as alterações visuais locais foram committed e enviadas para o repositório/deployment correcto
+- [x] Verificar a versão pública de Fernando Lucoco Music após o deployment e invalidar cache se necessário
 
 
 ## Iteração funcional — materialização de instrumentais WAV
