@@ -31,3 +31,7 @@ A composição local parece mais próxima de um produto de produção musical. O
 ## Verificação visual Control Room autenticada
 
 A shell autenticada foi aplicada aos docks reais. O padding vertical herdado da regra global `section` foi removido, eliminando o grande espaço vazio acima da Timeline. A composição agora inicia directamente após a barra de sessão e os tabs, com Browser à esquerda, Arrangement central, Mixer à direita e MIDI/Piano Roll no dock inferior. O aspecto ainda precisa de validação funcional, mas a estrutura deixou de parecer uma sequência de cartões empilhados.
+
+## Verificação funcional visual
+
+Na sessão local preparada, o teclado virtual recebeu uma interacção real depois da reconstrução. Os controlos de teclado, Piano Roll, transporte, Timeline e Mixer continuam presentes, e o console do navegador não mostrou erros após o clique. A captura física de microfone continua fora do alcance deste ambiente sem um dispositivo/permissão reais.
