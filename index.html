@@ -77,35 +77,31 @@
   </section>
 
   <main id="top">
-    <section class="hero">
-      <div class="shell hero-grid">
-        <div>
-          <div class="eyebrow">Estúdio vocal web · AI Producer</div>
-          <h1>Cria música.<br /><em>Grava tudo.</em></h1>
-          <p class="hero-copy">Crie música. Grave sua voz. Produza tudo em um só lugar — com waveform, mixer e projectos que ficam contigo.</p>
-          <div class="actions"><button class="button button-primary" type="button" data-open-fernando-onboarding>Começar a criar <span aria-hidden="true">↗</span></button><button class="button button-quiet" type="button" data-open-firebase-auth data-auth-mode="login">Entrar no Studio</button></div>
-          <div class="hero-proof" aria-label="Princípios do produto"><span><i aria-hidden="true">●</i> Local-first</span><span><i aria-hidden="true">✓</i> Original preservado</span><span><i aria-hidden="true">↗</i> Export WAV</span></div>
-          <p class="hero-note">Fernando Lucoco Music · Studio, IA e criação musical num só espaço</p>
+    <section class="control-room-entry" aria-labelledby="control-room-title">
+      <div class="control-room-topline">
+        <div><span class="control-room-kicker">FERNANDO LUCOCO MUSIC / CONTROL ROOM</span><strong>Local session workstation</strong></div>
+        <div class="control-room-status"><i aria-hidden="true"></i><span>Audio local</span><span>44.1 kHz</span><span>48 tracks max</span></div>
+      </div>
+      <div class="control-room-grid">
+        <div class="control-room-copy">
+          <span class="control-room-index">01 / START SESSION</span>
+          <h1 id="control-room-title">A tua música<br /><em>começa aqui.</em></h1>
+          <p>Um espaço de produção vocal e instrumental para gravar, construir ideias, editar MIDI e fechar um mix sem sair da sessão.</p>
+          <div class="control-room-actions"><button class="button button-primary" type="button" data-open-firebase-auth data-auth-mode="login">Abrir a consola</button><button class="button button-quiet" type="button" data-open-fernando-onboarding>Nova sessão</button></div>
+          <div class="control-room-note"><span>01</span><strong>Grava localmente.</strong><small>O áudio original permanece no teu dispositivo e pode ser exportado em WAV.</small></div>
         </div>
-        <div class="studio-card" aria-label="Pré-visualização do estúdio vocal">
-          <div class="card-head"><span>Take 01 · sessão nova</span><span class="status">Pronto</span></div>
-          <h2>Capta o momento.</h2><p>A ideia não espera pela ligação perfeita.</p>
-          <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="recorder-row"><div class="take-meta"><strong id="timer">00:00</strong><br /><span id="record-label">Pré-visualização · entra para gravar</span></div><button class="record-dot" id="hero-record" aria-label="Pré-visualização — entra para gravar" disabled><span></span></button></div>
+        <div class="control-room-preview" aria-label="Pré-visualização da consola de produção">
+          <div class="preview-toolbar"><strong>SESSION / NEW TAKE</strong><span>00:00:00</span><button class="preview-record" type="button" data-open-firebase-auth data-auth-mode="login"><i aria-hidden="true"></i> REC</button></div>
+          <div class="preview-workspace">
+            <aside class="preview-browser"><span class="preview-label">BROWSER</span><strong>Sources</strong><span class="preview-item is-active">Vocal input <b>IN</b></span><span class="preview-item">Afrobeat kit <b>104</b></span><span class="preview-item">Piano / C <b>MIDI</b></span><span class="preview-item">My sounds <b>7</b></span></aside>
+            <div class="preview-arrangement"><div class="preview-arrangement-head"><span>ARRANGEMENT</span><span>1&nbsp;&nbsp;2&nbsp;&nbsp;3&nbsp;&nbsp;4&nbsp;&nbsp;5&nbsp;&nbsp;6&nbsp;&nbsp;7&nbsp;&nbsp;8</span></div><div class="preview-track"><strong>VOCAL</strong><div class="preview-lane"><i class="preview-wave wave-one"></i><b>Lead Vocal / take 01</b></div></div><div class="preview-track"><strong>DRUMS</strong><div class="preview-lane"><i class="preview-grid"></i><b>Afrobeat groove</b></div></div><div class="preview-track"><strong>MIDI</strong><div class="preview-lane"><i class="preview-notes"></i><b>Chord idea / Piano</b></div></div><div class="preview-mini-transport"><button type="button" data-open-firebase-auth data-auth-mode="login">▶ Play</button><span>120 BPM</span><span>C minor</span><span>Ready</span></div></div>
+            <aside class="preview-mixer"><span class="preview-label">MIXER</span><strong>Master</strong><div class="preview-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="preview-db">−12.0 dBFS</span><div class="preview-channel"><b>Vocal</b><i style="height: 58%"></i></div><div class="preview-channel"><b>Beat</b><i style="height: 38%"></i></div><div class="preview-channel"><b>Keys</b><i style="height: 24%"></i></div></aside>
+          </div>
+          <div class="preview-footer"><span>Timeline</span><span>Piano roll</span><span>Mixer</span><span>AI Producer</span><span>Export WAV</span></div>
         </div>
       </div>
     </section>
 
-    <section class="product-console" aria-labelledby="product-console-title">
-      <div class="shell">
-        <div class="console-heading"><div><div class="section-kicker">O teu workspace, antes do primeiro take</div><h2 id="product-console-title">Uma ideia. Um sinal.<br /><span>Um estúdio inteiro.</span></h2></div><a class="console-link" href="#estudio">Abrir o Studio <span aria-hidden="true">↗</span></a></div>
-        <div class="console-grid">
-          <article class="console-card console-card-wave"><div class="console-card-top"><span class="console-label">01 · WAVEFORM</span><span class="console-live"><i></i> local</span></div><h3>A tua voz fica visível.</h3><div class="console-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="console-readout"><strong>00:18.42</strong><span>Take 01 · Vocal</span><span class="console-state">Pronto para editar</span></div></article>
-          <article class="console-card console-card-mix"><div class="console-card-top"><span class="console-label">02 · MIXER</span><span class="console-live">3 tracks</span></div><h3>Decide o que se ouve.</h3><div class="meter-stack" aria-label="Pré-visualização do mixer"><div class="meter-row"><span>Vocal</span><i><b style="width:78%"></b></i><strong>−2.4</strong></div><div class="meter-row"><span>Beat</span><i><b style="width:54%"></b></i><strong>−6.0</strong></div><div class="meter-row"><span>FX</span><i><b style="width:32%"></b></i><strong>−12</strong></div></div><div class="console-controls"><span>VOL</span><span>PAN</span><span class="active">MUTE</span><span>SOLO</span></div></article>
-          <article class="console-card console-card-project"><div class="console-card-top"><span class="console-label">03 · PROJECTS</span><span class="console-live">autosave</span></div><h3>Volta quando quiseres.</h3><div class="project-preview"><div><span class="project-dot coral"></span><strong>Demo Afrobeat 01</strong><small>Vocal · 3 tracks · agora</small></div><span class="project-arrow">→</span></div><div class="project-preview"><div><span class="project-dot gold"></span><strong>Ideia de refrão</strong><small>Take 02 · ontem</small></div><span class="project-arrow">→</span></div><a class="console-link small" href="#recording-workspace">Criar novo projecto <span aria-hidden="true">＋</span></a></article>
-        </div>
-      </div>
-    </section>
 
     <section id="processo">
       <div class="shell">
