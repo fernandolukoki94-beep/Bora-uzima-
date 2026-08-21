@@ -2952,3 +2952,48 @@ body.studio-ready .daw-mixer-dock .mixer-switches .mini-button { min-height: 24p
 
 /* Remove legacy section spacing from the full-viewport DAW workspace. */
 body.studio-ready #daw-workspace { padding: 0; }
+
+
+/* Reference-file visual direction: physical 3D recording studio hero */
+body.public-landing .control-room-entry { background: #0b0d0f; }
+body.public-landing .control-room-grid { grid-template-columns: minmax(280px, .62fr) minmax(520px, 1.38fr); align-items: stretch; gap: clamp(22px, 4vw, 64px); }
+body.public-landing .control-room-copy { align-self: center; }
+body.public-landing .control-room-copy h1 { max-width: 520px; font-size: clamp(3.2rem, 6vw, 6rem); letter-spacing: -.08em; }
+body.public-landing .control-room-copy h1 em { color: #d18b55; }
+body.public-landing .control-room-copy p { max-width: 430px; color: #b2ada5; }
+body.public-landing .control-room-preview.reference-studio-visual { position: relative; min-height: clamp(460px, 64vh, 700px); overflow: hidden; border: 1px solid rgba(213,163,79,.45); border-radius: 2px; background: #141719; box-shadow: 0 24px 80px rgba(0,0,0,.48); }
+body.public-landing .reference-studio-visual > img { display: block; width: 100%; height: 100%; min-height: clamp(460px, 64vh, 700px); object-fit: cover; object-position: center; filter: saturate(.88) contrast(1.04) brightness(.82); }
+body.public-landing .reference-studio-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(3,6,9,.36), transparent 34%, rgba(3,5,6,.74) 100%), linear-gradient(90deg, rgba(4,7,10,.18), transparent 44%, rgba(3,5,6,.2)); pointer-events: none; }
+body.public-landing .reference-studio-topline { position: absolute; top: 16px; right: 18px; left: 18px; display: flex; justify-content: space-between; gap: 12px; color: #ded7c9; font: 600 .54rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .16em; text-transform: uppercase; }
+body.public-landing .reference-studio-topline span:last-child { color: #d5a34f; }
+body.public-landing .reference-studio-caption { position: absolute; right: 22px; bottom: 76px; left: 22px; display: grid; gap: 5px; max-width: 490px; color: #e6e1d8; text-shadow: 0 2px 16px rgba(0,0,0,.65); }
+body.public-landing .reference-studio-caption strong { max-width: 470px; font: 500 clamp(1.7rem, 3.3vw, 3.4rem)/.96 Georgia, "Times New Roman", serif; letter-spacing: -.055em; }
+body.public-landing .reference-studio-caption span:last-child { color: #b8b8af; font: .6rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+body.public-landing .reference-studio-kicker { color: #d5a34f; font: 700 .58rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .18em; text-transform: uppercase; }
+body.public-landing .reference-studio-console { position: absolute; right: 18px; bottom: 17px; left: 18px; display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid rgba(231,225,211,.26); background: rgba(10,13,15,.82); color: #a8afa9; backdrop-filter: blur(12px); font: .57rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; }
+body.public-landing .reference-studio-console > span:not(.reference-console-status) { padding-left: 8px; border-left: 1px solid rgba(231,225,211,.22); }
+body.public-landing .reference-console-status { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; color: #91b087; }
+body.public-landing .reference-console-status i { width: 6px; height: 6px; border-radius: 50%; background: #91b087; box-shadow: 0 0 0 3px rgba(145,176,135,.12); }
+body.public-landing .reference-console-button { min-height: 27px; padding: 4px 9px; border: 1px solid rgba(231,225,211,.35); border-radius: 1px; background: transparent; color: #e9e3d7; cursor: pointer; font: 700 .56rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+body.public-landing .reference-console-button:hover { border-color: #d5a34f; color: #d5a34f; }
+body.public-landing .reference-console-button.is-record { border-color: #ba6958; color: #e2a095; }
+body.public-landing .reference-console-button.is-record i { display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%; background: currentColor; }
+body.public-landing .control-room-note { border-top-color: rgba(213,163,79,.35); }
+@media (max-width: 900px) {
+  body.public-landing .control-room-grid { grid-template-columns: 1fr; }
+  body.public-landing .control-room-copy { order: 0; }
+  body.public-landing .control-room-preview.reference-studio-visual { order: 1; min-height: 430px; }
+  body.public-landing .reference-studio-visual > img { min-height: 430px; }
+}
+@media (max-width: 560px) {
+  body.public-landing .control-room-preview.reference-studio-visual, body.public-landing .reference-studio-visual > img { min-height: 360px; }
+  body.public-landing .reference-studio-topline { top: 11px; right: 11px; left: 11px; font-size: .45rem; }
+  body.public-landing .reference-studio-caption { right: 13px; bottom: 72px; left: 13px; }
+  body.public-landing .reference-studio-caption strong { font-size: 1.7rem; }
+  body.public-landing .reference-studio-console { right: 10px; bottom: 10px; left: 10px; gap: 5px; overflow-x: auto; white-space: nowrap; }
+  body.public-landing .reference-studio-console > span:not(.reference-console-status) { display: none; }
+}
+
+/* Carry the physical studio environment into the authenticated control room. */
+body.studio-ready .studio-main-column::before { content: "CONTROL ROOM  /  VOCAL BOOTH  /  SESSION READY"; display: flex; align-items: center; min-height: 62px; padding: 0 18px; border-bottom: 1px solid #39423e; background: linear-gradient(90deg, rgba(7,10,11,.92), rgba(7,10,11,.52), rgba(7,10,11,.9)), url("assets/professional-studio-control-room-01.jpg") center 53% / cover; color: #d5a34f; font: 700 .56rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .18em; }
+@media (max-width: 820px) { body.studio-ready .studio-main-column::before { min-height: 46px; padding: 0 12px; font-size: .48rem; } }
