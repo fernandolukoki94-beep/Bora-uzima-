@@ -52,3 +52,7 @@ A imagem 3D foi integrada na primeira viewport pública. A cena mostra mesa de p
 ## Integração autenticada
 
 A mesma linguagem 3D foi levada para o Studio autenticado através de uma faixa ambiental no topo da consola. O ambiente físico não substitui a aplicação: Browser, Arrangement, Mixer, transporte, teclado MIDI e Piano Roll continuam acessíveis e a faixa ocupa apenas uma altura curta.
+
+## Rota isolada do estúdio
+
+Foi criada a rota pública `?room=studio`. Nela, a landing page, secções de processo, Studio autenticado e footer ficam ocultos; a viewport mostra apenas a sala de gravação profissional 3D, a vocal booth através do vidro, a control room, os instrumentos, o rack, a DAW nos monitores, a iluminação e a barra funcional de REC/PLAY.
